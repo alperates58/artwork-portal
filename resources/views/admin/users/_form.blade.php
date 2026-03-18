@@ -1,12 +1,12 @@
 <div>
     <label class="label">Ad Soyad *</label>
-    <input type="text" name="name" value="{{ old('name', $user->name ?? '') }}" required class="input">
-    @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+    <x-ui.input type="text" name="name" value="{{ old('name', $user->name ?? '') }}" required :invalid="$errors->has('name')" />
+    @error('name')<p class="err">{{ $message }}</p>@enderror
 </div>
 <div>
     <label class="label">E-posta *</label>
-    <input type="email" name="email" value="{{ old('email', $user->email ?? '') }}" required class="input">
-    @error('email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+    <x-ui.input type="email" name="email" value="{{ old('email', $user->email ?? '') }}" required :invalid="$errors->has('email')" />
+    @error('email')<p class="err">{{ $message }}</p>@enderror
 </div>
 <div>
     <label class="label">Rol *</label>
@@ -18,7 +18,7 @@
             </option>
         @endforeach
     </select>
-    @error('role')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+    @error('role')<p class="err">{{ $message }}</p>@enderror
 </div>
 <div id="supplierField" style="display:none">
     <label class="label">Tedarikçi Firma *</label>
@@ -31,13 +31,13 @@
             </option>
         @endforeach
     </select>
-    @error('supplier_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+    @error('supplier_id')<p class="err">{{ $message }}</p>@enderror
 </div>
 <div>
     <label class="label">Şifre {{ isset($isCreate) && !$isCreate ? '(boş bırakılırsa değişmez)' : '*' }}</label>
     <input type="password" name="password" {{ isset($isCreate) && $isCreate ? 'required' : '' }}
            minlength="8" class="input" placeholder="En az 8 karakter">
-    @error('password')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+    @error('password')<p class="err">{{ $message }}</p>@enderror
 </div>
 <div>
     <label class="label">Şifre Tekrar</label>

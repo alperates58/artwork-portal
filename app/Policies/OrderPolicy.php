@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Enums\UserRole;
 use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderLine;
 use App\Models\User;
 
 class OrderPolicy
@@ -13,10 +14,14 @@ class OrderPolicy
         return true; // Hepsi sipariş listesini görebilir — scope ile filtre uygulanır
     }
 
-    public function view(User $user, PurchaseOrder $order): bool
+    public function view(User $user, PurchaseOrder|PurchaseOrderLine $subject): bool
     {
+        $supplierId = $subject instanceof PurchaseOrder
+            ? $subject->supplier_id
+            : $subject->purchaseOrder->supplier_id;
+
         if ($user->isSupplier()) {
-            return $order->supplier_id === $user->supplier_id;
+            return $supplierId === $user->supplier_id;
         }
 
         return true;

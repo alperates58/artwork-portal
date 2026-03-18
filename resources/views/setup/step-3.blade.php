@@ -4,11 +4,27 @@
 <div class="p-8">
     <div class="mb-6">
         <h1 class="text-xl font-semibold text-slate-900">DigitalOcean Spaces</h1>
-        <p class="text-sm text-slate-500 mt-1">Artwork dosyalarının depolanacağı Spaces bilgilerini girin.</p>
+        <p class="text-sm text-slate-500 mt-1">İsterseniz şimdi Spaces yapılandırın, isterseniz yerel Windows kurulumunda bu adımı atlayıp sonra tamamlayın.</p>
+    </div>
+
+    <div class="mb-6 p-4 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-800 space-y-2">
+        <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" name="enable_spaces_toggle" value="1"
+                   id="enableSpaces"
+                   class="mt-0.5 rounded border-slate-300 text-blue-600"
+                   {{ old('enable_spaces', '1') ? 'checked' : '' }}>
+            <div>
+                <p class="font-medium text-amber-900">Spaces yapılandırmasını şimdi yap</p>
+                <p class="text-xs text-amber-700 mt-0.5">
+                    Yerel Windows kurulumunda bu seçeneği kapatırsanız kurulum yerel disk ile tamamlanır.
+                    Spaces bilgilerini daha sonra ortam değişkenlerinden ekleyebilirsiniz.
+                </p>
+            </div>
+        </label>
     </div>
 
     {{-- Spaces nasıl oluşturulur yardım kutusu --}}
-    <div class="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 space-y-1.5">
+    <div id="spacesHelp" class="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 space-y-1.5">
         <p class="font-semibold text-blue-800 mb-2">Spaces nasıl oluşturulur?</p>
         <p>1. <a href="https://cloud.digitalocean.com/spaces" target="_blank" class="underline">cloud.digitalocean.com/spaces</a> → Create a Space</p>
         <p>2. Region: <strong>Frankfurt (fra1)</strong> seç → Bucket adını gir → Create</p>
@@ -27,7 +43,9 @@
 
     <form method="POST" action="{{ route('setup.save.spaces') }}" class="space-y-5">
         @csrf
+        <input type="hidden" name="enable_spaces" id="enableSpacesInput" value="{{ old('enable_spaces', '1') ? '1' : '0' }}">
 
+        <div id="spacesFields" class="space-y-5">
         <div class="grid grid-cols-2 gap-4">
             <div class="col-span-2">
                 <label class="label" for="spaces_key">Access Key</label>
@@ -91,6 +109,7 @@
                 @error('spaces_endpoint') <p class="err">{{ $message }}</p> @enderror
             </div>
         </div>
+        </div>
 
         <div class="pt-2 flex justify-between">
             <a href="{{ route('setup.step', 2) }}" class="btn-secondary">
@@ -103,7 +122,7 @@
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                <span id="spacesLabel">Bağlantıyı Test Et ve Devam</span>
+                <span id="spacesLabel">{{ old('enable_spaces', '1') ? 'Bağlantıyı Test Et ve Devam' : 'Spaces Olmadan Devam Et' }}</span>
             </button>
         </div>
     </form>
@@ -115,9 +134,27 @@
 function updateEndpoint(region) {
     document.getElementById('spaces_endpoint').value = `https://${region}.digitaloceanspaces.com`;
 }
+
+function syncSpacesMode() {
+    const enabled = document.getElementById('enableSpaces')?.checked ?? false;
+    const fields = document.getElementById('spacesFields');
+    const help = document.getElementById('spacesHelp');
+    const input = document.getElementById('enableSpacesInput');
+    const label = document.getElementById('spacesLabel');
+
+    input.value = enabled ? '1' : '0';
+    fields?.classList.toggle('hidden', !enabled);
+    help?.classList.toggle('hidden', !enabled);
+    label.textContent = enabled ? 'Bağlantıyı Test Et ve Devam' : 'Spaces Olmadan Devam Et';
+}
+
+document.getElementById('enableSpaces')?.addEventListener('change', syncSpacesMode);
+syncSpacesMode();
+
 document.querySelector('form').addEventListener('submit', function() {
     const btn = document.getElementById('spacesBtn');
-    document.getElementById('spacesLabel').textContent = 'Test ediliyor...';
+    const enabled = document.getElementById('enableSpaces')?.checked ?? false;
+    document.getElementById('spacesLabel').textContent = enabled ? 'Test ediliyor...' : 'Kaydediliyor...';
     btn.disabled = true;
 });
 </script>

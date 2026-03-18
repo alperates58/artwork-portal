@@ -3,9 +3,9 @@
 @section('page-title', 'Sipariş Detayı')
 
 @section('header-actions')
-    <a href="{{ route('orders.index') }}" class="btn-secondary">← Listeye Dön</a>
+    <a href="{{ route('orders.index') }}" class="btn btn-secondary">← Listeye Dön</a>
     @can('update', $order)
-        <a href="{{ route('orders.edit', $order) }}" class="btn-secondary">Düzenle</a>
+        <a href="{{ route('orders.edit', $order) }}" class="btn btn-secondary">Düzenle</a>
     @endcan
 @endsection
 
@@ -43,7 +43,7 @@
                         'completed' => 'badge-info',  'cancelled' => 'badge-danger', default => 'badge-gray'
                     };
                 @endphp
-                <span class="badge {{ $cls }}">{{ $order->status_label }}</span>
+                <x-ui.badge :variant="str_replace('badge-', '', $cls)">{{ $order->status_label }}</x-ui.badge>
             </div>
             @if($order->notes)
                 <div>
@@ -80,7 +80,7 @@
                                             'approved' => 'badge-info',   default     => 'badge-warning',
                                         };
                                     @endphp
-                                    <span class="badge {{ $artCls }}">{{ $line->artwork_status?->label() ?? 'Bekliyor' }}</span>
+                                    <x-ui.badge :variant="str_replace('badge-', '', $artCls)">{{ $line->artwork_status?->label() ?? 'Bekliyor' }}</x-ui.badge>
                                 </div>
                                 <p class="text-sm text-slate-600">{{ $line->description }}</p>
                                 <p class="text-xs text-slate-400 mt-0.5">{{ $line->quantity }} {{ $line->unit }}</p>
@@ -90,14 +90,14 @@
                             <div class="flex items-center gap-2 flex-shrink-0">
                                 @if($line->hasActiveArtwork())
                                     <a href="{{ route('artwork.download', $line->activeRevision) }}"
-                                       class="btn-secondary text-xs py-1.5">
+                                       class="btn btn-secondary text-xs py-1.5">
                                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                                         </svg>
                                         İndir Rev.{{ $line->activeRevision->revision_no }}
                                     </a>
                                     <a href="{{ route('artworks.revisions', $line) }}"
-                                       class="text-xs text-blue-600 hover:underline">
+                                       class="text-xs text-brand-600 hover:underline font-medium">
                                         Revizyonlar
                                     </a>
                                 @else
@@ -105,7 +105,7 @@
                                 @endif
 
                                 @if(auth()->user()->canUploadArtwork())
-                                    <a href="{{ route('artworks.create', $line) }}" class="btn-primary text-xs py-1.5">
+                                    <a href="{{ route('artworks.create', $line) }}" class="btn btn-primary text-xs py-1.5">
                                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                                         </svg>
@@ -130,7 +130,7 @@
                                         {{ $line->activeRevision->created_at->format('d.m.Y H:i') }}
                                     </p>
                                 </div>
-                                <span class="badge badge-success text-xs">Güncel</span>
+                                <x-ui.badge variant="success" class="text-xs">Güncel</x-ui.badge>
                             </div>
                         @endif
                     </div>

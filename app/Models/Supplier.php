@@ -25,15 +25,15 @@ class Supplier extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'supplier_users')
-                    ->withPivot('role_at_supplier', 'is_active')
+                    ->withPivot('title', 'is_primary', 'can_download', 'can_approve')
                     ->withTimestamps()
-                    ->wherePivot('is_active', true);
+                    ->where('users.is_active', true);
     }
 
     public function allUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'supplier_users')
-                    ->withPivot('role_at_supplier', 'is_active')
+                    ->withPivot('title', 'is_primary', 'can_download', 'can_approve')
                     ->withTimestamps();
     }
 

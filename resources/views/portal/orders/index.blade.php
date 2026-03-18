@@ -5,29 +5,30 @@
 @section('content')
 
 {{-- Supplier welcome banner --}}
-<div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5 flex items-center gap-3">
-    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+<div class="card p-4 mb-5 flex items-center gap-3 bg-gradient-to-br from-brand-50 to-white">
+    <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+         style="background:linear-gradient(180deg,var(--brand-600),var(--brand-700))">
         <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/>
         </svg>
     </div>
     <div>
-        <p class="text-sm font-semibold text-blue-900">{{ auth()->user()->supplier->name }}</p>
-        <p class="text-xs text-blue-600">Güncel artwork dosyalarına bu sayfadan erişebilirsiniz.</p>
+        <p class="text-sm font-semibold text-slate-900">{{ auth()->user()->supplier->name }}</p>
+        <p class="text-xs text-slate-600">Güncel artwork dosyalarına bu sayfadan erişebilirsiniz.</p>
     </div>
 </div>
 
 {{-- Filters --}}
 <form method="GET" class="flex flex-wrap gap-3 mb-5">
-    <input type="text" name="search" value="{{ request('search') }}"
-           placeholder="Sipariş no ara..." class="input w-52">
+    <x-ui.input type="text" name="search" value="{{ request('search') }}"
+                placeholder="Sipariş no ara..." class="w-52" />
     <select name="status" class="input w-44">
         <option value="">Tüm durumlar</option>
         <option value="active"    {{ request('status') === 'active'    ? 'selected' : '' }}>Aktif</option>
         <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Tamamlandı</option>
     </select>
-    <button type="submit" class="btn-secondary">Filtrele</button>
+    <x-ui.button variant="secondary" type="submit">Filtrele</x-ui.button>
 </form>
 
 {{-- Orders list --}}
@@ -40,7 +41,7 @@
                         <div class="flex items-center gap-2 mb-1">
                             <span class="font-mono font-semibold text-slate-900">{{ $order->order_no }}</span>
                             @php $cls = $order->status === 'active' ? 'badge-success' : 'badge-gray'; @endphp
-                            <span class="badge {{ $cls }}">{{ $order->status_label }}</span>
+                            <x-ui.badge :variant="str_replace('badge-', '', $cls)">{{ $order->status_label }}</x-ui.badge>
                         </div>
                         <p class="text-xs text-slate-500">
                             {{ $order->order_date->format('d.m.Y') }}
@@ -48,7 +49,7 @@
                             · {{ $order->lines->count() }} ürün satırı
                         </p>
                     </div>
-                    <a href="{{ route('portal.orders.show', $order) }}" class="btn-primary text-xs py-2">
+                    <a href="{{ route('portal.orders.show', $order) }}" class="btn btn-primary text-xs py-2">
                         Artwork'leri Gör →
                     </a>
                 </div>

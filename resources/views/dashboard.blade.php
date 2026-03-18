@@ -5,26 +5,26 @@
 @section('content')
 
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="card p-5">
+    <x-ui.card padding="p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Artwork Bekliyor</p>
         <p class="text-2xl font-semibold text-slate-900">{{ number_format($metrics['pending_artwork']) }}</p>
         <p class="text-xs text-amber-600 mt-1">Yüklenmemiş satır</p>
-    </div>
-    <div class="card p-5">
+    </x-ui.card>
+    <x-ui.card padding="p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Artwork Yüklendi</p>
         <p class="text-2xl font-semibold text-slate-900">{{ number_format($metrics['uploaded_artwork']) }}</p>
         <p class="text-xs text-emerald-600 mt-1">Aktif revizyonu olan</p>
-    </div>
-    <div class="card p-5">
+    </x-ui.card>
+    <x-ui.card padding="p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Onay Bekliyor</p>
         <p class="text-2xl font-semibold text-slate-900">{{ number_format($metrics['pending_approval'] ?? 0) }}</p>
         <p class="text-xs text-blue-600 mt-1">Tedarikçi onayı beklenen</p>
-    </div>
-    <div class="card p-5">
+    </x-ui.card>
+    <x-ui.card padding="p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Aktif Siparişler</p>
         <p class="text-2xl font-semibold text-slate-900">{{ number_format($metrics['active_orders']) }}</p>
         <p class="text-xs text-slate-400 mt-1">Toplam aktif PO</p>
-    </div>
+    </x-ui.card>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

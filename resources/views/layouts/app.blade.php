@@ -1,42 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Artwork Portal') — {{ config('app.name') }}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        brand: { 50:'#f0f4ff', 100:'#dce6ff', 500:'#3b5bdb', 600:'#3451c7', 700:'#2c43a8' }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        [x-cloak] { display: none !important; }
-        .sidebar-link { @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors; }
-        .sidebar-link.active { @apply bg-brand-50 text-brand-700 font-medium; }
-        .btn-primary { @apply inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors; }
-        .btn-secondary { @apply inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 text-sm font-medium rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors; }
-        .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium; }
-        .badge-success { @apply bg-emerald-100 text-emerald-700; }
-        .badge-warning { @apply bg-amber-100 text-amber-700; }
-        .badge-danger  { @apply bg-red-100 text-red-700; }
-        .badge-info    { @apply bg-blue-100 text-blue-700; }
-        .badge-gray    { @apply bg-slate-100 text-slate-600; }
-        .card { @apply bg-white rounded-xl border border-slate-200 overflow-hidden; }
-        .input { @apply w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent; }
-        .label { @apply block text-sm font-medium text-slate-700 mb-1; }
-    </style>
-    @stack('styles')
+    @include('partials.ui-head', ['title' => trim($__env->yieldContent('title', 'Artwork Portal'))])
 </head>
 <body class="bg-slate-50 font-sans antialiased">
 
@@ -141,26 +106,33 @@
 
         {{-- Flash messages --}}
         @if(session('success'))
-            <div class="mx-6 mt-4 flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                {{ session('success') }}
-            </div>
+            <x-ui.alert variant="success" class="mx-6 mt-4">
+                <div class="flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-4 h-4 flex-shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        <span>{{ session('success') }}</span>
+                    </div>
+                </div>
+            </x-ui.alert>
         @endif
 
         @if(session('error') || $errors->any())
-            <div class="mx-6 mt-4 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <x-ui.alert variant="danger" class="mx-6 mt-4">
                 <div>
-                    {{ session('error') }}
+                    @if(session('error'))
+                        <p class="font-medium">{{ session('error') }}</p>
+                    @endif
                     @if($errors->any())
-                        <ul class="mt-1 list-disc list-inside space-y-0.5">
+                        <ul class="{{ session('error') ? 'mt-2' : '' }} list-disc list-inside space-y-0.5">
                             @foreach($errors->all() as $error)
                                 <li>{{ $error }}</li>
                             @endforeach
                         </ul>
                     @endif
                 </div>
-            </div>
+            </x-ui.alert>
         @endif
 
         {{-- Page content --}}

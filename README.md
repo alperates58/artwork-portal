@@ -31,6 +31,29 @@ open http://localhost/setup
 
 ---
 
+## Windows (Docker Desktop) ile Çalıştırma
+
+Windows’ta `make` olmadığı için aynı kurulum adımlarını PowerShell script’iyle çalıştırın:
+
+```powershell
+git clone https://github.com/alperates58/artwork-portal.git
+cd artwork-portal
+powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
+Start-Process "http://localhost/setup"
+```
+
+Sık kullanılan komutlar:
+
+```powershell
+.\scripts\dev.ps1 up
+.\scripts\dev.ps1 logs
+.\scripts\dev.ps1 shell
+.\scripts\dev.ps1 migrate
+.\scripts\dev.ps1 fresh
+```
+
+---
+
 ## Setup Sihirbazı
 
 İlk çalıştırmada `http://SUNUCU_IP/setup` adresi açılır:

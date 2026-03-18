@@ -1,30 +1,34 @@
 <div>
     <label class="label">Tedarikçi Adı *</label>
-    <input type="text" name="name" value="{{ old('name', $supplier->name ?? '') }}" required class="input">
-    @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+    <x-ui.input type="text" name="name" value="{{ old('name', $supplier->name ?? '') }}" required :invalid="$errors->has('name')" />
+    @error('name')<p class="err">{{ $message }}</p>@enderror
 </div>
 <div>
     <label class="label">Kod *</label>
-    <input type="text" name="code" value="{{ old('code', $supplier->code ?? '') }}" required class="input" placeholder="TED-001">
-    @error('code')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+    <x-ui.input type="text" name="code" value="{{ old('code', $supplier->code ?? '') }}" required placeholder="TED-001" :invalid="$errors->has('code')" />
+    @error('code')<p class="err">{{ $message }}</p>@enderror
 </div>
 <div class="grid grid-cols-2 gap-4">
     <div>
         <label class="label">E-posta</label>
-        <input type="email" name="email" value="{{ old('email', $supplier->email ?? '') }}" class="input">
+        <x-ui.input type="email" name="email" value="{{ old('email', $supplier->email ?? '') }}" :invalid="$errors->has('email')" />
+        @error('email')<p class="err">{{ $message }}</p>@enderror
     </div>
     <div>
         <label class="label">Telefon</label>
-        <input type="text" name="phone" value="{{ old('phone', $supplier->phone ?? '') }}" class="input">
+        <x-ui.input type="text" name="phone" value="{{ old('phone', $supplier->phone ?? '') }}" :invalid="$errors->has('phone')" />
+        @error('phone')<p class="err">{{ $message }}</p>@enderror
     </div>
 </div>
 <div>
     <label class="label">Adres</label>
     <textarea name="address" rows="2" class="input resize-none">{{ old('address', $supplier->address ?? '') }}</textarea>
+    @error('address')<p class="err">{{ $message }}</p>@enderror
 </div>
 <div>
     <label class="label">Notlar</label>
     <textarea name="notes" rows="2" class="input resize-none">{{ old('notes', $supplier->notes ?? '') }}</textarea>
+    @error('notes')<p class="err">{{ $message }}</p>@enderror
 </div>
 <div class="flex items-center gap-2">
     <input type="hidden" name="is_active" value="0">

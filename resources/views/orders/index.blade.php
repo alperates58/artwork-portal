@@ -4,7 +4,7 @@
 
 @section('header-actions')
     @can('create', App\Models\PurchaseOrder::class)
-        <a href="{{ route('orders.create') }}" class="btn-primary">
+        <a href="{{ route('orders.create') }}" class="btn btn-primary">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
@@ -17,13 +17,13 @@
 
 {{-- Filters --}}
 <form method="GET" class="flex flex-wrap gap-3 mb-5">
-    <input
+    <x-ui.input
         type="text"
         name="search"
         value="{{ request('search') }}"
         placeholder="Sipariş no ara..."
-        class="input w-52"
-    >
+        class="w-52"
+    />
     <select name="supplier_id" class="input w-52">
         <option value="">Tüm tedarikçiler</option>
         @foreach($suppliers as $id => $name)
@@ -37,9 +37,9 @@
         <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Tamamlandı</option>
         <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>İptal</option>
     </select>
-    <button type="submit" class="btn-secondary">Filtrele</button>
+    <x-ui.button variant="secondary" type="submit">Filtrele</x-ui.button>
     @if(request()->hasAny(['search', 'supplier_id', 'status']))
-        <a href="{{ route('orders.index') }}" class="btn-secondary text-slate-500">Temizle</a>
+        <a href="{{ route('orders.index') }}" class="btn btn-secondary text-slate-500">Temizle</a>
     @endif
 </form>
 
@@ -75,15 +75,17 @@
                                 default     => 'badge-gray',
                             };
                         @endphp
-                        <span class="badge {{ $statusClass }}">{{ $order->status_label }}</span>
+                        <x-ui.badge :variant="str_replace('badge-', '', $statusClass)">
+                            {{ $order->status_label }}
+                        </x-ui.badge>
                     </td>
                     <td class="px-4 py-3 text-slate-700">{{ $order->lines->count() }} satır</td>
                     <td class="px-4 py-3">
                         @php $pending = $order->pending_artwork_count; @endphp
                         @if($pending > 0)
-                            <span class="badge badge-warning">{{ $pending }} bekliyor</span>
+                            <x-ui.badge variant="warning">{{ $pending }} bekliyor</x-ui.badge>
                         @else
-                            <span class="badge badge-success">Tamamlandı</span>
+                            <x-ui.badge variant="success">Tamamlandı</x-ui.badge>
                         @endif
                     </td>
                     <td class="px-4 py-3 text-right">

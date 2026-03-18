@@ -9,20 +9,22 @@ use Illuminate\Support\Str;
 
 class SpacesStorageService
 {
-    private S3Client $client;
+    private ?S3Client $client = null;
 
     public function __construct()
     {
-        $this->client = new S3Client([
-            'version'     => 'latest',
-            'region'      => config('filesystems.disks.spaces.region'),
-            'endpoint'    => config('filesystems.disks.spaces.endpoint'),
-            'credentials' => [
-                'key'    => config('filesystems.disks.spaces.key'),
-                'secret' => config('filesystems.disks.spaces.secret'),
-            ],
-            'use_path_style_endpoint' => false,
-        ]);
+        if ($this->usesSpaces()) {
+            $this->client = new S3Client([
+                'version'     => 'latest',
+                'region'      => config('filesystems.disks.spaces.region'),
+                'endpoint'    => config('filesystems.disks.spaces.endpoint'),
+                'credentials' => [
+                    'key'    => config('filesystems.disks.spaces.key'),
+                    'secret' => config('filesystems.disks.spaces.secret'),
+                ],
+                'use_path_style_endpoint' => false,
+            ]);
+        }
     }
 
     /**
@@ -56,7 +58,7 @@ class SpacesStorageService
     {
         $stream = fopen($file->getRealPath(), 'rb');
 
-        Storage::disk('spaces')->put($path, $stream, [
+        Storage::disk($this->diskName())->put($path, $stream, [
             'visibility'  => 'private',
             'ContentType' => $file->getMimeType(),
         ]);
@@ -82,17 +84,27 @@ class SpacesStorageService
      */
     public function presignedUrl(string $path, int $minutes = 0): string
     {
+        if (! $this->usesSpaces()) {
+            throw new \RuntimeException('Presigned URL yalnızca Spaces diski yapılandırıldığında üretilebilir.');
+        }
+
         if ($minutes === 0) {
             $minutes = (int) config('artwork.download_ttl', 15);
         }
 
-        $command = $this->client->getCommand('GetObject', [
+        $client = $this->client;
+
+        if (! $client) {
+            throw new \RuntimeException('Spaces istemcisi başlatılamadı.');
+        }
+
+        $command = $client->getCommand('GetObject', [
             'Bucket'                     => config('filesystems.disks.spaces.bucket'),
             'Key'                        => $path,
             'ResponseContentDisposition' => 'attachment; filename="' . basename($path) . '"',
         ]);
 
-        $request = $this->client->createPresignedRequest($command, "+{$minutes} minutes");
+        $request = $client->createPresignedRequest($command, "+{$minutes} minutes");
 
         return (string) $request->getUri();
     }
@@ -102,7 +114,7 @@ class SpacesStorageService
      */
     public function delete(string $path): bool
     {
-        return Storage::disk('spaces')->delete($path);
+        return Storage::disk($this->diskName())->delete($path);
     }
 
     /**
@@ -110,6 +122,16 @@ class SpacesStorageService
      */
     public function exists(string $path): bool
     {
-        return Storage::disk('spaces')->exists($path);
+        return Storage::disk($this->diskName())->exists($path);
+    }
+
+    public function usesSpaces(): bool
+    {
+        return $this->diskName() === 'spaces';
+    }
+
+    private function diskName(): string
+    {
+        return (string) config('filesystems.default', 'local');
     }
 }

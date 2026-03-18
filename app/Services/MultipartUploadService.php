@@ -23,22 +23,24 @@ class MultipartUploadService
     private const CHUNK_SIZE        = 50 * 1024 * 1024;  // 50 MB per chunk
     private const MULTIPART_THRESHOLD = 100 * 1024 * 1024; // 100 MB threshold
 
-    private S3Client $client;
-    private string   $bucket;
+    private ?S3Client $client = null;
+    private string $bucket = '';
 
     public function __construct()
     {
-        $this->client = new S3Client([
-            'version'     => 'latest',
-            'region'      => config('filesystems.disks.spaces.region'),
-            'endpoint'    => config('filesystems.disks.spaces.endpoint'),
-            'credentials' => [
-                'key'    => config('filesystems.disks.spaces.key'),
-                'secret' => config('filesystems.disks.spaces.secret'),
-            ],
-        ]);
+        if ($this->usesSpaces()) {
+            $this->client = new S3Client([
+                'version'     => 'latest',
+                'region'      => config('filesystems.disks.spaces.region'),
+                'endpoint'    => config('filesystems.disks.spaces.endpoint'),
+                'credentials' => [
+                    'key'    => config('filesystems.disks.spaces.key'),
+                    'secret' => config('filesystems.disks.spaces.secret'),
+                ],
+            ]);
 
-        $this->bucket = config('filesystems.disks.spaces.bucket');
+            $this->bucket = (string) config('filesystems.disks.spaces.bucket');
+        }
     }
 
     /**
@@ -46,6 +48,10 @@ class MultipartUploadService
      */
     public function upload(UploadedFile $file, string $path): array
     {
+        if (! $this->usesSpaces()) {
+            return app(SpacesStorageService::class)->upload($file, $path);
+        }
+
         if ($file->getSize() >= self::MULTIPART_THRESHOLD) {
             return $this->multipartUpload($file, $path);
         }
@@ -58,6 +64,10 @@ class MultipartUploadService
      */
     private function multipartUpload(UploadedFile $file, string $path): array
     {
+        if (! $this->client) {
+            throw new \RuntimeException('Multipart upload yalnızca Spaces diski yapılandırıldığında kullanılabilir.');
+        }
+
         // 1. Upload başlat
         $response = $this->client->createMultipartUpload([
             'Bucket'      => $this->bucket,
@@ -124,5 +134,10 @@ class MultipartUploadService
             'mime_type'         => $file->getMimeType(),
             'file_size'         => $file->getSize(),
         ];
+    }
+
+    private function usesSpaces(): bool
+    {
+        return config('filesystems.default', 'local') === 'spaces';
     }
 }

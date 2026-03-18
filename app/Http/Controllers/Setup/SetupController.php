@@ -79,19 +79,65 @@ class SetupController extends Controller
             'db_database' => ['required', 'string', 'max:64'],
             'db_username' => ['required', 'string', 'max:64'],
             'db_password' => ['nullable', 'string'],
+            'create_db'   => ['nullable', 'boolean'],
+            'db_root_username' => ['nullable', 'string', 'max:64'],
+            'db_root_password' => ['nullable', 'string'],
         ], [
             'db_host.required'     => 'Veritabanı host zorunludur.',
             'db_database.required' => 'Veritabanı adı zorunludur.',
             'db_username.required' => 'Kullanıcı adı zorunludur.',
         ]);
 
-        // Bağlantı testi
+        $createDb = (bool) ($validated['create_db'] ?? false);
+
+        if ($createDb) {
+            if (empty($validated['db_root_username'] ?? null)) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['db_root_username' => 'Veritabanı oluşturmak için root kullanıcı adı zorunludur.']);
+            }
+
+            try {
+                $rootPdo = new \PDO(
+                    "mysql:host={$validated['db_host']};port={$validated['db_port']}",
+                    $validated['db_root_username'],
+                    $validated['db_root_password'] ?? '',
+                    [
+                        \PDO::ATTR_TIMEOUT => 5,
+                        \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    ]
+                );
+
+                $dbName = $validated['db_database'];
+                $rootPdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+
+                $appUser = $validated['db_username'];
+                if ($appUser !== $validated['db_root_username']) {
+                    $pwd = (string) ($validated['db_password'] ?? '');
+                    // CREATE USER IF NOT EXISTS (MySQL 8+)
+                    $rootPdo->exec("CREATE USER IF NOT EXISTS '{$appUser}'@'%' IDENTIFIED BY " . $rootPdo->quote($pwd));
+                    $rootPdo->exec("GRANT ALL PRIVILEGES ON `{$dbName}`.* TO '{$appUser}'@'%'");
+                    $rootPdo->exec('FLUSH PRIVILEGES');
+                }
+
+                unset($rootPdo);
+            } catch (\Throwable $e) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['db_root_username' => 'Veritabanı oluşturma işlemi başarısız: ' . $e->getMessage()]);
+            }
+        }
+
+        // Bağlantı testi (veritabanı var/yok fark etmez; create_db işaretliyse önce oluşturulur)
         try {
             $pdo = new \PDO(
                 "mysql:host={$validated['db_host']};port={$validated['db_port']};dbname={$validated['db_database']}",
                 $validated['db_username'],
                 $validated['db_password'] ?? '',
-                [\PDO::ATTR_TIMEOUT => 5]
+                [
+                    \PDO::ATTR_TIMEOUT => 5,
+                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                ]
             );
             unset($pdo);
         } catch (\PDOException $e) {
@@ -99,6 +145,9 @@ class SetupController extends Controller
                 ->withInput()
                 ->withErrors(['db_host' => 'Veritabanı bağlantısı kurulamadı: ' . $e->getMessage()]);
         }
+
+        // Root bilgilerini session'a yazmayalım
+        unset($validated['db_root_username'], $validated['db_root_password']);
 
         session(['setup.database' => $validated, 'setup.step_2_done' => true]);
 
@@ -110,11 +159,12 @@ class SetupController extends Controller
     public function saveSpaces(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'spaces_key'      => ['required', 'string'],
-            'spaces_secret'   => ['required', 'string'],
-            'spaces_bucket'   => ['required', 'string', 'max:63'],
-            'spaces_region'   => ['required', 'string'],
-            'spaces_endpoint' => ['required', 'url'],
+            'enable_spaces'   => ['nullable', 'boolean'],
+            'spaces_key'      => [$request->boolean('enable_spaces') ? 'required' : 'nullable', 'string'],
+            'spaces_secret'   => [$request->boolean('enable_spaces') ? 'required' : 'nullable', 'string'],
+            'spaces_bucket'   => [$request->boolean('enable_spaces') ? 'required' : 'nullable', 'string', 'max:63'],
+            'spaces_region'   => [$request->boolean('enable_spaces') ? 'required' : 'nullable', 'string'],
+            'spaces_endpoint' => [$request->boolean('enable_spaces') ? 'required' : 'nullable', 'url'],
         ], [
             'spaces_key.required'      => 'Spaces Access Key zorunludur.',
             'spaces_secret.required'   => 'Spaces Secret Key zorunludur.',
@@ -123,6 +173,15 @@ class SetupController extends Controller
             'spaces_endpoint.required' => 'Endpoint URL zorunludur.',
             'spaces_endpoint.url'      => 'Geçerli bir URL girin.',
         ]);
+
+        if (! $request->boolean('enable_spaces')) {
+            session([
+                'setup.spaces' => ['enabled' => false],
+                'setup.step_3_done' => true,
+            ]);
+
+            return redirect()->route('setup.step', 4);
+        }
 
         // Spaces bağlantı testi
         try {
@@ -147,7 +206,13 @@ class SetupController extends Controller
                 ->withErrors(['spaces_key' => 'Spaces bağlantısı kurulamadı: ' . $e->getMessage()]);
         }
 
-        session(['setup.spaces' => $validated, 'setup.step_3_done' => true]);
+        session([
+            'setup.spaces' => [
+                ...$validated,
+                'enabled' => true,
+            ],
+            'setup.step_3_done' => true,
+        ]);
 
         return redirect()->route('setup.step', 4);
     }
@@ -182,7 +247,9 @@ class SetupController extends Controller
                 Artisan::call('migrate', ['--force' => true]);
                 $this->createAdminUser($validated);
             } catch (\Exception $e) {
-                return redirect()->route('setup.error')
+                return redirect()
+                    ->route('setup.step', 4)
+                    ->withInput()
                     ->with('error', 'Migration hatası: ' . $e->getMessage());
             }
         }
@@ -220,7 +287,17 @@ class SetupController extends Controller
     {
         $site     = session('setup.site');
         $db       = session('setup.database');
-        $spaces   = session('setup.spaces');
+        $spaces   = session('setup.spaces', ['enabled' => false]);
+        $useSpaces = (bool) ($spaces['enabled'] ?? false);
+        $filesystemDisk = $useSpaces ? 'spaces' : 'local';
+        $spacesKey = $useSpaces ? $spaces['spaces_key'] : '';
+        $spacesSecret = $useSpaces ? $spaces['spaces_secret'] : '';
+        $spacesEndpoint = $useSpaces ? $spaces['spaces_endpoint'] : '';
+        $spacesRegion = $useSpaces ? $spaces['spaces_region'] : '';
+        $spacesBucket = $useSpaces ? $spaces['spaces_bucket'] : '';
+        $spacesUrl = $useSpaces
+            ? "https://{$spaces['spaces_bucket']}.{$spaces['spaces_region']}.digitaloceanspaces.com"
+            : '';
 
         $appKey = 'base64:' . base64_encode(random_bytes(32));
 
@@ -243,6 +320,7 @@ DB_DATABASE={$db['db_database']}
 DB_USERNAME={$db['db_username']}
 DB_PASSWORD={$db['db_password']}
 
+CACHE_STORE=redis
 CACHE_DRIVER=redis
 QUEUE_CONNECTION=redis
 SESSION_DRIVER=redis
@@ -252,13 +330,13 @@ REDIS_HOST=redis
 REDIS_PASSWORD=redissecret
 REDIS_PORT=6379
 
-FILESYSTEM_DISK=spaces
-DO_SPACES_KEY={$spaces['spaces_key']}
-DO_SPACES_SECRET={$spaces['spaces_secret']}
-DO_SPACES_ENDPOINT={$spaces['spaces_endpoint']}
-DO_SPACES_REGION={$spaces['spaces_region']}
-DO_SPACES_BUCKET={$spaces['spaces_bucket']}
-DO_SPACES_URL=https://{$spaces['spaces_bucket']}.{$spaces['spaces_region']}.digitaloceanspaces.com
+FILESYSTEM_DISK={$filesystemDisk}
+DO_SPACES_KEY={$spacesKey}
+DO_SPACES_SECRET={$spacesSecret}
+DO_SPACES_ENDPOINT={$spacesEndpoint}
+DO_SPACES_REGION={$spacesRegion}
+DO_SPACES_BUCKET={$spacesBucket}
+DO_SPACES_URL={$spacesUrl}
 
 ARTWORK_DOWNLOAD_TTL=15
 

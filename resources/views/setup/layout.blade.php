@@ -1,36 +1,9 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Kurulum Sihirbazı — Artwork Portal</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } }
-        }
-    </script>
-    <style>
-        .step-dot { @apply w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300; }
-        .step-dot.done    { @apply bg-emerald-500 text-white; }
-        .step-dot.active  { @apply bg-blue-600 text-white ring-4 ring-blue-100; }
-        .step-dot.pending { @apply bg-slate-200 text-slate-400; }
-        .step-line { @apply h-0.5 flex-1 transition-all duration-500; }
-        .step-line.done   { @apply bg-emerald-400; }
-        .step-line.pending{ @apply bg-slate-200; }
-        .input { @apply w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition; }
-        .input.error { @apply border-red-400 focus:ring-red-400; }
-        .label { @apply block text-sm font-medium text-slate-700 mb-1.5; }
-        .hint  { @apply text-xs text-slate-400 mt-1; }
-        .err   { @apply text-xs text-red-600 mt-1.5; }
-        .btn-primary { @apply inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors; }
-        .btn-secondary { @apply inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg border border-slate-300 transition-colors; }
-    </style>
-    @stack('styles')
+    @include('partials.ui-head', ['title' => 'Kurulum Sihirbazı'])
 </head>
-<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen font-sans antialiased">
+<body class="bg-gradient-to-br from-slate-50 via-white to-brand-50 min-h-screen font-sans antialiased">
 
 <div class="min-h-screen flex flex-col items-center justify-center p-4 py-12">
 
@@ -78,8 +51,10 @@
     @endisset
 
     {{-- Card --}}
-    <div class="w-full max-w-lg bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        @yield('content')
+    <div class="w-full max-w-lg">
+        <div class="card rounded-2xl">
+            @yield('content')
+        </div>
     </div>
 
     {{-- Footer --}}
