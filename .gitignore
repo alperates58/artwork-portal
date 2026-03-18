@@ -1,21 +1,57 @@
+# Laravel core
+/vendor
 /node_modules
 /public/hot
 /public/storage
-/storage/*.key
-/vendor
+
+# Env files
 .env
-.env.backup
-.env.production
+.env.*
+!.env.example
+
+# Laravel cache & runtime
+/bootstrap/cache/*
+!/bootstrap/cache/.gitkeep
+
+/storage/*.key
+/storage/app/*
+!/storage/app/.gitkeep
+
+/storage/framework/cache/*
+!/storage/framework/cache/.gitkeep
+
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+
+/storage/logs/*
+!/storage/logs/.gitkeep
+
+# PHPUnit
 .phpunit.result.cache
-docker-compose.override.yml
-Homestead.json
-Homestead.yaml
+
+# Logs
 npm-debug.log
 yarn-error.log
+
+# IDE
 /.fleet
 /.idea
 /.vscode
 
-# Docker volumes (local geliştirme)
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker local data
 docker/mysql/data/
 docker/redis/data/
+
+# Docker override
+docker-compose.override.yml
+
+# Homestead
+Homestead.json
+Homestead.yaml
