@@ -1,12 +1,12 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+// ERP sync — her saat
+Schedule::command('erp:sync')->hourly()->withoutOverlapping()->runInBackground();
 
-// Log temizleme — 90 günden eski kayıtları sil
-Schedule::command('logs:prune --days=90')->monthly();
+// Log temizleme — ayda bir
+Schedule::command('logs:prune --days=90')->monthly()->runInBackground();
+
+// Failed queue temizleme — haftalık
+Schedule::command('queue:prune-failed --hours=168')->weekly();

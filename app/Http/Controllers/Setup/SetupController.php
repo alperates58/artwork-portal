@@ -1,0 +1,311 @@
+<?php
+
+namespace App\Http\Controllers\Setup;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
+
+class SetupController extends Controller
+{
+    // Kurulum adımları
+    private array $steps = [
+        1 => ['key' => 'site',     'label' => 'Site Ayarları'],
+        2 => ['key' => 'database', 'label' => 'Veritabanı'],
+        3 => ['key' => 'spaces',   'label' => 'DO Spaces'],
+        4 => ['key' => 'admin',    'label' => 'Admin Kullanıcı'],
+    ];
+
+    // ─── Adım göster ──────────────────────────────────────────────
+
+    public function index(): RedirectResponse
+    {
+        return redirect()->route('setup.step', 1);
+    }
+
+    public function step(int $step): View|RedirectResponse
+    {
+        if ($step < 1 || $step > 4) {
+            return redirect()->route('setup.step', 1);
+        }
+
+        // Önceki adımlar tamamlanmış mı?
+        for ($i = 1; $i < $step; $i++) {
+            if (! session("setup.step_{$i}_done")) {
+                return redirect()->route('setup.step', $i);
+            }
+        }
+
+        return view("setup.step-{$step}", [
+            'step'       => $step,
+            'steps'      => $this->steps,
+            'totalSteps' => count($this->steps),
+        ]);
+    }
+
+    // ─── Adım 1: Site Ayarları ────────────────────────────────────
+
+    public function saveSite(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'app_name'     => ['required', 'string', 'max:100'],
+            'app_url'      => ['required', 'url'],
+            'app_timezone' => ['required', 'timezone'],
+        ], [
+            'app_name.required'     => 'Uygulama adı zorunludur.',
+            'app_url.required'      => 'URL zorunludur.',
+            'app_url.url'           => 'Geçerli bir URL girin (https:// ile başlamalı).',
+            'app_timezone.required' => 'Saat dilimi zorunludur.',
+            'app_timezone.timezone' => 'Geçersiz saat dilimi.',
+        ]);
+
+        session(['setup.site' => $validated, 'setup.step_1_done' => true]);
+
+        return redirect()->route('setup.step', 2);
+    }
+
+    // ─── Adım 2: Veritabanı ───────────────────────────────────────
+
+    public function saveDatabase(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'db_host'     => ['required', 'string'],
+            'db_port'     => ['required', 'integer', 'between:1,65535'],
+            'db_database' => ['required', 'string', 'max:64'],
+            'db_username' => ['required', 'string', 'max:64'],
+            'db_password' => ['nullable', 'string'],
+        ], [
+            'db_host.required'     => 'Veritabanı host zorunludur.',
+            'db_database.required' => 'Veritabanı adı zorunludur.',
+            'db_username.required' => 'Kullanıcı adı zorunludur.',
+        ]);
+
+        // Bağlantı testi
+        try {
+            $pdo = new \PDO(
+                "mysql:host={$validated['db_host']};port={$validated['db_port']};dbname={$validated['db_database']}",
+                $validated['db_username'],
+                $validated['db_password'] ?? '',
+                [\PDO::ATTR_TIMEOUT => 5]
+            );
+            unset($pdo);
+        } catch (\PDOException $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['db_host' => 'Veritabanı bağlantısı kurulamadı: ' . $e->getMessage()]);
+        }
+
+        session(['setup.database' => $validated, 'setup.step_2_done' => true]);
+
+        return redirect()->route('setup.step', 3);
+    }
+
+    // ─── Adım 3: DO Spaces ────────────────────────────────────────
+
+    public function saveSpaces(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'spaces_key'      => ['required', 'string'],
+            'spaces_secret'   => ['required', 'string'],
+            'spaces_bucket'   => ['required', 'string', 'max:63'],
+            'spaces_region'   => ['required', 'string'],
+            'spaces_endpoint' => ['required', 'url'],
+        ], [
+            'spaces_key.required'      => 'Spaces Access Key zorunludur.',
+            'spaces_secret.required'   => 'Spaces Secret Key zorunludur.',
+            'spaces_bucket.required'   => 'Bucket adı zorunludur.',
+            'spaces_region.required'   => 'Region zorunludur.',
+            'spaces_endpoint.required' => 'Endpoint URL zorunludur.',
+            'spaces_endpoint.url'      => 'Geçerli bir URL girin.',
+        ]);
+
+        // Spaces bağlantı testi
+        try {
+            $client = new \Aws\S3\S3Client([
+                'version'     => 'latest',
+                'region'      => $validated['spaces_region'],
+                'endpoint'    => $validated['spaces_endpoint'],
+                'credentials' => [
+                    'key'    => $validated['spaces_key'],
+                    'secret' => $validated['spaces_secret'],
+                ],
+            ]);
+
+            // Bucket'a erişim testi — hafif liste sorgusu
+            $client->listObjectsV2([
+                'Bucket'  => $validated['spaces_bucket'],
+                'MaxKeys' => 1,
+            ]);
+        } catch (\Exception $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['spaces_key' => 'Spaces bağlantısı kurulamadı: ' . $e->getMessage()]);
+        }
+
+        session(['setup.spaces' => $validated, 'setup.step_3_done' => true]);
+
+        return redirect()->route('setup.step', 4);
+    }
+
+    // ─── Adım 4: Admin + Tamamla ──────────────────────────────────
+
+    public function saveAdmin(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'admin_name'              => ['required', 'string', 'max:100'],
+            'admin_email'             => ['required', 'email'],
+            'admin_password'          => ['required', 'string', 'min:8', 'confirmed'],
+            'run_migrations'          => ['boolean'],
+        ], [
+            'admin_name.required'     => 'Ad zorunludur.',
+            'admin_email.required'    => 'E-posta zorunludur.',
+            'admin_email.email'       => 'Geçerli bir e-posta girin.',
+            'admin_password.required' => 'Şifre zorunludur.',
+            'admin_password.min'      => 'Şifre en az 8 karakter olmalıdır.',
+            'admin_password.confirmed'=> 'Şifreler eşleşmiyor.',
+        ]);
+
+        session(['setup.admin' => $validated, 'setup.step_4_done' => true]);
+
+        // .env dosyasını yaz
+        $this->writeEnv();
+
+        // Migration + seed çalıştır
+        if ($request->boolean('run_migrations', true)) {
+            try {
+                Artisan::call('config:clear');
+                Artisan::call('migrate', ['--force' => true]);
+                $this->createAdminUser($validated);
+            } catch (\Exception $e) {
+                return redirect()->route('setup.error')
+                    ->with('error', 'Migration hatası: ' . $e->getMessage());
+            }
+        }
+
+        // ── Çift kilit mekanizması ──────────────────────────────────
+        // 1. Lock dosyası
+        file_put_contents(
+            storage_path('app/.setup_complete'),
+            json_encode([
+                'installed_at' => now()->toIso8601String(),
+                'installed_by' => $validated['admin_email'],
+                'app_url'      => session('setup.site.app_url'),
+            ], JSON_PRETTY_PRINT)
+        );
+
+        // 2. .env dosyasına APP_INSTALLED=true bayrağı ekle
+        $this->appendEnvFlag();
+
+        return redirect()->route('setup.complete');
+    }
+
+    // ─── Tamamlandı ekranı ────────────────────────────────────────
+
+    public function complete(): View
+    {
+        // Session'ı temizle
+        session()->forget('setup');
+
+        return view('setup.complete');
+    }
+
+    // ─── .env Yaz ─────────────────────────────────────────────────
+
+    private function writeEnv(): void
+    {
+        $site     = session('setup.site');
+        $db       = session('setup.database');
+        $spaces   = session('setup.spaces');
+
+        $appKey = 'base64:' . base64_encode(random_bytes(32));
+
+        $content = <<<ENV
+APP_NAME="{$site['app_name']}"
+APP_ENV=production
+APP_KEY={$appKey}
+APP_DEBUG=false
+APP_URL={$site['app_url']}
+APP_TIMEZONE={$site['app_timezone']}
+APP_LOCALE=tr
+
+LOG_CHANNEL=daily
+LOG_LEVEL=error
+
+DB_CONNECTION=mysql
+DB_HOST={$db['db_host']}
+DB_PORT={$db['db_port']}
+DB_DATABASE={$db['db_database']}
+DB_USERNAME={$db['db_username']}
+DB_PASSWORD={$db['db_password']}
+
+CACHE_DRIVER=redis
+QUEUE_CONNECTION=redis
+SESSION_DRIVER=redis
+SESSION_LIFETIME=480
+
+REDIS_HOST=redis
+REDIS_PASSWORD=redissecret
+REDIS_PORT=6379
+
+FILESYSTEM_DISK=spaces
+DO_SPACES_KEY={$spaces['spaces_key']}
+DO_SPACES_SECRET={$spaces['spaces_secret']}
+DO_SPACES_ENDPOINT={$spaces['spaces_endpoint']}
+DO_SPACES_REGION={$spaces['spaces_region']}
+DO_SPACES_BUCKET={$spaces['spaces_bucket']}
+DO_SPACES_URL=https://{$spaces['spaces_bucket']}.{$spaces['spaces_region']}.digitaloceanspaces.com
+
+ARTWORK_DOWNLOAD_TTL=15
+
+MAIL_MAILER=log
+MAIL_FROM_ADDRESS="portal@example.com"
+MAIL_FROM_NAME="\${APP_NAME}"
+ENV;
+
+        file_put_contents(base_path('.env'), $content);
+    }
+
+    // ─── .env bayrağı ekle ────────────────────────────────────────
+
+    private function appendEnvFlag(): void
+    {
+        $envPath = base_path('.env');
+
+        if (! file_exists($envPath)) {
+            return;
+        }
+
+        $current = file_get_contents($envPath);
+
+        // Zaten varsa güncelle, yoksa ekle
+        if (str_contains($current, 'APP_INSTALLED=')) {
+            $current = preg_replace('/APP_INSTALLED=.*/', 'APP_INSTALLED=true', $current);
+        } else {
+            $current .= "
+APP_INSTALLED=true
+";
+        }
+
+        file_put_contents($envPath, $current);
+    }
+
+    // ─── Admin kullanıcı oluştur ──────────────────────────────────
+
+    private function createAdminUser(array $data): void
+    {
+        DB::table('users')->insert([
+            'name'       => $data['admin_name'],
+            'email'      => $data['admin_email'],
+            'password'   => Hash::make($data['admin_password']),
+            'role'       => 'admin',
+            'is_active'  => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+}

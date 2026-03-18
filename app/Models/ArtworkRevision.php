@@ -22,6 +22,9 @@ class ArtworkRevision extends Model
         'uploaded_by',
         'notes',
         'archived_at',
+        'approved_by',
+        'approved_at',
+        'approval_status',
     ];
 
     protected function casts(): array
@@ -31,6 +34,7 @@ class ArtworkRevision extends Model
             'file_size'   => 'integer',
             'revision_no' => 'integer',
             'archived_at' => 'datetime',
+            'approved_at' => 'datetime',
         ];
     }
 
@@ -84,6 +88,11 @@ class ArtworkRevision extends Model
     /**
      * Revizyonu arşivle (silme — sadece pasife al)
      */
+    public function approvedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
     public function archive(): void
     {
         $this->update([

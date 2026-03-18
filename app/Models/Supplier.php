@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -12,27 +13,28 @@ class Supplier extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'name',
-        'code',
-        'email',
-        'phone',
-        'address',
-        'is_active',
-        'notes',
+        'name', 'code', 'email', 'phone', 'address', 'is_active', 'notes',
     ];
 
     protected function casts(): array
     {
-        return [
-            'is_active' => 'boolean',
-        ];
+        return ['is_active' => 'boolean'];
     }
 
-    // ─── Relations ───────────────────────────────────────────────
-
-    public function users(): HasMany
+    // Pivot üzerinden tedarikçiye bağlı kullanıcılar
+    public function users(): BelongsToMany
     {
-        return $this->hasMany(User::class);
+        return $this->belongsToMany(User::class, 'supplier_users')
+                    ->withPivot('role_at_supplier', 'is_active')
+                    ->withTimestamps()
+                    ->wherePivot('is_active', true);
+    }
+
+    public function allUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'supplier_users')
+                    ->withPivot('role_at_supplier', 'is_active')
+                    ->withTimestamps();
     }
 
     public function purchaseOrders(): HasMany
@@ -40,14 +42,10 @@ class Supplier extends Model
         return $this->hasMany(PurchaseOrder::class);
     }
 
-    // ─── Scopes ──────────────────────────────────────────────────
-
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
-
-    // ─── Helpers ─────────────────────────────────────────────────
 
     public function getActiveOrdersCountAttribute(): int
     {

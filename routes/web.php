@@ -90,4 +90,16 @@ Route::middleware(['auth', 'active'])->group(function () {
             // Loglar
             Route::get('/loglar', [AuditLogController::class, 'index'])->name('logs.index');
         });
+
+    // ── ERP Sync (Admin - Faz 2) ──────────────────────────────────
+    Route::post('/admin/erp/sync', \App\Http\Controllers\Admin\ErpSyncController::class . '@sync')
+         ->middleware('role:admin')
+         ->name('admin.erp.sync');
+
+    // ── Faz2 Tedarikçi Onay Aksiyonları ───────────────────────────
+    Route::middleware(['auth', 'active', 'role:supplier'])->group(function () {
+        Route::post('/revizyon/{revision}/gordum',   [\App\Http\Controllers\Faz2\ApprovalController::class, 'confirmSeen'])->name('approval.seen');
+        Route::post('/revizyon/{revision}/onayla',  [\App\Http\Controllers\Faz2\ApprovalController::class, 'approve'])->name('approval.approve');
+    });
+
 });

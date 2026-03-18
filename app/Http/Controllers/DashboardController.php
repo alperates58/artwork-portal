@@ -11,39 +11,37 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __invoke(): View
+    public function __invoke(): View|\Illuminate\Http\RedirectResponse
     {
-        // Tedarikçiyi portal'a yönlendir
         if (auth()->user()->isSupplier()) {
             return redirect()->route('portal.orders.index');
         }
 
-        // Metrikler — 5 dakika cache
         $metrics = Cache::remember('dashboard.metrics', 300, function () {
             return [
-                'pending_artwork'    => PurchaseOrderLine::where('artwork_status', 'pending')->count(),
-                'uploaded_artwork'   => PurchaseOrderLine::where('artwork_status', 'uploaded')->count(),
-                'active_orders'      => PurchaseOrder::where('status', 'active')->count(),
-                'total_revisions'    => ArtworkRevision::count(),
+                'pending_artwork'  => PurchaseOrderLine::where('artwork_status', 'pending')->count(),
+                'uploaded_artwork' => PurchaseOrderLine::where('artwork_status', 'uploaded')->count(),
+                'pending_approval' => PurchaseOrderLine::where('artwork_status', 'revision')->count(),
+                'active_orders'    => PurchaseOrder::where('status', 'active')->count(),
+                'total_revisions'  => ArtworkRevision::count(),
             ];
         });
 
-        // Son yüklenen dosyalar (cache'siz — gerçek zamanlı)
         $recentRevisions = ArtworkRevision::with([
             'uploadedBy',
             'artwork.orderLine.purchaseOrder.supplier',
-        ])
-        ->orderByDesc('created_at')
-        ->limit(8)
-        ->get();
+        ])->orderByDesc('created_at')->limit(8)->get();
 
-        // Son indirmeler
         $recentDownloads = AuditLog::with('user')
             ->where('action', 'artwork.download')
             ->orderByDesc('created_at')
-            ->limit(8)
-            ->get();
+            ->limit(8)->get();
 
-        return view('dashboard', compact('metrics', 'recentRevisions', 'recentDownloads'));
+        $lastErpSync = AuditLog::where('action', 'erp.sync')
+            ->orderByDesc('created_at')->value('created_at');
+
+        return view('dashboard', compact(
+            'metrics', 'recentRevisions', 'recentDownloads', 'lastErpSync'
+        ));
     }
 }

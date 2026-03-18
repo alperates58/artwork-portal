@@ -84,6 +84,22 @@
                                     </svg>
                                     İndir
                                 </a>
+                                <form method="POST" action="{{ route('approval.seen', $rev) }}" class="inline">
+                                    @csrf
+                                    <button type="submit"
+                                            class="inline-flex items-center gap-1 px-3 py-2 text-xs font-medium
+                                                   text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                                        Gördüm
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ route('approval.approve', $rev) }}" class="inline">
+                                    @csrf
+                                    <button type="submit"
+                                            class="inline-flex items-center gap-1 px-3 py-2 text-xs font-medium
+                                                   text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors">
+                                        Onayladım
+                                    </button>
+                                </form>
                             </div>
 
                             @if($rev->notes)
