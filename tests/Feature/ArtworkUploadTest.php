@@ -20,7 +20,9 @@ class ArtworkUploadTest extends TestCase
     use RefreshDatabase;
 
     private User $graphicUser;
+    private User $adminUser;
     private User $supplierUser;
+    private User $purchasingUser;
     private PurchaseOrderLine $line;
 
     protected function setUp(): void
@@ -31,7 +33,9 @@ class ArtworkUploadTest extends TestCase
 
         $supplier = Supplier::factory()->create();
 
+        $this->adminUser = User::factory()->create(['role' => UserRole::ADMIN]);
         $this->graphicUser = User::factory()->create(['role' => UserRole::GRAPHIC]);
+        $this->purchasingUser = User::factory()->create(['role' => UserRole::PURCHASING]);
         $this->supplierUser = User::factory()->create([
             'role'        => UserRole::SUPPLIER,
             'supplier_id' => $supplier->id,
@@ -52,9 +56,24 @@ class ArtworkUploadTest extends TestCase
              ->assertViewIs('artworks.create');
     }
 
+    public function test_admin_can_see_upload_form(): void
+    {
+        $this->actingAs($this->adminUser)
+             ->get(route('artworks.create', $this->line))
+             ->assertOk()
+             ->assertViewIs('artworks.create');
+    }
+
     public function test_supplier_cannot_see_upload_form(): void
     {
         $this->actingAs($this->supplierUser)
+             ->get(route('artworks.create', $this->line))
+             ->assertForbidden();
+    }
+
+    public function test_purchasing_cannot_see_upload_form(): void
+    {
+        $this->actingAs($this->purchasingUser)
              ->get(route('artworks.create', $this->line))
              ->assertForbidden();
     }

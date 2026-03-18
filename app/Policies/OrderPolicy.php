@@ -32,6 +32,11 @@ class OrderPolicy
         return in_array($user->role, [UserRole::ADMIN, UserRole::PURCHASING]);
     }
 
+    public function uploadArtwork(User $user, PurchaseOrderLine $line): bool
+    {
+        return $user->canUploadArtwork();
+    }
+
     public function update(User $user, PurchaseOrder $order): bool
     {
         return in_array($user->role, [UserRole::ADMIN, UserRole::PURCHASING]);
