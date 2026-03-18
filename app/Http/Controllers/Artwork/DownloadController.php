@@ -4,49 +4,53 @@ namespace App\Http\Controllers\Artwork;
 
 use App\Http\Controllers\Controller;
 use App\Models\ArtworkRevision;
+use App\Services\ArtworkUploadService;
 use App\Services\AuditLogService;
 use App\Services\SpacesStorageService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DownloadController extends Controller
 {
     public function __construct(
         private SpacesStorageService $spaces,
+        private ArtworkUploadService $uploadService,
         private AuditLogService $audit
     ) {}
 
-    /**
-     * Güvenli artwork indirme
-     * - Policy kontrolü
-     * - Tedarikçi sadece aktif revizyonu indirebilir
-     * - Presigned URL ile yönlendirme (dosya sunucudan geçmez)
-     */
-    public function download(ArtworkRevision $revision): RedirectResponse
+    public function download(ArtworkRevision $revision): RedirectResponse|BinaryFileResponse|StreamedResponse
     {
-        // 1. Genel görüntüleme yetkisi
         $this->authorize('view', $revision->artwork);
 
-        // 2. Tedarikçi sadece aktif revizyonu indirebilir
-        if (auth()->user()->isSupplier() && ! $revision->is_active) {
+        $user = auth()->user();
+        $supplierId = $revision->artwork->orderLine->purchaseOrder->supplier_id;
+
+        if ($user->isSupplier() && ! $revision->is_active) {
             abort(403, 'Bu dosyaya erişim yetkiniz bulunmamaktadır.');
         }
 
-        // 3. Spaces'te dosya var mı kontrol
+        if (! $user->canDownloadForSupplier($supplierId)) {
+            abort(403, 'Bu dosyayı indirme yetkiniz bulunmamaktadır.');
+        }
+
         if (! $this->spaces->exists($revision->spaces_path)) {
             abort(404, 'Dosya bulunamadı. Lütfen yönetici ile iletişime geçin.');
         }
 
-        // 4. İndirme logu
+        $this->uploadService->logDownload($revision, $user);
         $this->audit->log('artwork.download', $revision, [
-            'revision_no'       => $revision->revision_no,
+            'revision_no' => $revision->revision_no,
             'original_filename' => $revision->original_filename,
-            'file_size'         => $revision->file_size,
+            'file_size' => $revision->file_size,
         ]);
 
-        // 5. Presigned URL üret ve yönlendir
-        // Dosya sunucudan geçmez — direkt Spaces'ten akar
-        $url = $this->spaces->presignedUrl($revision->spaces_path);
+        if (config('filesystems.default', 'local') === 'spaces') {
+            return redirect($this->spaces->presignedUrl($revision->spaces_path));
+        }
 
-        return redirect($url);
+        return Storage::disk(config('filesystems.default', 'local'))
+            ->download($revision->spaces_path, $revision->original_filename);
     }
 }

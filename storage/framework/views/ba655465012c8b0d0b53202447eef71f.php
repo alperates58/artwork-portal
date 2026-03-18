@@ -14,7 +14,10 @@
         </svg>
     </div>
     <div>
-        <p class="text-sm font-semibold text-slate-900"><?php echo e(auth()->user()->supplier->name); ?></p>
+        <p class="text-sm font-semibold text-slate-900">
+            <?php echo e(auth()->user()->supplier->name ?? auth()->user()->mappedSuppliers->first()?->name ?? 'Tedarikçi Portalı'); ?>
+
+        </p>
         <p class="text-xs text-slate-600">Güncel artwork dosyalarına bu sayfadan erişebilirsiniz.</p>
     </div>
 </div>

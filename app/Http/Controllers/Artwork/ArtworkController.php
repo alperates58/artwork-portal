@@ -62,6 +62,7 @@ class ArtworkController extends Controller
             'uploadedBy',
         ]);
 
+        $this->uploadService->logView($revision, auth()->user());
         $this->audit->log('artwork.view', $revision);
 
         return view('artworks.show', compact('revision'));

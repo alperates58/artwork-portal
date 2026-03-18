@@ -16,11 +16,11 @@ class UserController extends Controller
     public function index(Request $request): View
     {
         $users = User::query()
-            ->with('supplier')
-            ->when($request->role,   fn ($q) => $q->where('role', $request->role))
+            ->with(['supplier', 'supplierMappings'])
+            ->when($request->role, fn ($q) => $q->where('role', $request->role))
             ->when($request->search, fn ($q) => $q->where(function ($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('email', 'like', "%{$request->search}%");
+                    ->orWhere('email', 'like', "%{$request->search}%");
             }))
             ->orderBy('name')
             ->paginate(25)
@@ -32,7 +32,7 @@ class UserController extends Controller
     public function create(): View
     {
         $suppliers = Supplier::active()->orderBy('name')->pluck('name', 'id');
-        $roles     = UserRole::cases();
+        $roles = UserRole::cases();
 
         return view('admin.users.create', compact('suppliers', 'roles'));
     }
@@ -40,19 +40,20 @@ class UserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name'        => ['required', 'string', 'max:100'],
-            'email'       => ['required', 'email', 'unique:users'],
-            'password'    => ['required', 'string', 'min:8', 'confirmed'],
-            'role'        => ['required', Rule::enum(UserRole::class)],
+            'name' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'unique:users'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'role' => ['required', Rule::enum(UserRole::class)],
             'supplier_id' => [
                 Rule::requiredIf(fn () => $request->role === UserRole::SUPPLIER->value),
                 'nullable',
                 'exists:suppliers,id',
             ],
-            'is_active'   => ['boolean'],
+            'is_active' => ['boolean'],
         ]);
 
-        User::create($validated);
+        $user = User::create($validated);
+        $this->syncSupplierMapping($user);
 
         return redirect()
             ->route('admin.users.index')
@@ -62,7 +63,7 @@ class UserController extends Controller
     public function edit(User $user): View
     {
         $suppliers = Supplier::active()->orderBy('name')->pluck('name', 'id');
-        $roles     = UserRole::cases();
+        $roles = UserRole::cases();
 
         return view('admin.users.edit', compact('user', 'suppliers', 'roles'));
     }
@@ -70,19 +71,28 @@ class UserController extends Controller
     public function update(Request $request, User $user): RedirectResponse
     {
         $validated = $request->validate([
-            'name'        => ['required', 'string', 'max:100'],
-            'email'       => ['required', 'email', Rule::unique('users')->ignore($user)],
-            'role'        => ['required', Rule::enum(UserRole::class)],
-            'supplier_id' => ['nullable', 'exists:suppliers,id'],
-            'is_active'   => ['boolean'],
-            'password'    => ['nullable', 'string', 'min:8', 'confirmed'],
+            'name' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', Rule::unique('users')->ignore($user)],
+            'role' => ['required', Rule::enum(UserRole::class)],
+            'supplier_id' => [
+                Rule::requiredIf(fn () => $request->role === UserRole::SUPPLIER->value),
+                'nullable',
+                'exists:suppliers,id',
+            ],
+            'is_active' => ['boolean'],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
 
         if (empty($validated['password'])) {
             unset($validated['password']);
         }
 
+        if (($validated['role'] ?? null) !== UserRole::SUPPLIER) {
+            $validated['supplier_id'] = null;
+        }
+
         $user->update($validated);
+        $this->syncSupplierMapping($user->fresh());
 
         return redirect()
             ->route('admin.users.index')
@@ -91,7 +101,6 @@ class UserController extends Controller
 
     public function toggleActive(User $user): RedirectResponse
     {
-        // Admin kendini pasife alamaz
         abort_if($user->id === auth()->id(), 403, 'Kendi hesabınızı pasife alamazsınız.');
 
         $user->update(['is_active' => ! $user->is_active]);
@@ -99,5 +108,32 @@ class UserController extends Controller
         $status = $user->is_active ? 'aktif' : 'pasif';
 
         return back()->with('success', "Kullanıcı {$status} yapıldı.");
+    }
+
+    private function syncSupplierMapping(User $user): void
+    {
+        if (! $user->isSupplier() || ! $user->supplier_id) {
+            $user->supplierMappings()->delete();
+
+            return;
+        }
+
+        $existingTitle = $user->supplierMappings()
+            ->where('supplier_id', $user->supplier_id)
+            ->value('title');
+
+        $user->supplierMappings()->where('supplier_id', '!=', $user->supplier_id)->update([
+            'is_primary' => false,
+        ]);
+
+        $user->supplierMappings()->updateOrCreate(
+            ['supplier_id' => $user->supplier_id],
+            [
+                'title' => $existingTitle,
+                'is_primary' => true,
+                'can_download' => true,
+                'can_approve' => false,
+            ]
+        );
     }
 }

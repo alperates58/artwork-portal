@@ -51,7 +51,7 @@ class SupplierController extends Controller
     public function show(Supplier $supplier): View
     {
         $supplier->load([
-            'users',
+            'allUsers',
             'purchaseOrders' => fn ($q) => $q->withCount('lines')->orderByDesc('order_date')->limit(10),
         ]);
 

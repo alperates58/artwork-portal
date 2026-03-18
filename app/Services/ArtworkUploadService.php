@@ -77,10 +77,13 @@ class ArtworkUploadService
 
     public function logView(ArtworkRevision $revision, User $user): void
     {
+        $supplierId = $user->supplier_id
+            ?? $revision->artwork->orderLine->purchaseOrder->supplier_id;
+
         ArtworkViewLog::create([
             'artwork_revision_id' => $revision->id,
             'user_id'             => $user->id,
-            'supplier_id'         => $user->supplier_id,
+            'supplier_id'         => $supplierId,
             'ip_address'          => request()->ip(),
             'user_agent'          => request()->userAgent(),
             'viewed_at'           => now(),
@@ -89,10 +92,13 @@ class ArtworkUploadService
 
     public function logDownload(ArtworkRevision $revision, User $user, ?string $token = null): void
     {
+        $supplierId = $user->supplier_id
+            ?? $revision->artwork->orderLine->purchaseOrder->supplier_id;
+
         ArtworkDownloadLog::create([
             'artwork_revision_id' => $revision->id,
             'user_id'             => $user->id,
-            'supplier_id'         => $user->supplier_id,
+            'supplier_id'         => $supplierId,
             'ip_address'          => request()->ip(),
             'user_agent'          => request()->userAgent(),
             'download_token'      => $token,

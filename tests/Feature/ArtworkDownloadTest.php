@@ -8,6 +8,7 @@ use App\Models\ArtworkRevision;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
+use App\Models\SupplierUser;
 use App\Models\User;
 use App\Services\SpacesStorageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -27,6 +28,8 @@ class ArtworkDownloadTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        config(['filesystems.default' => 'spaces']);
 
         // Mock SpacesStorageService — gerçek Spaces'e bağlanma
         $this->mock(SpacesStorageService::class, function ($mock) {
@@ -125,9 +128,29 @@ class ArtworkDownloadTest extends TestCase
         $this->actingAs($this->supplier1User)
              ->get(route('portal.download', $this->activeRevision));
 
+        $this->assertDatabaseHas('artwork_download_logs', [
+            'artwork_revision_id' => $this->activeRevision->id,
+            'user_id'             => $this->supplier1User->id,
+        ]);
+
         $this->assertDatabaseHas('audit_logs', [
             'user_id' => $this->supplier1User->id,
             'action'  => 'artwork.download',
         ]);
+    }
+
+    public function test_supplier_without_download_permission_cannot_download(): void
+    {
+        SupplierUser::create([
+            'supplier_id'   => $this->supplier1User->supplier_id,
+            'user_id'       => $this->supplier1User->id,
+            'is_primary'    => true,
+            'can_download'  => false,
+            'can_approve'   => false,
+        ]);
+
+        $this->actingAs($this->supplier1User)
+             ->get(route('portal.download', $this->activeRevision))
+             ->assertForbidden();
     }
 }

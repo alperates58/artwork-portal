@@ -5,7 +5,9 @@ namespace App\Models;
 use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -39,11 +41,21 @@ class User extends Authenticatable
         ];
     }
 
-    // ─── Relations ───────────────────────────────────────────────
-
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    public function supplierMappings(): HasMany
+    {
+        return $this->hasMany(SupplierUser::class);
+    }
+
+    public function mappedSuppliers(): BelongsToMany
+    {
+        return $this->belongsToMany(Supplier::class, 'supplier_users')
+            ->withPivot('title', 'is_primary', 'can_download', 'can_approve')
+            ->withTimestamps();
     }
 
     public function auditLogs(): HasMany
@@ -55,8 +67,6 @@ class User extends Authenticatable
     {
         return $this->hasMany(ArtworkRevision::class, 'uploaded_by');
     }
-
-    // ─── Helpers ─────────────────────────────────────────────────
 
     public function isAdmin(): bool
     {
@@ -85,23 +95,54 @@ class User extends Authenticatable
 
     public function canUploadArtwork(): bool
     {
-        return in_array($this->role, [UserRole::ADMIN, UserRole::GRAPHIC]);
+        return in_array($this->role, [UserRole::ADMIN, UserRole::GRAPHIC], true);
     }
 
     public function canManageOrders(): bool
     {
-        return in_array($this->role, [UserRole::ADMIN, UserRole::PURCHASING]);
+        return in_array($this->role, [UserRole::ADMIN, UserRole::PURCHASING], true);
     }
 
-    /**
-     * Tedarikçi kullanıcı belirtilen siparişe erişebilir mi?
-     */
     public function canAccessOrder(PurchaseOrder $order): bool
     {
-        if ($this->isSupplier()) {
-            return $order->supplier_id === $this->supplier_id;
+        if (! $this->isSupplier()) {
+            return true;
         }
 
-        return true; // admin, grafik, satın alma hepsini görebilir
+        return $this->accessibleSupplierIds()->contains($order->supplier_id);
+    }
+
+    public function canDownloadForSupplier(int $supplierId): bool
+    {
+        if (! $this->isSupplier()) {
+            return true;
+        }
+
+        if (! $this->accessibleSupplierIds()->contains($supplierId)) {
+            return false;
+        }
+
+        $mapping = $this->relationLoaded('supplierMappings')
+            ? $this->supplierMappings->firstWhere('supplier_id', $supplierId)
+            : $this->supplierMappings()->where('supplier_id', $supplierId)->first();
+
+        if (! $mapping) {
+            return $this->supplier_id === $supplierId;
+        }
+
+        return (bool) $mapping->can_download;
+    }
+
+    public function accessibleSupplierIds(): Collection
+    {
+        $mappedIds = $this->relationLoaded('supplierMappings')
+            ? $this->supplierMappings->pluck('supplier_id')
+            : $this->supplierMappings()->pluck('supplier_id');
+
+        return $mappedIds
+            ->push($this->supplier_id)
+            ->filter()
+            ->unique()
+            ->values();
     }
 }
