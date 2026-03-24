@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -63,6 +64,15 @@ class PurchaseOrder extends Model
         return $query->where('order_no', 'like', "%{$term}%");
     }
 
+    public function scopeWithListMetrics(Builder $query): Builder
+    {
+        return $query->withCount('lines')
+            ->withCount([
+                'lines as pending_artwork_lines_count' => fn (Builder $lineQuery) => $lineQuery
+                    ->whereDoesntHave('artwork.activeRevision'),
+            ]);
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────
 
     public function getStatusLabelAttribute(): string
@@ -78,6 +88,10 @@ class PurchaseOrder extends Model
 
     public function getPendingArtworkCountAttribute(): int
     {
+        if (array_key_exists('pending_artwork_lines_count', $this->attributes)) {
+            return (int) $this->attributes['pending_artwork_lines_count'];
+        }
+
         return $this->lines()
             ->whereDoesntHave('artwork.revisions', fn ($q) => $q->where('is_active', true))
             ->count();

@@ -12,7 +12,9 @@ class SupplierController extends Controller
 {
     public function index(Request $request): View
     {
-        $suppliers = Supplier::withCount(['users', 'purchaseOrders'])
+        $suppliers = Supplier::query()
+            ->select(['id', 'name', 'code', 'email', 'phone', 'is_active'])
+            ->withCount(['users', 'purchaseOrders'])
             ->when($request->search, fn ($q) => $q->where(function ($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")
                   ->orWhere('code', 'like', "%{$request->search}%");

@@ -16,7 +16,8 @@ class UserController extends Controller
     public function index(Request $request): View
     {
         $users = User::query()
-            ->with(['supplier', 'supplierMappings'])
+            ->select(['id', 'name', 'email', 'role', 'supplier_id', 'last_login_at', 'is_active'])
+            ->with('supplier')
             ->when($request->role, fn ($q) => $q->where('role', $request->role))
             ->when($request->search, fn ($q) => $q->where(function ($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")

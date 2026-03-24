@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\LogSlowRequests;
 use App\Http\Middleware\RedirectIfSetupComplete;
 use App\Http\Middleware\RedirectToSetupIfNotComplete;
 use Illuminate\Foundation\Application;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             RedirectToSetupIfNotComplete::class,
             EnsureUserIsActive::class,
+            LogSlowRequests::class,
         ]);
         $middleware->alias([
             'role'       => CheckRole::class,

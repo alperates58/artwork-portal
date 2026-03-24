@@ -1,4 +1,3 @@
-
 <?php $__env->startSection('title', 'Siparişler'); ?>
 <?php $__env->startSection('page-title', 'Sipariş Listesi'); ?>
 
@@ -99,11 +98,11 @@
                     <td class="px-4 py-3">
                         <?php
                             $statusClass = match($order->status) {
-                                'active'    => 'badge-success',
-                                'draft'     => 'badge-gray',
+                                'active' => 'badge-success',
+                                'draft' => 'badge-gray',
                                 'completed' => 'badge-info',
                                 'cancelled' => 'badge-danger',
-                                default     => 'badge-gray',
+                                default => 'badge-gray',
                             };
                         ?>
                         <?php if (isset($component)) { $__componentOriginalab7baa01105b3dfe1e0cf1dfc58879b4 = $component; } ?>
@@ -129,7 +128,7 @@
 <?php unset($__componentOriginalab7baa01105b3dfe1e0cf1dfc58879b4); ?>
 <?php endif; ?>
                     </td>
-                    <td class="px-4 py-3 text-slate-700"><?php echo e($order->lines->count()); ?> satır</td>
+                    <td class="px-4 py-3 text-slate-700"><?php echo e($order->lines_count); ?> satır</td>
                     <td class="px-4 py-3">
                         <?php $pending = $order->pending_artwork_count; ?>
                         <?php if($pending > 0): ?>
@@ -177,7 +176,7 @@
                     <td class="px-4 py-3 text-right">
                         <a href="<?php echo e(route('orders.show', $order)); ?>"
                            class="text-blue-600 hover:text-blue-700 text-xs font-medium">
-                            Detay →
+                            Detay â†’
                         </a>
                     </td>
                 </tr>

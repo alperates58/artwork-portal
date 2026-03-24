@@ -17,7 +17,8 @@ class OrderController extends Controller
     public function index(Request $request): View
     {
         $orders = PurchaseOrder::query()
-            ->with(['supplier', 'lines'])
+            ->with('supplier:id,name')
+            ->withListMetrics()
             ->when($request->supplier_id, fn ($q) => $q->where('supplier_id', $request->supplier_id))
             ->when($request->status,      fn ($q) => $q->where('status', $request->status))
             ->when($request->search,      fn ($q) => $q->search($request->search))

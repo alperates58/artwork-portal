@@ -9,6 +9,7 @@ use App\Models\ArtworkViewLog;
 use App\Models\PurchaseOrderLine;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class ArtworkUploadService
@@ -88,6 +89,37 @@ class ArtworkUploadService
             'user_agent'          => request()->userAgent(),
             'viewed_at'           => now(),
         ]);
+    }
+
+    public function logViews(iterable $revisions, User $user): void
+    {
+        $revisionCollection = $revisions instanceof Collection
+            ? $revisions->filter()
+            : collect($revisions)->filter();
+
+        if ($revisionCollection->isEmpty()) {
+            return;
+        }
+
+        $now = now();
+        $ipAddress = request()->ip();
+        $userAgent = request()->userAgent();
+
+        ArtworkViewLog::insert(
+            $revisionCollection->map(function (ArtworkRevision $revision) use ($user, $now, $ipAddress, $userAgent) {
+                $supplierId = $user->supplier_id
+                    ?? $revision->artwork->orderLine->purchaseOrder->supplier_id;
+
+                return [
+                    'artwork_revision_id' => $revision->id,
+                    'user_id' => $user->id,
+                    'supplier_id' => $supplierId,
+                    'ip_address' => $ipAddress,
+                    'user_agent' => $userAgent,
+                    'viewed_at' => $now,
+                ];
+            })->all()
+        );
     }
 
     public function logDownload(ArtworkRevision $revision, User $user, ?string $token = null): void

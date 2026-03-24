@@ -18,13 +18,19 @@ class PortalOrderController extends Controller
 
     public function index(Request $request): View
     {
-        $user = $request->user()->loadMissing('supplierMappings');
+        $user = $request->user()->loadMissing([
+            'supplier:id,name',
+            'supplierMappings',
+            'mappedSuppliers:id,name',
+        ]);
 
         $orders = PurchaseOrder::query()
-            ->whereIn('supplier_id', $user->accessibleSupplierIds())
+            ->whereIn('supplier_id', $user->accessibleSupplierIds()->all())
             ->with([
-                'supplier',
-                'lines.artwork.activeRevision',
+                'supplier:id,name',
+                'lines' => fn ($query) => $query->select('id', 'purchase_order_id', 'product_code'),
+                'lines.artwork:id,order_line_id',
+                'lines.artwork.activeRevision:id,artwork_id',
             ])
             ->when($request->status, fn ($q) => $q->where('status', $request->status))
             ->when($request->search, fn ($q) => $q->search($request->search))
@@ -32,7 +38,11 @@ class PortalOrderController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('portal.orders.index', compact('orders'));
+        $supplierDisplayName = $user->supplier?->name
+            ?? $user->mappedSuppliers->first()?->name
+            ?? 'Tedarikçi Portalı';
+
+        return view('portal.orders.index', compact('orders', 'supplierDisplayName'));
     }
 
     public function show(PurchaseOrder $order): View
@@ -46,11 +56,10 @@ class PortalOrderController extends Controller
             'lines.artwork.activeRevision.uploadedBy',
         ]);
 
-        foreach ($order->lines as $line) {
-            if ($line->activeRevision) {
-                $this->artworkUploadService->logView($line->activeRevision, $user);
-            }
-        }
+        $this->artworkUploadService->logViews(
+            $order->lines->pluck('activeRevision')->filter(),
+            $user
+        );
 
         $this->audit->log('portal.order.view', $order, [
             'order_no' => $order->order_no,

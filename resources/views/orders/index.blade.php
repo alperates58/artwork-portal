@@ -68,18 +68,18 @@
                     <td class="px-4 py-3">
                         @php
                             $statusClass = match($order->status) {
-                                'active'    => 'badge-success',
-                                'draft'     => 'badge-gray',
+                                'active' => 'badge-success',
+                                'draft' => 'badge-gray',
                                 'completed' => 'badge-info',
                                 'cancelled' => 'badge-danger',
-                                default     => 'badge-gray',
+                                default => 'badge-gray',
                             };
                         @endphp
                         <x-ui.badge :variant="str_replace('badge-', '', $statusClass)">
                             {{ $order->status_label }}
                         </x-ui.badge>
                     </td>
-                    <td class="px-4 py-3 text-slate-700">{{ $order->lines->count() }} satır</td>
+                    <td class="px-4 py-3 text-slate-700">{{ $order->lines_count }} satır</td>
                     <td class="px-4 py-3">
                         @php $pending = $order->pending_artwork_count; @endphp
                         @if($pending > 0)
@@ -91,7 +91,7 @@
                     <td class="px-4 py-3 text-right">
                         <a href="{{ route('orders.show', $order) }}"
                            class="text-blue-600 hover:text-blue-700 text-xs font-medium">
-                            Detay →
+                            Detay â†’
                         </a>
                     </td>
                 </tr>
