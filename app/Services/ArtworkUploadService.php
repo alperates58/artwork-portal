@@ -15,9 +15,9 @@ use Illuminate\Support\Facades\DB;
 class ArtworkUploadService
 {
     public function __construct(
-        private SpacesStorageService   $spaces,
+        private SpacesStorageService $spaces,
         private MultipartUploadService $multipart,
-        private AuditLogService        $audit
+        private AuditLogService $audit
     ) {}
 
     public function store(PurchaseOrderLine $line, UploadedFile $file, array $meta, User $uploader): ArtworkRevision
@@ -25,7 +25,7 @@ class ArtworkUploadService
         return DB::transaction(function () use ($line, $file, $meta, $uploader) {
             $artwork = $line->artwork ?? Artwork::create([
                 'order_line_id' => $line->id,
-                'title'         => $meta['title'] ?? pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                'title' => $meta['title'] ?? pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
             ]);
 
             $nextRevNo = $artwork->next_revision_no;
@@ -39,29 +39,27 @@ class ArtworkUploadService
                 $file->getClientOriginalExtension()
             );
 
-            // 100 MB altı tek request, üstü multipart
             $fileData = $this->multipart->upload($file, $path);
 
             $revision = ArtworkRevision::create([
                 ...$fileData,
-                'artwork_id'  => $artwork->id,
+                'artwork_id' => $artwork->id,
                 'revision_no' => $nextRevNo,
-                'is_active'   => true,
+                'is_active' => true,
                 'uploaded_by' => $uploader->id,
-                'notes'       => $meta['notes'] ?? null,
+                'notes' => $meta['notes'] ?? null,
             ]);
 
             $artwork->update(['active_revision_id' => $revision->id]);
             $line->update(['artwork_status' => 'uploaded']);
 
             $this->audit->log('artwork.upload', $revision, [
-                'revision_no'       => $nextRevNo,
+                'revision_no' => $nextRevNo,
                 'original_filename' => $revision->original_filename,
-                'file_size'         => $revision->file_size,
-                'strategy'          => $file->getSize() >= 100 * 1024 * 1024 ? 'multipart' : 'single',
+                'file_size' => $revision->file_size,
+                'strategy' => $file->getSize() >= 100 * 1024 * 1024 ? 'multipart' : 'single',
             ]);
 
-            // 10. Tedarikçiye e-posta bildirimi (Faz 2 — queue'da çalışır)
             \App\Jobs\Faz2\SendArtworkNotificationJob::dispatch($revision);
 
             return $revision;
@@ -76,22 +74,22 @@ class ArtworkUploadService
         });
     }
 
-    public function logView(ArtworkRevision $revision, User $user): void
+    public function logView(ArtworkRevision $revision, User $user, ?int $supplierId = null): void
     {
-        $supplierId = $user->supplier_id
+        $supplierId ??= $user->supplier_id
             ?? $revision->artwork->orderLine->purchaseOrder->supplier_id;
 
         ArtworkViewLog::create([
             'artwork_revision_id' => $revision->id,
-            'user_id'             => $user->id,
-            'supplier_id'         => $supplierId,
-            'ip_address'          => request()->ip(),
-            'user_agent'          => request()->userAgent(),
-            'viewed_at'           => now(),
+            'user_id' => $user->id,
+            'supplier_id' => $supplierId,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'viewed_at' => now(),
         ]);
     }
 
-    public function logViews(iterable $revisions, User $user): void
+    public function logViews(iterable $revisions, User $user, ?int $supplierId = null): void
     {
         $revisionCollection = $revisions instanceof Collection
             ? $revisions->filter()
@@ -106,14 +104,15 @@ class ArtworkUploadService
         $userAgent = request()->userAgent();
 
         ArtworkViewLog::insert(
-            $revisionCollection->map(function (ArtworkRevision $revision) use ($user, $now, $ipAddress, $userAgent) {
-                $supplierId = $user->supplier_id
+            $revisionCollection->map(function (ArtworkRevision $revision) use ($user, $supplierId, $now, $ipAddress, $userAgent) {
+                $resolvedSupplierId = $supplierId
+                    ?? $user->supplier_id
                     ?? $revision->artwork->orderLine->purchaseOrder->supplier_id;
 
                 return [
                     'artwork_revision_id' => $revision->id,
                     'user_id' => $user->id,
-                    'supplier_id' => $supplierId,
+                    'supplier_id' => $resolvedSupplierId,
                     'ip_address' => $ipAddress,
                     'user_agent' => $userAgent,
                     'viewed_at' => $now,
@@ -122,19 +121,19 @@ class ArtworkUploadService
         );
     }
 
-    public function logDownload(ArtworkRevision $revision, User $user, ?string $token = null): void
+    public function logDownload(ArtworkRevision $revision, User $user, ?string $token = null, ?int $supplierId = null): void
     {
-        $supplierId = $user->supplier_id
+        $supplierId ??= $user->supplier_id
             ?? $revision->artwork->orderLine->purchaseOrder->supplier_id;
 
         ArtworkDownloadLog::create([
             'artwork_revision_id' => $revision->id,
-            'user_id'             => $user->id,
-            'supplier_id'         => $supplierId,
-            'ip_address'          => request()->ip(),
-            'user_agent'          => request()->userAgent(),
-            'download_token'      => $token,
-            'downloaded_at'       => now(),
+            'user_id' => $user->id,
+            'supplier_id' => $supplierId,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'download_token' => $token,
+            'downloaded_at' => now(),
         ]);
     }
 }

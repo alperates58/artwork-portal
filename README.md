@@ -1,4 +1,4 @@
-# Artwork Portal
+# Lider Portal
 
 Tedarikçi Artwork Yönetim Sistemi — Laravel 11 + Docker + DigitalOcean Spaces
 

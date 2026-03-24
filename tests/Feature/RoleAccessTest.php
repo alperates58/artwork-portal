@@ -48,6 +48,26 @@ class RoleAccessTest extends TestCase
              ->assertForbidden();
     }
 
+    public function test_purchasing_user_can_create_supplier(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::PURCHASING]);
+
+        $this->actingAs($user)
+            ->post(route('admin.suppliers.store'), [
+                'name' => 'Yeni Tedarikçi',
+                'code' => 'TED-998',
+                'email' => 'tedarikci@example.com',
+                'phone' => '5551234567',
+                'is_active' => 1,
+            ])
+            ->assertRedirect(route('admin.suppliers.index'));
+
+        $this->assertDatabaseHas('suppliers', [
+            'code' => 'TED-998',
+            'name' => 'Yeni Tedarikçi',
+        ]);
+    }
+
     public function test_purchasing_user_cannot_upload_artwork(): void
     {
         $supplier = Supplier::factory()->create();

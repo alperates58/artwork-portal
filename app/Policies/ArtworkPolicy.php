@@ -9,32 +9,22 @@ use App\Models\User;
 
 class ArtworkPolicy
 {
-    /**
-     * Artwork görüntüleme — tedarikçi sadece kendi siparişine ait olanı görebilir
-     */
     public function view(User $user, Artwork $artwork): bool
     {
         if ($user->isSupplier()) {
-            $supplierId = $artwork->orderLine->purchaseOrder->supplier_id;
-            return $supplierId === $user->supplier_id;
+            return $user->canAccessOrder($artwork->orderLine->purchaseOrder);
         }
 
         return true;
     }
 
-    /**
-     * Artwork yükleme — sadece admin ve grafik departmanı
-     */
     public function uploadArtwork(User $user, PurchaseOrderLine $line): bool
     {
         return $user->canUploadArtwork();
     }
 
-    /**
-     * Revizyon yönetimi — sadece admin ve grafik departmanı
-     */
     public function manageRevisions(User $user, Artwork $artwork): bool
     {
-        return in_array($user->role, [UserRole::ADMIN, UserRole::GRAPHIC]);
+        return in_array($user->role, [UserRole::ADMIN, UserRole::GRAPHIC], true);
     }
 }

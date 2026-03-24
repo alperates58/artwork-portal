@@ -32,10 +32,19 @@ foreach ($attributes->all() as $__key => $__value) {
 
 unset($__defined_vars); ?>
 
+<?php
+    $faviconPath = public_path(config('portal.favicon_path'));
+    $faviconUrl = file_exists($faviconPath) ? asset(config('portal.favicon_path')) : null;
+?>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
-<title><?php echo e($title ? $title . ' — ' : ''); ?><?php echo e(config('app.name')); ?></title>
+<title><?php echo e($title ? $title . ' — ' : ''); ?><?php echo e(config('portal.brand_name')); ?></title>
+
+<?php if($faviconUrl): ?>
+    <link rel="icon" type="image/png" href="<?php echo e($faviconUrl); ?>">
+<?php endif; ?>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,16 +58,16 @@ unset($__defined_vars); ?>
         fontFamily: { sans: ['Inter', 'sans-serif'] },
         colors: {
           brand: {
-            50:  '#eef2ff',
-            100: '#e0e7ff',
-            200: '#c7d2fe',
-            300: '#a5b4fc',
-            400: '#818cf8',
-            500: '#6366f1',
-            600: '#4f46e5',
-            700: '#4338ca',
-            800: '#3730a3',
-            900: '#312e81'
+            50:  '#fff9ed',
+            100: '#fff0cf',
+            200: '#ffe09c',
+            300: '#ffca5d',
+            400: '#ffb632',
+            500: '#f49a0b',
+            600: '#db7906',
+            700: '#b65909',
+            800: '#944511',
+            900: '#7a3a12'
           }
         }
       }
@@ -68,15 +77,14 @@ unset($__defined_vars); ?>
 
 <style>
   :root{
-    --brand-500:#6366f1;
-    --brand-600:#4f46e5;
-    --brand-700:#4338ca;
-    --ring: rgba(99,102,241,.35);
+    --brand-500:#f49a0b;
+    --brand-600:#db7906;
+    --brand-700:#b65909;
+    --ring: rgba(244,154,11,.26);
   }
 
   [x-cloak]{ display:none !important; }
 
-  /* ---- UI kit: component classes used across views ---- */
   .card{
     background:#fff;
     border:1px solid rgb(226 232 240);
@@ -120,7 +128,7 @@ unset($__defined_vars); ?>
     transition: box-shadow .15s ease, border-color .15s ease, transform .15s ease;
   }
   .input:focus{
-    border-color: rgba(99,102,241,.8);
+    border-color: rgba(244,154,11,.8);
     box-shadow: 0 0 0 4px var(--ring);
   }
   .input.error{
@@ -156,7 +164,7 @@ unset($__defined_vars); ?>
   .btn-primary{
     color:#fff;
     background: linear-gradient(180deg, var(--brand-600), var(--brand-700));
-    box-shadow: 0 10px 22px rgba(79,70,229,.16);
+    box-shadow: 0 10px 22px rgba(180,89,9,.16);
   }
   .btn-primary:hover{
     background: linear-gradient(180deg, var(--brand-500), var(--brand-700));
@@ -186,7 +194,6 @@ unset($__defined_vars); ?>
   .badge-info   { background: rgb(219 234 254); color: rgb(29 78 216); border-color: rgb(191 219 254); }
   .badge-gray   { background: rgb(241 245 249); color: rgb(71 85 105); border-color: rgb(226 232 240); }
 
-  /* Setup wizard stepper classes */
   .step-dot{
     width:2rem;height:2rem;border-radius:999px;
     display:flex;align-items:center;justify-content:center;
@@ -198,7 +205,7 @@ unset($__defined_vars); ?>
   .step-dot.active{
     background: linear-gradient(180deg, var(--brand-600), var(--brand-700));
     color:#fff;
-    box-shadow: 0 0 0 6px rgba(99,102,241,.12);
+    box-shadow: 0 0 0 6px rgba(244,154,11,.12);
   }
   .step-line{
     height:2px;
@@ -208,7 +215,6 @@ unset($__defined_vars); ?>
   .step-line.done{ background: rgba(16,185,129,.65); }
   .step-line.pending{ background: rgb(226 232 240); }
 
-  /* Sidebar links (app layout) */
   .sidebar-link{
     display:flex;align-items:center;gap:.75rem;
     padding:.5rem .75rem;
@@ -222,8 +228,8 @@ unset($__defined_vars); ?>
     color: rgb(15 23 42);
   }
   .sidebar-link.active{
-    background: rgba(99,102,241,.10);
-    color: rgb(49 46 129);
+    background: rgba(244,154,11,.10);
+    color: rgb(122 58 18);
   }
 </style>
 

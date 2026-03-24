@@ -13,6 +13,8 @@ class MultipartUploadService
     private ?S3Client $client = null;
     private string $bucket = '';
 
+    public function __construct(private PortalSettings $settings) {}
+
     public function upload(UploadedFile $file, string $path): array
     {
         if (! $this->usesSpaces()) {
@@ -74,7 +76,7 @@ class MultipartUploadService
                 'UploadId' => $uploadId,
                 'MultipartUpload' => ['Parts' => $parts],
             ]);
-        } catch (\Exception $e) {
+        } catch (\Exception $exception) {
             fclose($handle);
 
             $client->abortMultipartUpload([
@@ -83,7 +85,7 @@ class MultipartUploadService
                 'UploadId' => $uploadId,
             ]);
 
-            throw $e;
+            throw $exception;
         }
 
         return [
@@ -97,7 +99,7 @@ class MultipartUploadService
 
     private function usesSpaces(): bool
     {
-        return config('filesystems.default', 'local') === 'spaces';
+        return $this->settings->filesystemDisk() === 'spaces';
     }
 
     private function client(): S3Client
@@ -110,17 +112,19 @@ class MultipartUploadService
             return $this->client;
         }
 
+        $spaces = $this->settings->spacesConfig();
+
         $this->client = new S3Client([
             'version' => 'latest',
-            'region' => config('filesystems.disks.spaces.region'),
-            'endpoint' => config('filesystems.disks.spaces.endpoint'),
+            'region' => $spaces['region'],
+            'endpoint' => $spaces['endpoint'],
             'credentials' => [
-                'key' => config('filesystems.disks.spaces.key'),
-                'secret' => config('filesystems.disks.spaces.secret'),
+                'key' => $spaces['key'],
+                'secret' => $spaces['secret'],
             ],
         ]);
 
-        $this->bucket = (string) config('filesystems.disks.spaces.bucket');
+        $this->bucket = (string) $spaces['bucket'];
 
         return $this->client;
     }

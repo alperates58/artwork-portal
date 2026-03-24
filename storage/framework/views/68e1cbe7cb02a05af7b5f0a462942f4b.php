@@ -1,9 +1,7 @@
-
 <?php $__env->startSection('title', 'Dashboard'); ?>
 <?php $__env->startSection('page-title', 'Dashboard'); ?>
 
 <?php $__env->startSection('content'); ?>
-
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <?php if (isset($component)) { $__componentOriginaldae4cd48acb67888a4631e1ba48f2f93 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginaldae4cd48acb67888a4631e1ba48f2f93 = $attributes; } ?>
@@ -103,7 +101,7 @@
     <div class="card">
         <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
             <h2 class="text-sm font-semibold text-slate-900">Son Yüklenen Artwork</h2>
-            <a href="<?php echo e(route('orders.index')); ?>" class="text-xs text-blue-600 hover:underline">Tümü →</a>
+            <a href="<?php echo e(route('orders.index')); ?>" class="text-xs text-brand-700 hover:underline">Tümü</a>
         </div>
         <div class="divide-y divide-slate-100">
             <?php $__empty_1 = true; $__currentLoopData = $recentRevisions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $rev): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
@@ -113,10 +111,7 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-slate-900 truncate"><?php echo e($rev->original_filename); ?></p>
-                        <p class="text-xs text-slate-500">
-                            <?php echo e($rev->artwork->orderLine->purchaseOrder->order_no); ?> · Rev.<?php echo e($rev->revision_no); ?>
-
-                        </p>
+                        <p class="text-xs text-slate-500"><?php echo e($rev->artwork->orderLine->purchaseOrder->order_no); ?> · Rev.<?php echo e($rev->revision_no); ?></p>
                     </div>
                     <p class="text-xs text-slate-400 flex-shrink-0"><?php echo e($rev->created_at->diffForHumans()); ?></p>
                 </div>
@@ -130,17 +125,14 @@
         <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
             <h2 class="text-sm font-semibold text-slate-900">Son İndirmeler</h2>
             <?php if(auth()->user()->isAdmin()): ?>
-                <a href="<?php echo e(route('admin.logs.index')); ?>" class="text-xs text-blue-600 hover:underline">Loglar →</a>
+                <a href="<?php echo e(route('admin.logs.index')); ?>" class="text-xs text-brand-700 hover:underline">Loglar</a>
             <?php endif; ?>
         </div>
         <div class="divide-y divide-slate-100">
             <?php $__empty_1 = true; $__currentLoopData = $recentDownloads; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $log): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                 <div class="px-5 py-3 flex items-center gap-3">
                     <div class="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span class="text-xs font-semibold text-blue-600">
-                            <?php echo e(strtoupper(substr($log->user?->name ?? '?', 0, 2))); ?>
-
-                        </span>
+                        <span class="text-xs font-semibold text-blue-600"><?php echo e(strtoupper(substr($log->user?->name ?? '?', 0, 2))); ?></span>
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm text-slate-900 truncate"><?php echo e($log->user?->name ?? '—'); ?></p>
@@ -164,12 +156,11 @@
         </div>
         <form method="POST" action="<?php echo e(route('admin.erp.sync')); ?>">
             <?php echo csrf_field(); ?>
-            <button type="submit" class="btn-secondary text-xs">Sync Çalıştır</button>
+            <button type="submit" class="btn btn-secondary text-xs">Sync Çalıştır</button>
         </form>
     </div>
 </div>
 <?php endif; ?>
-
 <?php $__env->stopSection(); ?>
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH /var/www/html/resources/views/dashboard.blade.php ENDPATH**/ ?>

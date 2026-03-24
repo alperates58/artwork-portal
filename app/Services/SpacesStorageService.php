@@ -11,10 +11,8 @@ class SpacesStorageService
 {
     private ?S3Client $client = null;
 
-    /**
-     * DO Spaces için klasör yolu üretir
-     * artworks/supplier/42/orders/PO-2024-001/lines/7/rev/3/uuid.pdf
-     */
+    public function __construct(private PortalSettings $settings) {}
+
     public function buildPath(
         int $supplierId,
         string $orderNo,
@@ -35,9 +33,6 @@ class SpacesStorageService
         );
     }
 
-    /**
-     * Dosyayı Spaces'e yükler, stream ile hafıza verimli çalışır.
-     */
     public function upload(UploadedFile $file, string $path): array
     {
         $stream = fopen($file->getRealPath(), 'rb');
@@ -60,9 +55,6 @@ class SpacesStorageService
         ];
     }
 
-    /**
-     * Dosya public olmadan geçici presigned URL üretir.
-     */
     public function presignedUrl(string $path, int $minutes = 0): string
     {
         if (! $this->usesSpaces()) {
@@ -74,9 +66,10 @@ class SpacesStorageService
         }
 
         $client = $this->client();
+        $spaces = $this->settings->spacesConfig();
 
         $command = $client->getCommand('GetObject', [
-            'Bucket' => config('filesystems.disks.spaces.bucket'),
+            'Bucket' => $spaces['bucket'],
             'Key' => $path,
             'ResponseContentDisposition' => 'attachment; filename="' . basename($path) . '"',
         ]);
@@ -103,7 +96,7 @@ class SpacesStorageService
 
     private function diskName(): string
     {
-        return (string) config('filesystems.default', 'local');
+        return $this->settings->filesystemDisk();
     }
 
     private function client(): S3Client
@@ -112,13 +105,15 @@ class SpacesStorageService
             return $this->client;
         }
 
+        $spaces = $this->settings->spacesConfig();
+
         $this->client = new S3Client([
             'version' => 'latest',
-            'region' => config('filesystems.disks.spaces.region'),
-            'endpoint' => config('filesystems.disks.spaces.endpoint'),
+            'region' => $spaces['region'],
+            'endpoint' => $spaces['endpoint'],
             'credentials' => [
-                'key' => config('filesystems.disks.spaces.key'),
-                'secret' => config('filesystems.disks.spaces.secret'),
+                'key' => $spaces['key'],
+                'secret' => $spaces['secret'],
             ],
             'use_path_style_endpoint' => false,
         ]);

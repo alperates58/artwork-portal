@@ -8,6 +8,7 @@ use App\Models\Supplier;
 use App\Services\AuditLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class OrderController extends Controller
@@ -19,9 +20,9 @@ class OrderController extends Controller
         $orders = PurchaseOrder::query()
             ->with('supplier:id,name')
             ->withListMetrics()
-            ->when($request->supplier_id, fn ($q) => $q->where('supplier_id', $request->supplier_id))
-            ->when($request->status,      fn ($q) => $q->where('status', $request->status))
-            ->when($request->search,      fn ($q) => $q->search($request->search))
+            ->when($request->supplier_id, fn ($query) => $query->where('supplier_id', $request->supplier_id))
+            ->when($request->status, fn ($query) => $query->where('status', $request->status))
+            ->when($request->search, fn ($query) => $query->search($request->search))
             ->orderByDesc('order_date')
             ->paginate(25)
             ->withQueryString();
@@ -37,7 +38,7 @@ class OrderController extends Controller
             'supplier',
             'createdBy',
             'lines.artwork.activeRevision.uploadedBy',
-            'lines.artwork.revisions' => fn ($q) => $q->orderByDesc('revision_no'),
+            'lines.artwork.revisions' => fn ($query) => $query->orderByDesc('revision_no'),
         ]);
 
         $this->audit->log('order.view', $order);
@@ -60,22 +61,23 @@ class OrderController extends Controller
 
         $validated = $request->validate([
             'supplier_id' => ['required', 'exists:suppliers,id'],
-            'order_no'    => ['required', 'string', 'max:50', 'unique:purchase_orders'],
-            'order_date'  => ['required', 'date'],
-            'due_date'    => ['nullable', 'date', 'after:order_date'],
-            'notes'       => ['nullable', 'string', 'max:1000'],
-            'lines'                    => ['required', 'array', 'min:1'],
-            'lines.*.line_no'          => ['required', 'string', 'max:20'],
-            'lines.*.product_code'     => ['required', 'string', 'max:100'],
-            'lines.*.description'      => ['required', 'string', 'max:500'],
-            'lines.*.quantity'         => ['required', 'integer', 'min:1'],
-            'lines.*.unit'             => ['nullable', 'string', 'max:20'],
+            'order_no' => ['required', 'string', 'max:50', 'unique:purchase_orders'],
+            'order_date' => ['required', 'date'],
+            'due_date' => ['nullable', 'date', 'after:order_date'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'lines' => ['required', 'array', 'min:1'],
+            'lines.*.line_no' => ['required', 'string', 'max:20'],
+            'lines.*.product_code' => ['required', 'string', 'max:100'],
+            'lines.*.description' => ['required', 'string', 'max:500'],
+            'lines.*.quantity' => ['required', 'integer', 'min:1'],
+            'lines.*.unit' => ['nullable', 'string', 'max:20'],
         ]);
 
         $order = PurchaseOrder::create([
             ...$validated,
-            'status'     => 'active',
+            'status' => 'active',
             'created_by' => auth()->id(),
+            'shipment_status' => 'pending',
         ]);
 
         foreach ($validated['lines'] as $line) {
@@ -96,6 +98,11 @@ class OrderController extends Controller
     {
         $this->authorize('update', $order);
 
+        $order->load([
+            'supplier:id,name,code',
+            'lines.artwork.activeRevision',
+        ]);
+
         $suppliers = Supplier::active()->orderBy('name')->pluck('name', 'id');
 
         return view('orders.edit', compact('order', 'suppliers'));
@@ -106,9 +113,9 @@ class OrderController extends Controller
         $this->authorize('update', $order);
 
         $validated = $request->validate([
-            'status'   => ['required', 'in:draft,active,completed,cancelled'],
+            'status' => ['required', 'in:draft,active,completed,cancelled'],
             'due_date' => ['nullable', 'date'],
-            'notes'    => ['nullable', 'string', 'max:1000'],
+            'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $order->update($validated);
@@ -118,5 +125,29 @@ class OrderController extends Controller
         return redirect()
             ->route('orders.show', $order)
             ->with('success', 'Sipariş güncellendi.');
+    }
+
+    public function destroy(Request $request, PurchaseOrder $order): RedirectResponse
+    {
+        $this->authorize('delete', $order);
+
+        $request->validate([
+            'confirmation_text' => ['required', 'string'],
+        ], [
+            'confirmation_text.required' => 'Silme işlemi için sipariş numarasını yazmalısınız.',
+        ]);
+
+        if ($request->string('confirmation_text')->toString() !== $order->order_no) {
+            return back()->with('error', 'Onay metni sipariş numarasıyla eşleşmiyor.');
+        }
+
+        DB::transaction(function () use ($order) {
+            $this->audit->log('order.delete', $order, ['order_no' => $order->order_no]);
+            $order->delete();
+        });
+
+        return redirect()
+            ->route('orders.index')
+            ->with('success', 'Sipariş ve bağlı satırlar silindi.');
     }
 }

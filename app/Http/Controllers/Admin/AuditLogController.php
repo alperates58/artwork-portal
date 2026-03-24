@@ -15,11 +15,11 @@ class AuditLogController extends Controller
         $logs = AuditLog::query()
             ->select(['id', 'user_id', 'action', 'payload', 'ip_address', 'created_at'])
             ->with('user:id,name,role')
-            ->when($request->action,    fn ($q) => $q->where('action', $request->action))
-            ->when($request->date_from, fn ($q) => $q->where('created_at', '>=', Carbon::parse($request->date_from)->startOfDay()))
-            ->when($request->date_to,   fn ($q) => $q->where('created_at', '<=', Carbon::parse($request->date_to)->endOfDay()))
+            ->when($request->action, fn ($query) => $query->where('action', $request->action))
+            ->when($request->date_from, fn ($query) => $query->where('created_at', '>=', Carbon::parse($request->date_from)->startOfDay()))
+            ->when($request->date_to, fn ($query) => $query->where('created_at', '<=', Carbon::parse($request->date_to)->endOfDay()))
             ->orderByDesc('created_at')
-            ->paginate(50)
+            ->simplePaginate(50)
             ->withQueryString();
 
         return view('admin.logs.index', compact('logs'));

@@ -1,39 +1,25 @@
 @extends('layouts.app')
 
+@section('title', $supplier->name)
+@section('page-title', 'Tedarikçi Detayı')
+
+@section('header-actions')
+    @if(auth()->user()->isAdmin())
+        <a href="{{ route('admin.suppliers.edit', $supplier) }}" class="btn btn-secondary">Düzenle</a>
+    @endif
+@endsection
+
 @section('content')
 <div class="space-y-6">
-    <div class="flex items-start justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-semibold">{{ $supplier->name }}</h1>
-            <p class="text-sm text-slate-600">Kod: {{ $supplier->code }}</p>
-        </div>
-        <a href="{{ route('admin.suppliers.edit', $supplier) }}" class="btn-secondary">Düzenle</a>
-    </div>
-
     <div class="grid gap-6 lg:grid-cols-2">
         <div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <h2 class="mb-4 text-lg font-semibold">Firma Bilgileri</h2>
             <dl class="space-y-3">
-                <div>
-                    <dt class="text-sm text-slate-500">E-posta</dt>
-                    <dd>{{ $supplier->email ?: '-' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-sm text-slate-500">Telefon</dt>
-                    <dd>{{ $supplier->phone ?: '-' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-sm text-slate-500">Durum</dt>
-                    <dd>{{ $supplier->is_active ? 'Aktif' : 'Pasif' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-sm text-slate-500">Adres</dt>
-                    <dd>{{ $supplier->address ?: '-' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-sm text-slate-500">Notlar</dt>
-                    <dd>{{ $supplier->notes ?: '-' }}</dd>
-                </div>
+                <div><dt class="text-sm text-slate-500">E-posta</dt><dd>{{ $supplier->email ?: '-' }}</dd></div>
+                <div><dt class="text-sm text-slate-500">Telefon</dt><dd>{{ $supplier->phone ?: '-' }}</dd></div>
+                <div><dt class="text-sm text-slate-500">Durum</dt><dd>{{ $supplier->is_active ? 'Aktif' : 'Pasif' }}</dd></div>
+                <div><dt class="text-sm text-slate-500">Adres</dt><dd>{{ $supplier->address ?: '-' }}</dd></div>
+                <div><dt class="text-sm text-slate-500">Notlar</dt><dd>{{ $supplier->notes ?: '-' }}</dd></div>
             </dl>
         </div>
 
@@ -73,7 +59,7 @@
     <div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
         <div class="mb-4 flex items-center justify-between gap-3">
             <h2 class="text-lg font-semibold">Son Siparişler</h2>
-            <a href="{{ route('orders.index', ['supplier_id' => $supplier->id]) }}" class="text-sm text-blue-600 hover:underline">Tümünü gör</a>
+            <a href="{{ route('orders.index', ['supplier_id' => $supplier->id]) }}" class="text-sm text-brand-700 hover:underline">Tümünü gör</a>
         </div>
         <div class="space-y-2">
             @forelse($supplier->purchaseOrders as $order)
@@ -84,7 +70,7 @@
                     </div>
                     <div class="flex items-center gap-4">
                         <div class="text-sm text-slate-600">{{ $order->lines_count }} satır</div>
-                        <a href="{{ route('orders.show', $order) }}" class="text-sm text-blue-600 hover:underline">Detay</a>
+                        <a href="{{ route('orders.show', $order) }}" class="text-sm text-brand-700 hover:underline">Detay</a>
                     </div>
                 </div>
             @empty
@@ -92,5 +78,20 @@
             @endforelse
         </div>
     </div>
+
+    @if(auth()->user()->isAdmin())
+        <div class="card p-5 border border-red-100">
+            <h2 class="text-sm font-semibold text-red-700">Tedarikçiyi Sil</h2>
+            <p class="text-xs text-slate-500 mt-2">Bu işlem yumuşak silme uygular. Ancak bağlı sipariş varsa güvenlik için silme engellenir.</p>
+            <form method="POST" action="{{ route('admin.suppliers.destroy', $supplier) }}" class="mt-4" onsubmit="return confirm('Bu tedarikçiyi arşivlemek istediğinize emin misiniz?');">
+                @csrf @method('DELETE')
+                <label class="flex items-center gap-2 text-sm text-slate-600 mb-3">
+                    <input type="checkbox" name="confirmation" value="1" class="rounded border-slate-300 text-brand-600">
+                    Arşivleme işlemini onaylıyorum
+                </label>
+                <button type="submit" class="btn btn-secondary text-red-600 border-red-200 hover:bg-red-50">Tedarikçiyi Arşivle</button>
+            </form>
+        </div>
+    @endif
 </div>
 @endsection

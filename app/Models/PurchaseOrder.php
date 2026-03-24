@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,6 +16,10 @@ class PurchaseOrder extends Model
         'supplier_id',
         'order_no',
         'status',
+        'shipment_status',
+        'shipment_reference',
+        'shipment_synced_at',
+        'shipment_payload',
         'order_date',
         'due_date',
         'notes',
@@ -26,11 +30,11 @@ class PurchaseOrder extends Model
     {
         return [
             'order_date' => 'date',
-            'due_date'   => 'date',
+            'due_date' => 'date',
+            'shipment_synced_at' => 'datetime',
+            'shipment_payload' => 'array',
         ];
     }
-
-    // ─── Relations ───────────────────────────────────────────────
 
     public function supplier(): BelongsTo
     {
@@ -46,8 +50,6 @@ class PurchaseOrder extends Model
     {
         return $this->hasMany(PurchaseOrderLine::class);
     }
-
-    // ─── Scopes ──────────────────────────────────────────────────
 
     public function scopeActive($query)
     {
@@ -73,16 +75,25 @@ class PurchaseOrder extends Model
             ]);
     }
 
-    // ─── Helpers ─────────────────────────────────────────────────
-
     public function getStatusLabelAttribute(): string
     {
-        return match($this->status) {
-            'draft'     => 'Taslak',
-            'active'    => 'Aktif',
+        return match ($this->status) {
+            'draft' => 'Taslak',
+            'active' => 'Aktif',
             'completed' => 'Tamamlandı',
             'cancelled' => 'İptal',
-            default     => $this->status,
+            default => $this->status,
+        };
+    }
+
+    public function getShipmentStatusLabelAttribute(): string
+    {
+        return match ($this->shipment_status) {
+            'pending' => 'Sevk bekleniyor',
+            'dispatched' => 'Sevk edildi',
+            'delivered' => 'Stoğa ulaştı',
+            'not_found' => 'Mikro kaydı bulunamadı',
+            default => 'Henüz doğrulanmadı',
         };
     }
 
@@ -93,7 +104,7 @@ class PurchaseOrder extends Model
         }
 
         return $this->lines()
-            ->whereDoesntHave('artwork.revisions', fn ($q) => $q->where('is_active', true))
+            ->whereDoesntHave('artwork.revisions', fn ($query) => $query->where('is_active', true))
             ->count();
     }
 }

@@ -18,9 +18,9 @@ class UserController extends Controller
         $users = User::query()
             ->select(['id', 'name', 'email', 'role', 'supplier_id', 'last_login_at', 'is_active'])
             ->with('supplier')
-            ->when($request->role, fn ($q) => $q->where('role', $request->role))
-            ->when($request->search, fn ($q) => $q->where(function ($q) use ($request) {
-                $q->where('name', 'like', "%{$request->search}%")
+            ->when($request->role, fn ($query) => $query->where('role', $request->role))
+            ->when($request->search, fn ($query) => $query->where(function ($query) use ($request) {
+                $query->where('name', 'like', "%{$request->search}%")
                     ->orWhere('email', 'like', "%{$request->search}%");
             }))
             ->orderBy('name')

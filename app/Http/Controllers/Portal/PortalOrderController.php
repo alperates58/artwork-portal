@@ -28,19 +28,19 @@ class PortalOrderController extends Controller
             ->whereIn('supplier_id', $user->accessibleSupplierIds()->all())
             ->with([
                 'supplier:id,name',
-                'lines' => fn ($query) => $query->select('id', 'purchase_order_id', 'product_code'),
+                'lines' => fn ($query) => $query->select('id', 'purchase_order_id', 'line_no', 'product_code', 'description', 'quantity', 'unit'),
                 'lines.artwork:id,order_line_id',
                 'lines.artwork.activeRevision:id,artwork_id',
             ])
-            ->when($request->status, fn ($q) => $q->where('status', $request->status))
-            ->when($request->search, fn ($q) => $q->search($request->search))
+            ->when($request->status, fn ($query) => $query->where('status', $request->status))
+            ->when($request->search, fn ($query) => $query->search($request->search))
             ->orderByDesc('order_date')
             ->paginate(20)
             ->withQueryString();
 
         $supplierDisplayName = $user->supplier?->name
             ?? $user->mappedSuppliers->first()?->name
-            ?? 'Tedarikçi Portalı';
+            ?? 'Lider Portal';
 
         return view('portal.orders.index', compact('orders', 'supplierDisplayName'));
     }
@@ -58,7 +58,8 @@ class PortalOrderController extends Controller
 
         $this->artworkUploadService->logViews(
             $order->lines->pluck('activeRevision')->filter(),
-            $user
+            $user,
+            $order->supplier_id
         );
 
         $this->audit->log('portal.order.view', $order, [

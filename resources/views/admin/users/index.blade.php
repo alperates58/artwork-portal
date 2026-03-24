@@ -2,13 +2,13 @@
 @section('title', 'Kullanıcılar')
 @section('page-title', 'Kullanıcı Yönetimi')
 @section('header-actions')
-    <a href="{{ route('admin.users.create') }}" class="btn-primary">
+    <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         Yeni Kullanıcı
     </a>
 @endsection
 @section('content')
-<form method="GET" class="flex gap-3 mb-5">
+<form method="GET" class="flex flex-wrap gap-3 mb-5">
     <input type="text" name="search" value="{{ request('search') }}" placeholder="İsim veya e-posta ara..." class="input w-64">
     <select name="role" class="input w-44">
         <option value="">Tüm roller</option>
@@ -16,7 +16,7 @@
             <option value="{{ $role->value }}" {{ request('role') === $role->value ? 'selected' : '' }}>{{ $role->label() }}</option>
         @endforeach
     </select>
-    <button type="submit" class="btn-secondary">Filtrele</button>
+    <button type="submit" class="btn btn-secondary">Filtrele</button>
 </form>
 
 <div class="card">
@@ -39,16 +39,11 @@
                     <p class="text-xs text-slate-500">{{ $user->email }}</p>
                 </td>
                 <td class="px-4 py-3">
-                    @php $roleCls = match($user->role->value) {
-                        'admin' => 'badge-danger', 'graphic' => 'badge-info',
-                        'purchasing' => 'badge-warning', default => 'badge-gray'
-                    }; @endphp
+                    @php $roleCls = match($user->role->value) {'admin' => 'badge-danger', 'graphic' => 'badge-info', 'purchasing' => 'badge-warning', default => 'badge-gray'}; @endphp
                     <span class="badge {{ $roleCls }}">{{ $user->role->label() }}</span>
                 </td>
                 <td class="px-4 py-3 text-slate-600 text-sm">{{ $user->supplier?->name ?? '—' }}</td>
-                <td class="px-4 py-3 text-slate-500 text-xs">
-                    {{ $user->last_login_at?->format('d.m.Y H:i') ?? 'Hiç giriş yapmadı' }}
-                </td>
+                <td class="px-4 py-3 text-slate-500 text-xs">{{ $user->last_login_at?->format('d.m.Y H:i') ?? 'Henüz giriş yapmadı' }}</td>
                 <td class="px-4 py-3">
                     @if($user->is_active)
                         <span class="badge badge-success">Aktif</span>
@@ -57,7 +52,7 @@
                     @endif
                 </td>
                 <td class="px-4 py-3 text-right flex items-center justify-end gap-3">
-                    <a href="{{ route('admin.users.edit', $user) }}" class="text-blue-600 hover:underline text-xs">Düzenle</a>
+                    <a href="{{ route('admin.users.edit', $user) }}" class="text-brand-700 hover:underline text-xs">Düzenle</a>
                     @if($user->id !== auth()->id())
                         <form method="POST" action="{{ route('admin.users.toggle', $user) }}">
                             @csrf @method('PATCH')

@@ -13,9 +13,9 @@
         <div>
             <label class="label" for="app_name">Uygulama Adı</label>
             <input type="text" id="app_name" name="app_name"
-                   value="{{ old('app_name', 'Artwork Portal') }}"
+                   value="{{ old('app_name', 'Lider Portal') }}"
                    class="input {{ $errors->has('app_name') ? 'error' : '' }}"
-                   placeholder="Artwork Portal">
+                   placeholder="Lider Portal">
             @error('app_name') <p class="err">{{ $message }}</p> @enderror
             <p class="hint">Tarayıcı sekmesinde ve e-postalarda görünür.</p>
         </div>
@@ -37,24 +37,22 @@
                 @php
                     $timezones = [
                         'Europe/Istanbul' => 'Türkiye (Europe/Istanbul)',
-                        'UTC'             => 'UTC',
-                        'Europe/London'   => 'Londra (Europe/London)',
-                        'Europe/Berlin'   => 'Berlin (Europe/Berlin)',
-                        'America/New_York'=> 'New York (America/New_York)',
+                        'UTC' => 'UTC',
+                        'Europe/London' => 'Londra (Europe/London)',
+                        'Europe/Berlin' => 'Berlin (Europe/Berlin)',
+                        'America/New_York' => 'New York (America/New_York)',
                     ];
                     $selected = old('app_timezone', 'Europe/Istanbul');
                 @endphp
                 @foreach($timezones as $value => $label)
-                    <option value="{{ $value }}" {{ $selected === $value ? 'selected' : '' }}>
-                        {{ $label }}
-                    </option>
+                    <option value="{{ $value }}" {{ $selected === $value ? 'selected' : '' }}>{{ $label }}</option>
                 @endforeach
             </select>
             @error('app_timezone') <p class="err">{{ $message }}</p> @enderror
         </div>
 
         <div class="pt-2 flex justify-end">
-            <button type="submit" class="btn-primary">
+            <button type="submit" class="btn btn-primary">
                 Devam
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>

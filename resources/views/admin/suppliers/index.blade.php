@@ -3,18 +3,18 @@
 @section('page-title', 'Tedarikçi Yönetimi')
 
 @section('header-actions')
-    <a href="{{ route('admin.suppliers.create') }}" class="btn-primary">
+    <a href="{{ route('admin.suppliers.create') }}" class="btn btn-primary shadow-sm">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         Yeni Tedarikçi
     </a>
 @endsection
 
 @section('content')
-<form method="GET" class="flex gap-3 mb-5">
+<form method="GET" class="flex flex-wrap gap-3 mb-5">
     <input type="text" name="search" value="{{ request('search') }}" placeholder="İsim veya kod ara..." class="input w-64">
-    <button type="submit" class="btn-secondary">Ara</button>
+    <button type="submit" class="btn btn-secondary">Ara</button>
     @if(request('search'))
-        <a href="{{ route('admin.suppliers.index') }}" class="btn-secondary text-slate-500">Temizle</a>
+        <a href="{{ route('admin.suppliers.index') }}" class="btn btn-secondary text-slate-500">Temizle</a>
     @endif
 </form>
 
@@ -51,7 +51,12 @@
                     @endif
                 </td>
                 <td class="px-4 py-3 text-right">
-                    <a href="{{ route('admin.suppliers.edit', $supplier) }}" class="text-blue-600 hover:underline text-xs">Düzenle</a>
+                    <div class="flex items-center justify-end gap-3">
+                        <a href="{{ route('admin.suppliers.show', $supplier) }}" class="text-slate-600 hover:underline text-xs">Detay</a>
+                        @if(auth()->user()->isAdmin())
+                            <a href="{{ route('admin.suppliers.edit', $supplier) }}" class="text-brand-700 hover:underline text-xs font-medium">Düzenle</a>
+                        @endif
+                    </div>
                 </td>
             </tr>
             @empty

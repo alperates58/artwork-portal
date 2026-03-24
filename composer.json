@@ -1,7 +1,7 @@
 {
-    "name": "sirket/artwork-portal",
-    "description": "Tedarikçi Artwork Portalı",
-    "keywords": ["laravel", "artwork", "portal"],
+    "name": "sirket/lider-portal",
+    "description": "Lider Portal tedarikçi ve artwork yönetim sistemi",
+    "keywords": ["laravel", "portal", "supplier", "artwork"],
     "license": "proprietary",
     "require": {
         "php": "^8.3",

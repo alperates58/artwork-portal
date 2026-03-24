@@ -2,7 +2,7 @@
 @section('title', $user->name . ' — Düzenle')
 @section('page-title', $user->name . ' — Düzenle')
 @section('header-actions')
-    <a href="{{ route('admin.users.index') }}" class="btn-secondary">← Listeye Dön</a>
+    <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">← Listeye Dön</a>
 @endsection
 @section('content')
 <div class="max-w-xl">
@@ -11,8 +11,8 @@
             @csrf @method('PATCH')
             @include('admin.users._form', ['isCreate' => false])
             <div class="flex gap-3 pt-2">
-                <button type="submit" class="btn-primary">Güncelle</button>
-                <a href="{{ route('admin.users.index') }}" class="btn-secondary">İptal</a>
+                <button type="submit" class="btn btn-primary">Güncelle</button>
+                <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">İptal</a>
             </div>
         </form>
     </div>

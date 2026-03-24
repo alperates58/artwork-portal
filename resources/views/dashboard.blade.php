@@ -3,7 +3,6 @@
 @section('page-title', 'Dashboard')
 
 @section('content')
-
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <x-ui.card padding="p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Artwork Bekliyor</p>
@@ -31,7 +30,7 @@
     <div class="card">
         <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
             <h2 class="text-sm font-semibold text-slate-900">Son Yüklenen Artwork</h2>
-            <a href="{{ route('orders.index') }}" class="text-xs text-blue-600 hover:underline">Tümü →</a>
+            <a href="{{ route('orders.index') }}" class="text-xs text-brand-700 hover:underline">Tümü</a>
         </div>
         <div class="divide-y divide-slate-100">
             @forelse($recentRevisions as $rev)
@@ -41,9 +40,7 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-slate-900 truncate">{{ $rev->original_filename }}</p>
-                        <p class="text-xs text-slate-500">
-                            {{ $rev->artwork->orderLine->purchaseOrder->order_no }} · Rev.{{ $rev->revision_no }}
-                        </p>
+                        <p class="text-xs text-slate-500">{{ $rev->artwork->orderLine->purchaseOrder->order_no }} · Rev.{{ $rev->revision_no }}</p>
                     </div>
                     <p class="text-xs text-slate-400 flex-shrink-0">{{ $rev->created_at->diffForHumans() }}</p>
                 </div>
@@ -57,16 +54,14 @@
         <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
             <h2 class="text-sm font-semibold text-slate-900">Son İndirmeler</h2>
             @if(auth()->user()->isAdmin())
-                <a href="{{ route('admin.logs.index') }}" class="text-xs text-blue-600 hover:underline">Loglar →</a>
+                <a href="{{ route('admin.logs.index') }}" class="text-xs text-brand-700 hover:underline">Loglar</a>
             @endif
         </div>
         <div class="divide-y divide-slate-100">
             @forelse($recentDownloads as $log)
                 <div class="px-5 py-3 flex items-center gap-3">
                     <div class="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span class="text-xs font-semibold text-blue-600">
-                            {{ strtoupper(substr($log->user?->name ?? '?', 0, 2)) }}
-                        </span>
+                        <span class="text-xs font-semibold text-blue-600">{{ strtoupper(substr($log->user?->name ?? '?', 0, 2)) }}</span>
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm text-slate-900 truncate">{{ $log->user?->name ?? '—' }}</p>
@@ -90,10 +85,9 @@
         </div>
         <form method="POST" action="{{ route('admin.erp.sync') }}">
             @csrf
-            <button type="submit" class="btn-secondary text-xs">Sync Çalıştır</button>
+            <button type="submit" class="btn btn-secondary text-xs">Sync Çalıştır</button>
         </form>
     </div>
 </div>
 @endif
-
 @endsection

@@ -1,20 +1,19 @@
-
 <?php $__env->startSection('title', 'Tedarikçiler'); ?>
 <?php $__env->startSection('page-title', 'Tedarikçi Yönetimi'); ?>
 
 <?php $__env->startSection('header-actions'); ?>
-    <a href="<?php echo e(route('admin.suppliers.create')); ?>" class="btn-primary">
+    <a href="<?php echo e(route('admin.suppliers.create')); ?>" class="btn btn-primary shadow-sm">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         Yeni Tedarikçi
     </a>
 <?php $__env->stopSection(); ?>
 
 <?php $__env->startSection('content'); ?>
-<form method="GET" class="flex gap-3 mb-5">
+<form method="GET" class="flex flex-wrap gap-3 mb-5">
     <input type="text" name="search" value="<?php echo e(request('search')); ?>" placeholder="İsim veya kod ara..." class="input w-64">
-    <button type="submit" class="btn-secondary">Ara</button>
+    <button type="submit" class="btn btn-secondary">Ara</button>
     <?php if(request('search')): ?>
-        <a href="<?php echo e(route('admin.suppliers.index')); ?>" class="btn-secondary text-slate-500">Temizle</a>
+        <a href="<?php echo e(route('admin.suppliers.index')); ?>" class="btn btn-secondary text-slate-500">Temizle</a>
     <?php endif; ?>
 </form>
 
@@ -52,7 +51,12 @@
                     <?php endif; ?>
                 </td>
                 <td class="px-4 py-3 text-right">
-                    <a href="<?php echo e(route('admin.suppliers.edit', $supplier)); ?>" class="text-blue-600 hover:underline text-xs">Düzenle</a>
+                    <div class="flex items-center justify-end gap-3">
+                        <a href="<?php echo e(route('admin.suppliers.show', $supplier)); ?>" class="text-slate-600 hover:underline text-xs">Detay</a>
+                        <?php if(auth()->user()->isAdmin()): ?>
+                            <a href="<?php echo e(route('admin.suppliers.edit', $supplier)); ?>" class="text-brand-700 hover:underline text-xs font-medium">Düzenle</a>
+                        <?php endif; ?>
+                    </div>
                 </td>
             </tr>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>

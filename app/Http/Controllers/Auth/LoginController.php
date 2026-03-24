@@ -22,11 +22,10 @@ class LoginController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
-            'email'    => ['required', 'email'],
+            'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
 
-        // Brute force koruması — throttle middleware ile desteklenir
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             throw ValidationException::withMessages([
                 'email' => 'E-posta veya şifre hatalı.',
@@ -35,23 +34,18 @@ class LoginController extends Controller
 
         $user = Auth::user();
 
-        // Pasif kullanıcı kontrolü
         if (! $user->is_active) {
             Auth::logout();
+
             throw ValidationException::withMessages([
                 'email' => 'Hesabınız pasif durumda. Yönetici ile iletişime geçin.',
             ]);
         }
 
         $request->session()->regenerate();
-
-        // Son giriş zamanını güncelle
         $user->update(['last_login_at' => now()]);
-
-        // Giriş logu
         $this->audit->logLogin($user->id);
 
-        // Role göre yönlendirme
         return redirect()->intended(
             $user->isSupplier() ? route('portal.orders.index') : route('dashboard')
         );

@@ -11,7 +11,7 @@ class OrderPolicy
 {
     public function viewAny(User $user): bool
     {
-        return true; // Hepsi sipariş listesini görebilir — scope ile filtre uygulanır
+        return true;
     }
 
     public function view(User $user, PurchaseOrder|PurchaseOrderLine $subject): bool
@@ -21,7 +21,7 @@ class OrderPolicy
             : $subject->purchaseOrder->supplier_id;
 
         if ($user->isSupplier()) {
-            return $supplierId === $user->supplier_id;
+            return $user->accessibleSupplierIds()->contains($supplierId);
         }
 
         return true;
@@ -29,7 +29,7 @@ class OrderPolicy
 
     public function create(User $user): bool
     {
-        return in_array($user->role, [UserRole::ADMIN, UserRole::PURCHASING]);
+        return in_array($user->role, [UserRole::ADMIN, UserRole::PURCHASING], true);
     }
 
     public function uploadArtwork(User $user, PurchaseOrderLine $line): bool
@@ -39,7 +39,7 @@ class OrderPolicy
 
     public function update(User $user, PurchaseOrder $order): bool
     {
-        return in_array($user->role, [UserRole::ADMIN, UserRole::PURCHASING]);
+        return in_array($user->role, [UserRole::ADMIN, UserRole::PURCHASING], true);
     }
 
     public function delete(User $user, PurchaseOrder $order): bool

@@ -4,7 +4,7 @@ use App\Http\Controllers\Api\V1\ArtworkApiController;
 use Illuminate\Support\Facades\Route;
 
 /*
- * Artwork Portal — REST API v1
+ * Lider Portal — REST API v1
  * Auth: Sanctum token (Bearer)
  *
  * Tüm endpoint'ler auth:sanctum middleware ile korunur.

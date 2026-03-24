@@ -32,8 +32,6 @@
 </div>
 <div class="flex items-center gap-2">
     <input type="hidden" name="is_active" value="0">
-    <input type="checkbox" id="is_active" name="is_active" value="1"
-           {{ old('is_active', $supplier->is_active ?? true) ? 'checked' : '' }}
-           class="rounded border-slate-300 text-blue-600">
+    <input type="checkbox" id="is_active" name="is_active" value="1" {{ old('is_active', $supplier->is_active ?? true) ? 'checked' : '' }} class="rounded border-slate-300 text-brand-600">
     <label for="is_active" class="text-sm text-slate-700">Aktif</label>
 </div>

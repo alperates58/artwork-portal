@@ -3,22 +3,20 @@
 @section('page-title', 'Sistem Logları')
 
 @section('content')
-
-{{-- Filters --}}
 <form method="GET" class="flex flex-wrap gap-3 mb-5">
     <select name="action" class="input w-52">
         <option value="">Tüm işlemler</option>
-        <option value="user.login"             {{ request('action') === 'user.login'             ? 'selected' : '' }}>Giriş</option>
-        <option value="artwork.download"       {{ request('action') === 'artwork.download'       ? 'selected' : '' }}>İndirme</option>
-        <option value="artwork.upload"         {{ request('action') === 'artwork.upload'         ? 'selected' : '' }}>Yükleme</option>
-        <option value="artwork.view"           {{ request('action') === 'artwork.view'           ? 'selected' : '' }}>Görüntüleme</option>
-        <option value="portal.order.view"      {{ request('action') === 'portal.order.view'      ? 'selected' : '' }}>Portal sipariş görüntüle</option>
+        <option value="user.login" {{ request('action') === 'user.login' ? 'selected' : '' }}>Giriş</option>
+        <option value="artwork.download" {{ request('action') === 'artwork.download' ? 'selected' : '' }}>İndirme</option>
+        <option value="artwork.upload" {{ request('action') === 'artwork.upload' ? 'selected' : '' }}>Yükleme</option>
+        <option value="artwork.view" {{ request('action') === 'artwork.view' ? 'selected' : '' }}>Görüntüleme</option>
+        <option value="portal.order.view" {{ request('action') === 'portal.order.view' ? 'selected' : '' }}>Portal sipariş görüntüleme</option>
     </select>
     <input type="date" name="date_from" value="{{ request('date_from') }}" class="input w-40">
-    <input type="date" name="date_to"   value="{{ request('date_to') }}"   class="input w-40">
-    <button type="submit" class="btn-secondary">Filtrele</button>
+    <input type="date" name="date_to" value="{{ request('date_to') }}" class="input w-40">
+    <button type="submit" class="btn btn-secondary">Filtrele</button>
     @if(request()->hasAny(['action','date_from','date_to']))
-        <a href="{{ route('admin.logs.index') }}" class="btn-secondary text-slate-500">Temizle</a>
+        <a href="{{ route('admin.logs.index') }}" class="btn btn-secondary text-slate-500">Temizle</a>
     @endif
 </form>
 
@@ -36,9 +34,7 @@
         <tbody class="divide-y divide-slate-100">
             @forelse($logs as $log)
                 <tr class="hover:bg-slate-50">
-                    <td class="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
-                        {{ $log->created_at->format('d.m.Y H:i:s') }}
-                    </td>
+                    <td class="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{{ $log->created_at->format('d.m.Y H:i:s') }}</td>
                     <td class="px-4 py-3">
                         <p class="text-sm text-slate-900">{{ $log->user?->name ?? '—' }}</p>
                         <p class="text-xs text-slate-400">{{ $log->user?->role?->label() ?? 'Silinmiş' }}</p>
@@ -47,10 +43,10 @@
                         @php
                             $actionClass = match(true) {
                                 str_contains($log->action, 'download') => 'badge-info',
-                                str_contains($log->action, 'upload')   => 'badge-success',
-                                str_contains($log->action, 'login')    => 'badge-gray',
-                                str_contains($log->action, 'delete')   => 'badge-danger',
-                                default                                 => 'badge-gray',
+                                str_contains($log->action, 'upload') => 'badge-success',
+                                str_contains($log->action, 'login') => 'badge-gray',
+                                str_contains($log->action, 'delete') => 'badge-danger',
+                                default => 'badge-gray',
                             };
                         @endphp
                         <span class="badge {{ $actionClass }}">{{ $log->action }}</span>
@@ -65,18 +61,13 @@
                     <td class="px-4 py-3 text-xs font-mono text-slate-400">{{ $log->ip_address }}</td>
                 </tr>
             @empty
-                <tr>
-                    <td colspan="5" class="px-4 py-10 text-center text-slate-400">Log kaydı bulunamadı.</td>
-                </tr>
+                <tr><td colspan="5" class="px-4 py-10 text-center text-slate-400">Log kaydı bulunamadı.</td></tr>
             @endforelse
         </tbody>
     </table>
 
     @if($logs->hasPages())
-        <div class="px-4 py-3 border-t border-slate-100">
-            {{ $logs->links() }}
-        </div>
+        <div class="px-4 py-3 border-t border-slate-100">{{ $logs->links() }}</div>
     @endif
 </div>
-
 @endsection

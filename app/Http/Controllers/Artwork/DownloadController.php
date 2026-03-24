@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ArtworkRevision;
 use App\Services\ArtworkUploadService;
 use App\Services\AuditLogService;
+use App\Services\PortalSettings;
 use App\Services\SpacesStorageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
@@ -17,7 +18,8 @@ class DownloadController extends Controller
     public function __construct(
         private SpacesStorageService $spaces,
         private ArtworkUploadService $uploadService,
-        private AuditLogService $audit
+        private AuditLogService $audit,
+        private PortalSettings $settings,
     ) {}
 
     public function download(ArtworkRevision $revision): RedirectResponse|BinaryFileResponse|StreamedResponse
@@ -39,18 +41,18 @@ class DownloadController extends Controller
             abort(404, 'Dosya bulunamadı. Lütfen yönetici ile iletişime geçin.');
         }
 
-        $this->uploadService->logDownload($revision, $user);
+        $this->uploadService->logDownload($revision, $user, null, $supplierId);
         $this->audit->log('artwork.download', $revision, [
             'revision_no' => $revision->revision_no,
             'original_filename' => $revision->original_filename,
             'file_size' => $revision->file_size,
         ]);
 
-        if (config('filesystems.default', 'local') === 'spaces') {
+        if ($this->settings->filesystemDisk() === 'spaces') {
             return redirect($this->spaces->presignedUrl($revision->spaces_path));
         }
 
-        return Storage::disk(config('filesystems.default', 'local'))
+        return Storage::disk($this->settings->filesystemDisk())
             ->download($revision->spaces_path, $revision->original_filename);
     }
 }

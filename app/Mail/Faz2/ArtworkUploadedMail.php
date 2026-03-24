@@ -20,8 +20,8 @@ class ArtworkUploadedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '[Artwork Portal] Yeni Artwork Yüklendi — ' .
-                     $this->revision->artwork->orderLine->purchaseOrder->order_no,
+            subject: '[' . config('portal.brand_name') . '] Yeni Artwork Yüklendi — ' .
+                $this->revision->artwork->orderLine->purchaseOrder->order_no,
         );
     }
 
@@ -30,10 +30,10 @@ class ArtworkUploadedMail extends Mailable
         return new Content(
             view: 'emails.faz2.artwork-uploaded',
             with: [
-                'revision'   => $this->revision,
-                'order'      => $this->revision->artwork->orderLine->purchaseOrder,
-                'line'       => $this->revision->artwork->orderLine,
-                'downloadUrl'=> route('portal.download', $this->revision),
+                'revision' => $this->revision,
+                'order' => $this->revision->artwork->orderLine->purchaseOrder,
+                'line' => $this->revision->artwork->orderLine,
+                'downloadUrl' => route('portal.download', $this->revision),
             ]
         );
     }

@@ -4,18 +4,18 @@ namespace App\Enums;
 
 enum UserRole: string
 {
-    case ADMIN     = 'admin';
+    case ADMIN = 'admin';
     case PURCHASING = 'purchasing';
-    case GRAPHIC   = 'graphic';
-    case SUPPLIER  = 'supplier';
+    case GRAPHIC = 'graphic';
+    case SUPPLIER = 'supplier';
 
     public function label(): string
     {
-        return match($this) {
-            self::ADMIN      => 'Admin',
+        return match ($this) {
+            self::ADMIN => 'Admin',
             self::PURCHASING => 'Satın Alma',
-            self::GRAPHIC    => 'Grafik Departmanı',
-            self::SUPPLIER   => 'Tedarikçi',
+            self::GRAPHIC => 'Grafik Departmanı',
+            self::SUPPLIER => 'Tedarikçi',
         };
     }
 

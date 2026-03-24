@@ -2,7 +2,7 @@
 @section('title', 'Tedarikçi Düzenle')
 @section('page-title', $supplier->name . ' — Düzenle')
 @section('header-actions')
-    <a href="{{ route('admin.suppliers.index') }}" class="btn-secondary">← Listeye Dön</a>
+    <a href="{{ route('admin.suppliers.index') }}" class="btn btn-secondary">← Listeye Dön</a>
 @endsection
 @section('content')
 <div class="max-w-xl">
@@ -11,8 +11,8 @@
             @csrf @method('PATCH')
             @include('admin.suppliers._form')
             <div class="flex gap-3 pt-2">
-                <button type="submit" class="btn-primary">Güncelle</button>
-                <a href="{{ route('admin.suppliers.index') }}" class="btn-secondary">İptal</a>
+                <button type="submit" class="btn btn-primary">Güncelle</button>
+                <a href="{{ route('admin.suppliers.index') }}" class="btn btn-secondary">İptal</a>
             </div>
         </form>
     </div>
