@@ -1,52 +1,44 @@
-FROM php:8.3-fpm-alpine
+FROM php:8.3-fpm
 
-RUN apk add --no-cache \
-    bash \
-    curl \
+RUN apt-get update && apt-get install -y \
     git \
-    icu-dev \
-    libjpeg-turbo-dev \
-    libpng-dev \
-    libwebp-dev \
-    libzip-dev \
-    linux-headers \
-    mysql-client \
-    oniguruma-dev \
-    sqlite \
-    sqlite-dev \
+    curl \
     unzip \
-    zip
+    zip \
+    libzip-dev \
+    zlib1g-dev \
+    libpng-dev \
+    libjpeg62-turbo-dev \
+    libwebp-dev \
+    libfreetype6-dev \
+    libonig-dev \
+    libicu-dev \
+    libxml2-dev \
+    libsqlite3-dev \
+    sqlite3 \
+    libexif-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN docker-php-ext-configure gd --with-jpeg --with-webp \
-    && docker-php-ext-install \
-        bcmath \
-        exif \
-        gd \
-        intl \
-        mbstring \
-        opcache \
-        pcntl \
-        pdo_mysql \
-        pdo_sqlite \
-        sqlite3 \
-        zip
+# GD
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp
+RUN docker-php-ext-install gd
 
-RUN apk add --no-cache $PHPIZE_DEPS \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
-    && apk del $PHPIZE_DEPS
+# TEK TEK KUR (çok önemli)
+RUN docker-php-ext-install bcmath
+RUN docker-php-ext-install exif
+RUN docker-php-ext-install intl
+RUN docker-php-ext-install mbstring
+RUN docker-php-ext-install opcache
+RUN docker-php-ext-install pcntl
+RUN docker-php-ext-install pdo_mysql
+RUN docker-php-ext-install pdo_sqlite
+RUN docker-php-ext-install zip
 
-COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
-
-COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
-COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
-COPY docker/php/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-EXPOSE 9000
-
-ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["php-fpm"]
+CMD ["entrypoint.sh"]
