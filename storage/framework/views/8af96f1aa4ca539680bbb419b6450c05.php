@@ -5,8 +5,8 @@
 </head>
 <body class="bg-slate-50 font-sans antialiased">
 <?php
-    $logoPath = public_path(config('portal.logo_path'));
-    $logoUrl = file_exists($logoPath) ? asset(config('portal.logo_path')) : null;
+    $logoPath = trim((string) config('portal.logo_path'), '/');
+    $logoUrl = $logoPath !== '' ? asset($logoPath) : null;
 ?>
 
 <div class="flex h-screen overflow-hidden">

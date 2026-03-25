@@ -3,8 +3,8 @@
 ])
 
 @php
-    $faviconPath = public_path(config('portal.favicon_path'));
-    $faviconUrl = file_exists($faviconPath) ? asset(config('portal.favicon_path')) : null;
+    $faviconPath = trim((string) config('portal.favicon_path'), '/');
+    $faviconUrl = $faviconPath !== '' ? asset($faviconPath) : null;
 @endphp
 
 <meta charset="UTF-8">

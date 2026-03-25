@@ -65,7 +65,8 @@ Production `.env` için kritik alanlar:
 - MySQL ve Redis şifreleri
 - `FILESYSTEM_DISK=spaces`
 - tüm `DO_SPACES_*` alanları
-- `MIKRO_ERP_URL`, `MIKRO_ERP_KEY`, gerekiyorsa `MIKRO_SHIPMENT_ENDPOINT`
+- `MIKRO_ENABLED`, `MIKRO_BASE_URL`, `MIKRO_API_KEY`, `MIKRO_USERNAME`, `MIKRO_PASSWORD`
+- gerekiyorsa `MIKRO_COMPANY_CODE`, `MIKRO_WORK_YEAR`, `MIKRO_TIMEOUT`, `MIKRO_VERIFY_SSL`, `MIKRO_SHIPMENT_ENDPOINT`
 - `PHP_OPCACHE_VALIDATE_TIMESTAMPS=0`
 - `APP_SLOW_REQUEST_THRESHOLD_MS=800`
 
@@ -95,7 +96,7 @@ Not:
 Admin panelinden yönetilebilen runtime ayarlar:
 
 - Spaces disk seçimi ve bağlantı alanları
-- Mikro base URL, API key, sevk endpoint yolu, sync aralığı
+- Mikro enabled flag, base URL, API key/kullanici bilgileri, sirket kodu, calisma yili, timeout, SSL dogrulamasi, sevk endpoint yolu ve sync araligi
 
 Bu runtime ayarlar `system_settings` tablosunda tutulur ve çalışma zamanında `.env` değerlerinin üzerine yazabilir. İlk ayağa kalkış için `.env` yine gereklidir.
 

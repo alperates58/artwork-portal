@@ -4,19 +4,24 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\PortalSettings;
+use App\Services\PortalUpdateStatus;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class SettingsController extends Controller
 {
-    public function __construct(private PortalSettings $settings) {}
+    public function __construct(
+        private PortalSettings $settings,
+        private PortalUpdateStatus $updateStatus,
+    ) {}
 
     public function edit(): View
     {
         return view('admin.settings.edit', [
             'spaces' => $this->settings->spacesConfig(),
-            'mikro' => $this->settings->mikroConfig(),
+            'mikro' => $this->settings->mikroFormConfig(),
+            'updateStatus' => $this->updateStatus->snapshot(),
         ]);
     }
 
@@ -30,8 +35,15 @@ class SettingsController extends Controller
             'spaces.region' => ['nullable', 'string', 'max:100'],
             'spaces.bucket' => ['nullable', 'string', 'max:255'],
             'spaces.url' => ['nullable', 'url', 'max:255'],
+            'mikro.enabled' => ['nullable', 'boolean'],
             'mikro.base_url' => ['nullable', 'url', 'max:255'],
             'mikro.api_key' => ['nullable', 'string', 'max:255'],
+            'mikro.username' => ['nullable', 'string', 'max:255'],
+            'mikro.password' => ['nullable', 'string', 'max:255'],
+            'mikro.company_code' => ['nullable', 'string', 'max:100'],
+            'mikro.work_year' => ['nullable', 'string', 'max:20'],
+            'mikro.timeout' => ['required', 'integer', 'min:1', 'max:300'],
+            'mikro.verify_ssl' => ['nullable', 'boolean'],
             'mikro.shipment_endpoint' => ['nullable', 'string', 'max:255'],
             'mikro.use_direct_db' => ['nullable', 'boolean'],
             'mikro.sync_interval_minutes' => ['required', 'integer', 'min:5', 'max:1440'],
@@ -45,12 +57,13 @@ class SettingsController extends Controller
         $this->settings->set('spaces', 'spaces.bucket', $validated['spaces']['bucket'] ?? null);
         $this->settings->set('spaces', 'spaces.url', $validated['spaces']['url'] ?? null);
 
-        $this->settings->set('mikro', 'mikro.base_url', $validated['mikro']['base_url'] ?? null);
-        $this->settings->set('mikro', 'mikro.api_key', $validated['mikro']['api_key'] ?? null, true);
-        $this->settings->set('mikro', 'mikro.shipment_endpoint', $validated['mikro']['shipment_endpoint'] ?? null);
-        $this->settings->set('mikro', 'mikro.use_direct_db', (string) ($validated['mikro']['use_direct_db'] ?? false));
-        $this->settings->set('mikro', 'mikro.sync_interval_minutes', (string) $validated['mikro']['sync_interval_minutes']);
+        $mikro = $validated['mikro'] ?? [];
+        $mikro['api_key'] = filled($mikro['api_key'] ?? null) ? $mikro['api_key'] : '__KEEP__';
+        $mikro['username'] = filled($mikro['username'] ?? null) ? $mikro['username'] : '__KEEP__';
+        $mikro['password'] = filled($mikro['password'] ?? null) ? $mikro['password'] : '__KEEP__';
 
-        return back()->with('success', 'Sistem ayarları güncellendi.');
+        $this->settings->syncMikroSettings($mikro);
+
+        return back()->with('success', 'Sistem ayarlari guncellendi.');
     }
 }

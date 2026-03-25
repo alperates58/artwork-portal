@@ -11,6 +11,12 @@ class PortalSettings
 {
     private ?array $cache = null;
 
+    private const MIKRO_SECRET_KEYS = [
+        'mikro.api_key',
+        'mikro.username',
+        'mikro.password',
+    ];
+
     public function get(string $key, mixed $default = null): mixed
     {
         return $this->all()[$key] ?? $default;
@@ -63,12 +69,76 @@ class PortalSettings
     public function mikroConfig(): array
     {
         return [
+            'enabled' => filter_var($this->get('mikro.enabled', config('mikro.enabled')), FILTER_VALIDATE_BOOL),
             'base_url' => $this->get('mikro.base_url', config('erp.mikro.base_url')),
-            'api_key' => $this->get('mikro.api_key', config('erp.mikro.api_key')),
+            'api_key' => $this->get('mikro.api_key', config('mikro.api_key')),
+            'username' => $this->get('mikro.username', config('mikro.username')),
+            'password' => $this->get('mikro.password', config('mikro.password')),
+            'company_code' => $this->get('mikro.company_code', config('mikro.company_code')),
+            'work_year' => $this->get('mikro.work_year', config('mikro.work_year')),
+            'timeout' => (int) $this->get('mikro.timeout', config('mikro.timeout')),
+            'verify_ssl' => filter_var($this->get('mikro.verify_ssl', config('mikro.verify_ssl')), FILTER_VALIDATE_BOOL),
             'shipment_endpoint' => $this->get('mikro.shipment_endpoint', config('erp.mikro.shipment_endpoint')),
             'use_direct_db' => filter_var($this->get('mikro.use_direct_db', config('erp.mikro.use_direct_db')), FILTER_VALIDATE_BOOL),
             'sync_interval_minutes' => (int) $this->get('mikro.sync_interval_minutes', config('erp.mikro.sync_interval_minutes')),
         ];
+    }
+
+    public function mikroFormConfig(): array
+    {
+        $config = $this->mikroConfig();
+
+        return [
+            'enabled' => $config['enabled'],
+            'base_url' => $config['base_url'],
+            'api_key' => '',
+            'username' => '',
+            'password' => '',
+            'company_code' => $config['company_code'],
+            'work_year' => $config['work_year'],
+            'timeout' => $config['timeout'],
+            'verify_ssl' => $config['verify_ssl'],
+            'shipment_endpoint' => $config['shipment_endpoint'],
+            'use_direct_db' => $config['use_direct_db'],
+            'sync_interval_minutes' => $config['sync_interval_minutes'],
+            'has_api_key' => filled($config['api_key']),
+            'has_username' => filled($config['username']),
+            'has_password' => filled($config['password']),
+        ];
+    }
+
+    public function syncMikroSettings(array $settings): void
+    {
+        $this->set('mikro', 'mikro.enabled', (string) ($settings['enabled'] ?? false));
+        $this->set('mikro', 'mikro.base_url', $settings['base_url'] ?? null);
+        $this->set('mikro', 'mikro.company_code', $settings['company_code'] ?? null);
+        $this->set('mikro', 'mikro.work_year', $settings['work_year'] ?? null);
+        $this->set('mikro', 'mikro.timeout', (string) ($settings['timeout'] ?? config('mikro.timeout')));
+        $this->set('mikro', 'mikro.verify_ssl', (string) ($settings['verify_ssl'] ?? true));
+        $this->set('mikro', 'mikro.shipment_endpoint', $settings['shipment_endpoint'] ?? null);
+        $this->set('mikro', 'mikro.use_direct_db', (string) ($settings['use_direct_db'] ?? false));
+        $this->set('mikro', 'mikro.sync_interval_minutes', (string) ($settings['sync_interval_minutes'] ?? config('mikro.sync_interval_minutes')));
+
+        foreach (self::MIKRO_SECRET_KEYS as $key) {
+            $field = str($key)->after('mikro.')->toString();
+
+            if (! array_key_exists($field, $settings)) {
+                continue;
+            }
+
+            $value = $settings[$field];
+
+            if ($value === '__KEEP__') {
+                continue;
+            }
+
+            if (blank($value)) {
+                $this->forget($key);
+                continue;
+            }
+
+            $this->set('mikro', $key, $value, true);
+        }
     }
 
     public function hasSettingsTable(): bool

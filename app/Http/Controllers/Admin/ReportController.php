@@ -78,7 +78,7 @@ class ReportController extends Controller
                     'at' => $revision->created_at,
                 ]),
             ...ArtworkViewLog::query()
-                ->with('revision.artwork.orderLine.purchaseOrder')
+                ->with(['revision.artwork.orderLine.purchaseOrder', 'user:id,name'])
                 ->latest('viewed_at')
                 ->limit(8)
                 ->get()
@@ -90,7 +90,7 @@ class ReportController extends Controller
                     'at' => $log->viewed_at,
                 ]),
             ...ArtworkDownloadLog::query()
-                ->with('revision.artwork.orderLine.purchaseOrder')
+                ->with(['revision.artwork.orderLine.purchaseOrder', 'user:id,name'])
                 ->latest('downloaded_at')
                 ->limit(8)
                 ->get()

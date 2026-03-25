@@ -42,6 +42,11 @@ class Supplier extends Model
         return $this->hasMany(PurchaseOrder::class);
     }
 
+    public function mikroAccounts(): HasMany
+    {
+        return $this->hasMany(SupplierMikroAccount::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

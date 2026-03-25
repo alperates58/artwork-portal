@@ -116,10 +116,21 @@ DO_SPACES_BUCKET=artwork-portal-prod
 
 ARTWORK_DOWNLOAD_TTL=15     # Presigned URL süresi (dakika)
 
-# Mikro ERP (Faz 2) — boş bırakılırsa mock veri kullanılır
-MIKRO_ERP_URL=http://mikro-sunucu/api
-MIKRO_ERP_KEY=api-key-buraya
+# Mikro ERP
+MIKRO_ENABLED=false
+MIKRO_BASE_URL=http://mikro-sunucu/api
+MIKRO_API_KEY=api-key-buraya
+MIKRO_USERNAME=
+MIKRO_PASSWORD=
+MIKRO_COMPANY_CODE=
+MIKRO_WORK_YEAR=
+MIKRO_TIMEOUT=30
+MIKRO_VERIFY_SSL=true
 MIKRO_SYNC_INTERVAL=60      # Dakika
+
+# Legacy fallback'ler halen desteklenir
+MIKRO_ERP_URL=
+MIKRO_ERP_KEY=
 ```
 
 ---

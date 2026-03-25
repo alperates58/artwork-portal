@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\MikroTestController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SupplierController;
@@ -83,6 +84,7 @@ Route::middleware(['auth', 'active'])->group(function () {
 
             Route::get('/ayarlar', [SettingsController::class, 'edit'])->name('settings.edit');
             Route::put('/ayarlar', [SettingsController::class, 'update'])->name('settings.update');
+            Route::get('/integrations/mikro/test', MikroTestController::class)->name('integrations.mikro.test');
             Route::get('/raporlar', [ReportController::class, 'index'])->name('reports.index');
             Route::get('/loglar', [AuditLogController::class, 'index'])->name('logs.index');
         });
