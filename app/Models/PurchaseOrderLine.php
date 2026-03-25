@@ -18,6 +18,7 @@ class PurchaseOrderLine extends Model
         'product_code',
         'description',
         'quantity',
+        'shipped_quantity',
         'unit',
         'artwork_status',
         'notes',
@@ -28,6 +29,7 @@ class PurchaseOrderLine extends Model
         return [
             'artwork_status' => ArtworkStatus::class,
             'quantity'       => 'integer',
+            'shipped_quantity' => 'integer',
         ];
     }
 

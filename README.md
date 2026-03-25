@@ -100,6 +100,14 @@ make clear          # Cache temizle
 make cache          # Production cache
 ```
 
+Mikro cleanup notu:
+
+- Tek aktif scheduler yolu `SyncAllActiveSuppliersJob` uzerindedir; legacy zamanlanmis `erp:sync` yolu kaldirilmistir.
+- Scheduler araligi `MIKRO_SYNC_INTERVAL` ile belirlenir.
+- Admin kullanicisi supplier detay ekranindan tek tedarikci icin manuel sync baslatabilir.
+- Queue worker calismiyorsa manuel sync butonu islemi yalniz kuyruga birakir.
+- Siparis kimligi Mikro sync tarafinda `supplier_id + order_no` olarak ele alinir.
+
 ---
 
 ## .env Yapılandırması
@@ -126,12 +134,30 @@ MIKRO_COMPANY_CODE=
 MIKRO_WORK_YEAR=
 MIKRO_TIMEOUT=30
 MIKRO_VERIFY_SSL=true
-MIKRO_SYNC_INTERVAL=60      # Dakika
+MIKRO_SYNC_INTERVAL=5       # Dakika
 
 # Legacy fallback'ler halen desteklenir
 MIKRO_ERP_URL=
 MIKRO_ERP_KEY=
 ```
+
+Tercih edilen ERP-side VIEW kontrati:
+
+```sql
+SELECT
+    CONCAT(s.sip_evrakno_seri, '-', s.sip_evrakno_sira) AS order_no,
+    s.sip_satirno AS line_no,
+    s.sip_stok_kod AS stock_code,
+    st.sto_isim AS stock_name,
+    s.sip_miktar AS order_qty,
+    s.sip_musteri_kod AS supplier_code,
+    c.cari_unvan1 AS supplier_name,
+    s.sip_tarih AS order_date
+```
+
+- `line_no` gercek ERP satir kimligi `sip_satirno` olmalidir.
+- Eslestirme yalniz `supplier_mikro_accounts.mikro_cari_kod = supplier_code` ile yapilir.
+- `supplier_name` yalniz gosterim amaclidir.
 
 ---
 
@@ -226,15 +252,14 @@ app/
     AuditLogService         # Loglama
     Faz2/
       ArtworkApprovalService # Onay akışı
-      MikroErpSyncService   # ERP entegrasyon (legacy)
     Faz3/
       QualityDocumentService # Kalite dokümanları
       SampleApprovalService  # Numune onayı
     Erp/
-      MikroErpService       # Güncel ERP servisi
+      MikroErpService       # Supplier bazli ERP orchestration
+      MikroOrderPayloadNormalizer # ERP VIEW alias normalizasyonu
   Jobs/
     Faz2/
-      SyncErpOrdersJob       # ERP sync job
       SendArtworkNotificationJob # Bildirim job
   Mail/
     Faz2/
@@ -291,6 +316,7 @@ docker/
 - E-posta bildirimleri (artwork yüklenince tedarikçiye)
 - Tedarikçi "Gördüm / Onayladım" akışı
 - Mikro ERP senkronizasyonu (`make erp-sync`)
+- Supplier bazlı Mikro sipariş sync job'ları (`SyncSupplierOrdersJob`, `SyncAllActiveSuppliersJob`)
 - REST API v1 (token auth, sipariş/download endpoint'leri)
 - Queue + scheduler altyapısı
 

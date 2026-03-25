@@ -39,7 +39,12 @@
                                 <span class="text-sm font-semibold text-slate-900">{{ $line->product_code }}</span>
                             </div>
                             <p class="text-sm text-slate-600">{{ $line->description }}</p>
-                            <p class="text-xs text-slate-400 mt-0.5">{{ $line->quantity }} {{ $line->unit }}</p>
+                            <p class="text-xs text-slate-400 mt-0.5">
+                                {{ $line->quantity }} {{ $line->unit }}
+                                @if(!is_null($line->shipped_quantity))
+                                    · Sevk edilen: {{ $line->shipped_quantity }}
+                                @endif
+                            </p>
                         </div>
                     </div>
 

@@ -11,16 +11,15 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Mikro ERP senkronizasyon Job'u
- * routes/console.php içinde Schedule ile çalışır:
- * Schedule::job(new SyncErpOrdersJob)->everySixHours();
+ * Legacy uyumluluk icin elde tutulan ERP sync job'u.
+ * Artik zamanlanmis ana yol supplier bazli SyncAllActiveSuppliersJob'dur.
  */
 class SyncErpOrdersJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $timeout = 120;
-    public int $tries   = 3;
+    public int $tries = 3;
 
     public function handle(MikroErpSyncService $service): void
     {

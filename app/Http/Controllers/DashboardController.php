@@ -6,6 +6,7 @@ use App\Models\ArtworkRevision;
 use App\Models\AuditLog;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
+use App\Models\SupplierMikroAccount;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
@@ -61,6 +62,10 @@ class DashboardController extends Controller
                     ->where('action', 'erp.sync')
                     ->orderByDesc('created_at')
                     ->value('created_at'),
+                'last_supplier_sync' => SupplierMikroAccount::query()
+                    ->whereNotNull('last_sync_at')
+                    ->orderByDesc('last_sync_at')
+                    ->value('last_sync_at'),
             ];
         });
 

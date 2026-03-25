@@ -91,9 +91,12 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/loglar', [AuditLogController::class, 'index'])->name('logs.index');
         });
 
-    Route::post('/admin/erp/sync', \App\Http\Controllers\Admin\ErpSyncController::class . '@sync')
+    Route::post('/admin/erp/sync', [\App\Http\Controllers\Admin\ErpSyncController::class, 'sync'])
         ->middleware('role:admin')
         ->name('admin.erp.sync');
+    Route::post('/admin/tedarikciler/{supplier}/mikro-sync', [\App\Http\Controllers\Admin\ErpSyncController::class, 'syncSupplier'])
+        ->middleware('role:admin')
+        ->name('admin.suppliers.sync');
 
     Route::middleware(['auth', 'active', 'role:supplier'])->group(function () {
         Route::post('/revizyon/{revision}/gordum', [\App\Http\Controllers\Faz2\ApprovalController::class, 'confirmSeen'])->name('approval.seen');

@@ -92,7 +92,12 @@
                                     <x-ui.badge :variant="match($line->artwork_status?->value ?? 'pending'){'uploaded'=>'success','revision'=>'danger','approved'=>'info',default=>'warning'}">{{ $line->artwork_status?->label() ?? 'Bekliyor' }}</x-ui.badge>
                                 </div>
                                 <p class="text-sm text-slate-600">{{ $line->description }}</p>
-                                <p class="text-xs text-slate-400 mt-0.5">{{ $line->quantity }} {{ $line->unit }}</p>
+                                <p class="text-xs text-slate-400 mt-0.5">
+                                    {{ $line->quantity }} {{ $line->unit }}
+                                    @if(!is_null($line->shipped_quantity))
+                                        · Sevk edilen: {{ $line->shipped_quantity }}
+                                    @endif
+                                </p>
                             </div>
 
                             <div class="flex items-center gap-2 flex-shrink-0">

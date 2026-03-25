@@ -88,4 +88,43 @@ class PortalOrderWorkflowTest extends TestCase
             'user_id' => $user->id,
         ]);
     }
+
+    public function test_supplier_order_detail_shows_shipped_quantity_for_authorized_supplier(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $otherSupplier = Supplier::factory()->create();
+
+        $user = User::factory()->create([
+            'role' => UserRole::SUPPLIER,
+            'supplier_id' => null,
+        ]);
+
+        SupplierUser::create([
+            'supplier_id' => $supplier->id,
+            'user_id' => $user->id,
+            'is_primary' => true,
+            'can_download' => true,
+            'can_approve' => false,
+        ]);
+
+        $order = PurchaseOrder::factory()->create(['supplier_id' => $supplier->id]);
+        $line = PurchaseOrderLine::factory()->create([
+            'purchase_order_id' => $order->id,
+            'quantity' => 250,
+            'shipped_quantity' => 120,
+            'unit' => 'adet',
+        ]);
+        unset($line);
+
+        $blockedOrder = PurchaseOrder::factory()->create(['supplier_id' => $otherSupplier->id]);
+
+        $this->actingAs($user)
+            ->get(route('portal.orders.show', $order))
+            ->assertOk()
+            ->assertSee('Sevk edilen: 120');
+
+        $this->actingAs($user)
+            ->get(route('portal.orders.show', $blockedOrder))
+            ->assertForbidden();
+    }
 }

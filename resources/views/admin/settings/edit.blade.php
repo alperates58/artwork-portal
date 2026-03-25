@@ -458,12 +458,8 @@
             </div>
 
             <div class="grid md:grid-cols-2 gap-4">
-                <div class="flex items-end">
-                    <label class="flex items-center gap-2 text-sm text-slate-700">
-                        <input type="hidden" name="mikro[use_direct_db]" value="0">
-                        <input type="checkbox" name="mikro[use_direct_db]" value="1" class="rounded border-slate-300 text-brand-600" {{ !empty($mikro['use_direct_db']) ? 'checked' : '' }}>
-                        Doğrudan DB bağlantısı kullanılacak
-                    </label>
+                <div class="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+                    Tercih edilen entegrasyon kontratı ERP tarafında sabit bir SQL VIEW alias yapısıdır. Bu panel serbest SQL veya doğrudan DB sorgusu çalıştırmaz.
                 </div>
                 <div class="flex items-end">
                     <label class="flex items-center gap-2 text-sm text-slate-700">

@@ -49,7 +49,6 @@ class SettingsController extends Controller
             'mikro.timeout' => ['required', 'integer', 'min:1', 'max:300'],
             'mikro.verify_ssl' => ['nullable', 'boolean'],
             'mikro.shipment_endpoint' => ['nullable', 'string', 'max:255'],
-            'mikro.use_direct_db' => ['nullable', 'boolean'],
             'mikro.sync_interval_minutes' => ['required', 'integer', 'min:5', 'max:1440'],
         ]);
 

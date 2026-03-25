@@ -31,10 +31,10 @@ class UpdateManagementTest extends TestCase
             'https://raw.githubusercontent.com/alperates58/artwork-portal/*/releases/manifest.json' => Http::response([
                 'schema_version' => 1,
                 'generated_at' => now()->toIso8601String(),
-                'latest' => '1.3.0',
+                'latest' => '1.5.0',
                 'releases' => [
                     [
-                        'version' => '1.3.0',
+                        'version' => '1.5.0',
                         'title' => 'Yeni release',
                         'summary' => 'Update release özeti',
                         'release_date' => now()->toDateString(),
@@ -81,7 +81,7 @@ class UpdateManagementTest extends TestCase
             'status' => 'success',
             'trigger_source' => 'admin',
             'actor_id' => $admin->id,
-            'to_version' => '1.3.0',
+            'to_version' => '1.5.0',
             'release_title' => 'Yeni release',
         ]);
 
@@ -128,7 +128,7 @@ class UpdateManagementTest extends TestCase
             'status' => 'pending',
             'trigger_source' => 'admin',
             'actor_id' => $admin->id,
-            'to_version' => '1.3.0',
+            'to_version' => '1.5.0',
         ]);
     }
 

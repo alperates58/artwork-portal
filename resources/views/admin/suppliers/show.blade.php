@@ -5,6 +5,10 @@
 
 @section('header-actions')
     @if(auth()->user()->isAdmin())
+        <form method="POST" action="{{ route('admin.suppliers.sync', $supplier) }}" class="inline">
+            @csrf
+            <button type="submit" class="btn btn-secondary">Şimdi Senkronla</button>
+        </form>
         <a href="{{ route('admin.suppliers.edit', $supplier) }}" class="btn btn-secondary">Düzenle</a>
     @endif
 @endsection
@@ -58,6 +62,37 @@
 
     <div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
         <div class="mb-4 flex items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold">Mikro Hesapları</h2>
+            <span class="text-xs text-slate-400">{{ $supplier->mikroAccounts->count() }} hesap</span>
+        </div>
+        <div class="space-y-3">
+            @forelse($supplier->mikroAccounts as $account)
+                <div class="rounded border border-slate-200 px-4 py-3">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <div class="font-medium">{{ $account->mikro_cari_kod }}</div>
+                            <div class="text-sm text-slate-500">
+                                Şirket: {{ $account->mikro_company_code ?: '-' }} · Yıl: {{ $account->mikro_work_year ?: '-' }}
+                            </div>
+                        </div>
+                        <div class="text-right text-xs text-slate-500">
+                            <div>{{ $account->is_active ? 'Aktif' : 'Pasif' }}</div>
+                            <div class="mt-1">Son sync: {{ $account->last_sync_at?->format('d.m.Y H:i') ?: 'Yok' }}</div>
+                        </div>
+                    </div>
+                    <div class="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-3">
+                        <div>Durum: {{ $account->last_sync_status?->value ?: 'Henüz çalışmadı' }}</div>
+                        <div class="md:col-span-2">Hata özeti: {{ $account->last_sync_error ?: '-' }}</div>
+                    </div>
+                </div>
+            @empty
+                <p class="text-sm text-slate-500">Bu tedarikçi için tanımlı Mikro hesabı bulunmuyor.</p>
+            @endforelse
+        </div>
+    </div>
+
+    <div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="mb-4 flex items-center justify-between gap-3">
             <h2 class="text-lg font-semibold">Son Siparişler</h2>
             <a href="{{ route('orders.index', ['supplier_id' => $supplier->id]) }}" class="text-sm text-brand-700 hover:underline">Tümünü gör</a>
         </div>
@@ -80,16 +115,16 @@
     </div>
 
     @if(auth()->user()->isAdmin())
-        <div class="card p-5 border border-red-100">
+        <div class="card border border-red-100 p-5">
             <h2 class="text-sm font-semibold text-red-700">Tedarikçiyi Sil</h2>
-            <p class="text-xs text-slate-500 mt-2">Bu işlem yumuşak silme uygular. Ancak bağlı sipariş varsa güvenlik için silme engellenir.</p>
+            <p class="mt-2 text-xs text-slate-500">Bu işlem yumuşak silme uygular. Ancak bağlı sipariş varsa güvenlik için silme engellenir.</p>
             <form method="POST" action="{{ route('admin.suppliers.destroy', $supplier) }}" class="mt-4" onsubmit="return confirm('Bu tedarikçiyi arşivlemek istediğinize emin misiniz?');">
                 @csrf @method('DELETE')
-                <label class="flex items-center gap-2 text-sm text-slate-600 mb-3">
+                <label class="mb-3 flex items-center gap-2 text-sm text-slate-600">
                     <input type="checkbox" name="confirmation" value="1" class="rounded border-slate-300 text-brand-600">
                     Arşivleme işlemini onaylıyorum
                 </label>
-                <button type="submit" class="btn btn-secondary text-red-600 border-red-200 hover:bg-red-50">Tedarikçiyi Arşivle</button>
+                <button type="submit" class="btn btn-secondary border-red-200 text-red-600 hover:bg-red-50">Tedarikçiyi Arşivle</button>
             </form>
         </div>
     @endif

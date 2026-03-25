@@ -1,25 +1,145 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-03-25T18:00:00+03:00",
-  "latest": "1.2.0",
+  "generated_at": "2026-03-25T23:45:00+03:00",
+  "latest": "1.4.1",
   "releases": [
     {
-      "version": "1.2.0",
-      "title": "Update görünürlüğü, asset sertleştirme ve production hazırlığı",
-      "summary": "Admin update akışı release notları, schema farkları, prepare onayı ve daha net history ile güçlendirildi; asset hattı Vite/Tailwind tabanına taşınarak production için hazırlık yapıldı.",
+      "version": "1.4.1",
+      "title": "Mikro Phase 2 cleanup ve identity hardening",
+      "summary": "Supplier bazli Mikro sync tek aktif yol olarak sabitlendi, composite order identity getirildi ve ERP VIEW kontrati ile conflict loglari guclendirildi.",
       "release_date": "2026-03-25",
       "changes": [
-        "Admin ayarlar ekranına hedef sürüm, release özeti, modül listesi, migration/schema bilgisi ve uyarılar eklendi.",
-        "Update history kayıtları sürüm geçişi, release başlığı, migration bilgisi ve post-update notlarıyla zenginleştirildi.",
-        "Admin paneli için tehlikeli tek tık deploy yerine güvenli 'hazırla ve onayla' akışı eklendi.",
-        "Tailwind Play CDN yerine Vite + Tailwind tabanlı yerel asset hattı eklendi; build varsa yerel asset kullanımı desteklendi.",
-        "KURULUM.md ve CHANGELOG.md production odaklı sürüm, Redis, Spaces, timezone ve DigitalOcean notlarıyla güncellendi."
+        "purchase_orders kimligi supplier_id + order_no olacak sekilde guncellendi.",
+        "Legacy schedule edilmis erp:sync yolu kaldirildi; scheduler yalniz supplier bazli sync job'larini tetikler.",
+        "Mikro payload normalization tek sinifta toplandi ve tercih edilen SQL VIEW alias kontrati merkezilestirildi.",
+        "Conflict durumlari duplicate_order_conflict, missing_supplier_mapping, invalid_line_identity ve endpoint_payload_mismatch kodlariyla loglanmaya baslandi.",
+        "Admin ayarlar ekranindan use_direct_db yuzeyi kaldirildi; direct DB reader eklenmedi."
       ],
       "changed_modules": [
-        "Admin Ayarları",
+        "Mikro Entegrasyonu",
+        "Siparis Kimligi",
+        "Queue ve Scheduler",
+        "Admin Ayarlari",
+        "Dokumantasyon"
+      ],
+      "migrations_included": true,
+      "schema_changes": {
+        "new_tables": [],
+        "new_columns": [
+          "purchase_orders.erp_source",
+          "purchase_orders.source_metadata"
+        ]
+      },
+      "warnings": [
+        "Gercek Mikro endpoint shape production ortaminda yine manuel dogrulanmalidir.",
+        "Composite unique migration oncesi mevcut production verisinde duplicate riskleri kontrol edilmelidir.",
+        "Queue worker calismiyorsa manuel sync butonlari islemi tamamlamaz."
+      ],
+      "post_update_notes": [
+        "docker compose exec app php artisan migrate --force",
+        "docker compose exec app php artisan queue:work --queue=default",
+        "Scheduler cron veya scheduler container calistigini dogrulayin",
+        "Ayni order_no ile iki farkli supplier sync senaryosunu manuel test edin"
+      ],
+      "applied_migrations": [
+        "2026_03_25_230000_update_purchase_orders_identity_for_mikro_cleanup"
+      ]
+    },
+    {
+      "version": "1.4.0",
+      "title": "Mikro Phase 2 supplier bazli siparis senkronizasyonu",
+      "summary": "Supplier bazli Mikro siparis sync, queue ve scheduler akisi, admin supplier sync kontrolleri ve shipped quantity gorunurlugu mevcut siparis yapisi korunarak eklendi.",
+      "release_date": "2026-03-25",
+      "changes": [
+        "supplier_mikro_accounts uzerinden supplier bazli siparis sync akisi eklendi.",
+        "SyncSupplierOrdersJob ve SyncAllActiveSuppliersJob ile kuyruk temelli senkron yapisi kuruldu.",
+        "Admin supplier detay ekranina manuel sync, son sync zamani, durum ve hata ozeti gorunurlugu eklendi.",
+        "purchase_order_lines seviyesinde shipped_quantity desteği eklendi ve portal/admin siparis detaylarinda read-only gosterim saglandi.",
+        "Mikro hata, idempotency ve supplier izolasyonu icin yeni feature testleri eklendi."
+      ],
+      "changed_modules": [
+        "Mikro Entegrasyonu",
+        "Siparis Senkronizasyonu",
+        "Queue ve Scheduler",
+        "Admin Tedarikci Ekranlari",
+        "Portal Siparis Gosterimi"
+      ],
+      "migrations_included": true,
+      "schema_changes": {
+        "new_tables": [],
+        "new_columns": [
+          "supplier_mikro_accounts.last_sync_status",
+          "supplier_mikro_accounts.last_sync_error",
+          "purchase_order_lines.shipped_quantity"
+        ]
+      },
+      "warnings": [
+        "Queue worker calismiyorsa manuel sync butonlari islemi tamamlamaz, yalniz kuyruga yazar.",
+        "Mikro endpoint shape production ortaminda gercek servis ile manuel dogrulanmalidir.",
+        "order_no global unique kalmistir; farkli supplier icin ayni order_no gelirse conflict log uretilir."
+      ],
+      "post_update_notes": [
+        "docker compose exec app php artisan migrate --force",
+        "docker compose exec app php artisan queue:work --queue=default",
+        "Scheduler cron veya scheduler container calistigini dogrulayin",
+        "Admin tedarikci detay ekranindan manuel sync akisini test edin"
+      ],
+      "applied_migrations": [
+        "2026_03_25_220000_add_supplier_sync_metadata_to_supplier_mikro_accounts_table",
+        "2026_03_25_220100_add_shipped_quantity_to_purchase_order_lines_table"
+      ]
+    },
+    {
+      "version": "1.3.0",
+      "title": "Regression fix pass ve Docker asset build duzeltmeleri",
+      "summary": "Docker icinde gercek asset build akisi node servisi ile duzeltildi, SpacesStorageService ve ilgili regresyon testleri tekrar yesile donduruldu.",
+      "release_date": "2026-03-25",
+      "changes": [
+        "Asset build icin app container yerine ayri node service tanimlandi.",
+        "Docker ici npm ci ve npm run build akisi production-uygun hale getirildi.",
+        "SpacesStorageService path sanitization davranisi regresyonu duzeltildi.",
+        "MikroIntegrationTest ve SetupWizardTest beklentileri mevcut guvenli davranisla tekrar hizalandi.",
+        "KURULUM ve yardimci scriptler yeni Docker asset workflow ile uyumlu hale getirildi."
+      ],
+      "changed_modules": [
+        "Docker Compose",
+        "Frontend Asset Hatti",
+        "Kurulum Scriptleri",
+        "Regression Testleri"
+      ],
+      "migrations_included": false,
+      "schema_changes": {
+        "new_tables": [],
+        "new_columns": []
+      },
+      "warnings": [
+        "Asset build artik docker compose icindeki node service uzerinden calistirilmalidir.",
+        "Windows bind mount performansi islevsellik degil, yalniz hiz tarafinda sinirlayici olabilir."
+      ],
+      "post_update_notes": [
+        "docker compose run --rm node npm ci",
+        "docker compose run --rm node npm run build",
+        "docker compose exec app php artisan portal:update"
+      ],
+      "applied_migrations": []
+    },
+    {
+      "version": "1.2.0",
+      "title": "Update gorunurlugu, asset sertlestirme ve production hazirligi",
+      "summary": "Admin update akisi release notlari, schema farklari, prepare onayi ve daha net history ile guclendirildi; asset hatti Vite/Tailwind tabanina tasinarak production icin hazirlik yapildi.",
+      "release_date": "2026-03-25",
+      "changes": [
+        "Admin ayarlar ekranina hedef surum, release ozeti, modul listesi, migration/schema bilgisi ve uyarilar eklendi.",
+        "Update history kayitlari surum gecisi, release basligi, migration bilgisi ve post-update notlariyla zenginlestirildi.",
+        "Admin paneli icin tehlikeli tek tik deploy yerine guvenli 'hazirla ve onayla' akisi eklendi.",
+        "Tailwind Play CDN yerine Vite + Tailwind tabanli yerel asset hatti eklendi; build varsa yerel asset kullanimi desteklendi.",
+        "KURULUM.md ve CHANGELOG.md production odakli surum, Redis, Spaces, timezone ve DigitalOcean notlariyla guncellendi."
+      ],
+      "changed_modules": [
+        "Admin Ayarlari",
         "Update Sistemi",
-        "Frontend Asset Hattı",
-        "Kurulum ve Deployment Dokümantasyonu"
+        "Frontend Asset Hatti",
+        "Kurulum ve Deployment Dokumantasyonu"
       ],
       "migrations_included": true,
       "schema_changes": {
@@ -40,15 +160,15 @@
         ]
       },
       "warnings": [
-        "Bu sürüm web isteği içinden git pull, composer install veya rollback çalıştırmaz.",
-        "Production ortamında update öncesi veritabanı ve depolama yedeği alınmalıdır.",
-        "Yeni asset hattı için production deploy sırasında npm install ve npm run build adımları uygulanmalıdır."
+        "Bu surum web istegi icinden git pull, composer install veya rollback calistirmaz.",
+        "Production ortaminda update oncesi veritabani ve depolama yedegi alinmalidir.",
+        "Yeni asset hatti icin production deploy sirasinda npm install ve npm run build adimlari uygulanmalidir."
       ],
       "post_update_notes": [
         "docker compose exec app php artisan migrate --force",
         "docker compose exec app php artisan portal:update",
-        "npm install && npm run build veya CI/CD içinde eşdeğer build adımı",
-        "Queue, scheduler ve Redis servislerinin ayakta olduğunu doğrulayın."
+        "npm install && npm run build veya CI/CD icinde esdeger build adimi",
+        "Queue, scheduler ve Redis servislerinin ayakta oldugunu dogrulayin."
       ],
       "applied_migrations": [
         "2026_03_25_010000_add_release_metadata_to_portal_update_events_table"
@@ -56,16 +176,16 @@
     },
     {
       "version": "1.1.0",
-      "title": "Admin update görünürlüğü için temel altyapı",
-      "summary": "GitHub kontrolü, temel update history kaydı ve admin ayarlar ekranında commit/branch görünürlüğü eklendi.",
+      "title": "Admin update gorunurlugu icin temel altyapi",
+      "summary": "GitHub kontrolu, temel update history kaydi ve admin ayarlar ekraninda commit/branch gorunurlugu eklendi.",
       "release_date": "2026-03-24",
       "changes": [
-        "portal:update ve portal:update:check akışları admin görünürlüğü ile ilişkilendirildi.",
-        "portal_update_events tablosu ile temel update history kaydı eklendi.",
-        "Admin ayarlar ekranında son kontrol ve son deploy bilgisi gösterilmeye başlandı."
+        "portal:update ve portal:update:check akislari admin gorunurlugu ile iliskilendirildi.",
+        "portal_update_events tablosu ile temel update history kaydi eklendi.",
+        "Admin ayarlar ekraninda son kontrol ve son deploy bilgisi gosterilmeye baslandi."
       ],
       "changed_modules": [
-        "Admin Ayarları",
+        "Admin Ayarlari",
         "Update Sistemi"
       ],
       "migrations_included": true,
@@ -76,10 +196,10 @@
         "new_columns": []
       },
       "warnings": [
-        "Bu sürüm yalnız görünürlük sağlar; otomatik deploy yapmaz."
+        "Bu surum yalniz gorunurluk saglar; otomatik deploy yapmaz."
       ],
       "post_update_notes": [
-        "GitHub erişimi için gerekiyorsa GITHUB_UPDATE_TOKEN tanımlayın."
+        "GitHub erisimi icin gerekiyorsa GITHUB_UPDATE_TOKEN tanimlayin."
       ],
       "applied_migrations": [
         "2026_03_25_000000_create_portal_update_events_table"

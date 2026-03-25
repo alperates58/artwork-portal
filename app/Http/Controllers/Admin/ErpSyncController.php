@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\Faz2\SyncErpOrdersJob;
+use App\Jobs\SyncAllActiveSuppliersJob;
+use App\Jobs\SyncSupplierOrdersJob;
+use App\Models\Supplier;
 use App\Services\AuditLogService;
 use Illuminate\Http\RedirectResponse;
 
@@ -13,11 +15,28 @@ class ErpSyncController extends Controller
 
     public function sync(): RedirectResponse
     {
-        // Queue'ya at — synchronous değil, arka planda çalışır
-        SyncErpOrdersJob::dispatch();
+        SyncAllActiveSuppliersJob::dispatch();
 
-        $this->audit->log('erp.sync', null, ['triggered_by' => 'manual']);
+        $this->audit->log('erp.sync', null, [
+            'triggered_by' => 'manual',
+            'mode' => 'all_active_suppliers',
+        ]);
 
-        return back()->with('success', 'ERP senkronizasyonu kuyruğa alındı. Birkaç dakika içinde tamamlanır.');
+        return back()->with('success', 'Mikro sipariş senkronizasyonu tüm aktif tedarikçiler için kuyruğa alındı.');
+    }
+
+    public function syncSupplier(Supplier $supplier): RedirectResponse
+    {
+        abort_unless(auth()->user()->isAdmin(), 403);
+
+        SyncSupplierOrdersJob::dispatch($supplier->id);
+
+        $this->audit->log('erp.sync', $supplier, [
+            'triggered_by' => 'manual',
+            'mode' => 'single_supplier',
+            'supplier_id' => $supplier->id,
+        ]);
+
+        return back()->with('success', 'Tedarikçi için Mikro sipariş senkronizasyonu kuyruğa alındı.');
     }
 }

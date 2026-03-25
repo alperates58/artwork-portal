@@ -79,7 +79,6 @@ class PortalSettings
             'timeout' => (int) $this->get('mikro.timeout', config('mikro.timeout')),
             'verify_ssl' => filter_var($this->get('mikro.verify_ssl', config('mikro.verify_ssl')), FILTER_VALIDATE_BOOL),
             'shipment_endpoint' => $this->get('mikro.shipment_endpoint', config('erp.mikro.shipment_endpoint')),
-            'use_direct_db' => filter_var($this->get('mikro.use_direct_db', config('erp.mikro.use_direct_db')), FILTER_VALIDATE_BOOL),
             'sync_interval_minutes' => (int) $this->get('mikro.sync_interval_minutes', config('erp.mikro.sync_interval_minutes')),
         ];
     }
@@ -99,7 +98,6 @@ class PortalSettings
             'timeout' => $config['timeout'],
             'verify_ssl' => $config['verify_ssl'],
             'shipment_endpoint' => $config['shipment_endpoint'],
-            'use_direct_db' => $config['use_direct_db'],
             'sync_interval_minutes' => $config['sync_interval_minutes'],
             'has_api_key' => filled($config['api_key']),
             'has_username' => filled($config['username']),
@@ -116,7 +114,6 @@ class PortalSettings
         $this->set('mikro', 'mikro.timeout', (string) ($settings['timeout'] ?? config('mikro.timeout')));
         $this->set('mikro', 'mikro.verify_ssl', (string) ($settings['verify_ssl'] ?? true));
         $this->set('mikro', 'mikro.shipment_endpoint', $settings['shipment_endpoint'] ?? null);
-        $this->set('mikro', 'mikro.use_direct_db', (string) ($settings['use_direct_db'] ?? false));
         $this->set('mikro', 'mikro.sync_interval_minutes', (string) ($settings['sync_interval_minutes'] ?? config('mikro.sync_interval_minutes')));
 
         foreach (self::MIKRO_SECRET_KEYS as $key) {

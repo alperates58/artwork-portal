@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\ArtworkRevision;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
+use App\Models\Supplier;
 use App\Services\SpacesStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 /**
  * Faz 3 — Harici ERP sistemleri için REST API
@@ -52,12 +55,20 @@ class ArtworkApiController extends Controller
      */
     public function orderDetail(string $orderNo): JsonResponse
     {
-        $order = PurchaseOrder::where('order_no', $orderNo)
+        $matchingOrders = PurchaseOrder::where('order_no', $orderNo)
             ->with([
                 'supplier:id,name,code',
                 'lines.artwork.activeRevision',
             ])
-            ->firstOrFail();
+            ->get();
+
+        if ($matchingOrders->count() > 1) {
+            return response()->json([
+                'error' => 'Ayni siparis numarasi birden fazla tedarikci altinda bulundu. supplier_code ile filtrelenmis bir endpoint gerekir.',
+            ], 409);
+        }
+
+        $order = $matchingOrders->firstOrFail();
 
         $this->authorize('view', $order);
 
@@ -121,7 +132,7 @@ class ArtworkApiController extends Controller
 
         $validated = $request->validate([
             'supplier_code'        => ['required', 'string'],
-            'order_no'             => ['required', 'string', 'unique:purchase_orders'],
+            'order_no'             => ['required', 'string'],
             'order_date'           => ['required', 'date'],
             'due_date'             => ['nullable', 'date'],
             'lines'                => ['required', 'array', 'min:1'],
@@ -131,7 +142,15 @@ class ArtworkApiController extends Controller
             'lines.*.quantity'     => ['required', 'integer', 'min:1'],
         ]);
 
-        $supplier = \App\Models\Supplier::where('code', $validated['supplier_code'])->firstOrFail();
+        $supplier = Supplier::where('code', $validated['supplier_code'])->firstOrFail();
+
+        Validator::make($validated, [
+            'order_no' => [
+                'required',
+                'string',
+                Rule::unique('purchase_orders')->where(fn ($query) => $query->where('supplier_id', $supplier->id)),
+            ],
+        ])->validate();
 
         $order = PurchaseOrder::create([
             'supplier_id' => $supplier->id,

@@ -9,6 +9,7 @@ use App\Services\AuditLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class OrderController extends Controller
@@ -61,7 +62,14 @@ class OrderController extends Controller
 
         $validated = $request->validate([
             'supplier_id' => ['required', 'exists:suppliers,id'],
-            'order_no' => ['required', 'string', 'max:50', 'unique:purchase_orders'],
+            'order_no' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('purchase_orders')->where(
+                    fn ($query) => $query->where('supplier_id', $request->integer('supplier_id'))
+                ),
+            ],
             'order_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date', 'after:order_date'],
             'notes' => ['nullable', 'string', 'max:1000'],

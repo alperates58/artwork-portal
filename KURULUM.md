@@ -97,7 +97,7 @@ En az şu alanları doldurun:
 - `APP_URL=https://portal.ornekdomain.com`
 - `APP_ENV=production`
 - `APP_DEBUG=false`
-- `APP_VERSION=1.2.0`
+- `APP_VERSION=1.4.1`
 - `APP_TIMEZONE=Europe/Istanbul`
 - `APP_INSTALLED=true` veya ilk kurulum wizard kullanılacaksa geçici olarak `false`
 - `DB_*` alanları
@@ -235,3 +235,48 @@ docker compose exec app php artisan portal:update
 7. `portal:update` sonrası sistem yeniden kurulum istemeden açılıyor mu
 8. `docker compose run --rm node npm run build` başarılı mı
 9. Built asset ile layout bozulmadan açılıyor mu
+
+## 12. Mikro Phase 2 queue ve scheduler notlari
+
+Supplier bazli Mikro siparis sync akisi queue uzerinden calisir.
+
+- Scheduler yalniz `SyncAllActiveSuppliersJob` isini tetikler.
+- Calisma araligi `MIKRO_SYNC_INTERVAL` uzerinden belirlenir.
+- Admin supplier detay ekranindaki "Simdi Senkronla" butonu tek supplier icin queue isi olusturur.
+- Queue worker calismiyorsa manuel sync butonu senkronu tamamlamaz; yalniz kuyruga is birakir.
+
+Tercih edilen ERP-side VIEW kontrati:
+
+- `order_no`
+- `line_no`
+- `stock_code`
+- `stock_name`
+- `order_qty`
+- `supplier_code`
+- `supplier_name`
+- `order_date`
+
+Kimlik kurallari:
+
+- `line_no` gercek ERP satir kimligi `sip_satirno` olmalidir.
+- Supplier eslestirmesi `supplier_mikro_accounts.mikro_cari_kod = supplier_code` ile yapilir.
+- `supplier_name` yalniz gosterim amaclidir.
+
+Docker local queue worker ornegi:
+
+```bash
+docker compose exec app php artisan queue:work --queue=default --sleep=1 --tries=3
+```
+
+DigitalOcean / production cron ornegi:
+
+```bash
+* * * * * cd /var/www/artwork-portal && docker compose exec -T app php artisan schedule:run >> /dev/null 2>&1
+```
+
+Mikro supplier sync manuel dogrulama:
+
+1. Admin panelde tedarikci detayina gidin.
+2. "Simdi Senkronla" butonuna basin.
+3. Queue worker logunda job'in calistigini dogrulayin.
+4. Supplier ekraninda son sync zamani, durum ve hata ozetinin guncellendigini kontrol edin.

@@ -20,6 +20,8 @@ class PurchaseOrder extends Model
         'shipment_reference',
         'shipment_synced_at',
         'shipment_payload',
+        'erp_source',
+        'source_metadata',
         'order_date',
         'due_date',
         'notes',
@@ -33,6 +35,7 @@ class PurchaseOrder extends Model
             'due_date' => 'date',
             'shipment_synced_at' => 'datetime',
             'shipment_payload' => 'array',
+            'source_metadata' => 'array',
         ];
     }
 
@@ -106,5 +109,14 @@ class PurchaseOrder extends Model
         return $this->lines()
             ->whereDoesntHave('artwork.revisions', fn ($query) => $query->where('is_active', true))
             ->count();
+    }
+
+    public function getShippedLinesCountAttribute(): int
+    {
+        if ($this->relationLoaded('lines')) {
+            return $this->lines->where('shipped_quantity', '>', 0)->count();
+        }
+
+        return $this->lines()->where('shipped_quantity', '>', 0)->count();
     }
 }

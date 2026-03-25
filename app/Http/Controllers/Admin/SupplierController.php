@@ -63,6 +63,7 @@ class SupplierController extends Controller
 
         $supplier->load([
             'allUsers',
+            'mikroAccounts' => fn ($query) => $query->orderBy('id'),
             'purchaseOrders' => fn ($query) => $query->withCount('lines')->orderByDesc('order_date')->limit(10),
         ]);
 
