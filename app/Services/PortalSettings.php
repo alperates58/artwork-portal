@@ -17,6 +17,11 @@ class PortalSettings
         'mikro.password',
     ];
 
+    private const MAIL_SERVER_SECRET_KEYS = [
+        'mail.username',
+        'mail.password',
+    ];
+
     private const MAIL_NOTIFICATION_DEFAULT_SUBJECT = 'Yeni siparis geldi: {order_no}';
 
     public function get(string $key, mixed $default = null): mixed
@@ -159,6 +164,71 @@ class PortalSettings
         return $this->mailNotificationConfig();
     }
 
+    public function mailServerConfig(): array
+    {
+        return [
+            'host' => $this->get('mail.host', config('mail.mailers.smtp.host')),
+            'port' => (int) $this->get('mail.port', config('mail.mailers.smtp.port')),
+            'username' => $this->get('mail.username', config('mail.mailers.smtp.username')),
+            'password' => $this->get('mail.password', config('mail.mailers.smtp.password')),
+            'encryption' => $this->normalizeMailEncryption(
+                $this->get(
+                    'mail.encryption',
+                    config('mail.mailers.smtp.encryption', config('mail.mailers.smtp.scheme'))
+                )
+            ),
+            'from_address' => $this->get('mail.from_address', config('mail.from.address')),
+            'from_name' => $this->get('mail.from_name', config('mail.from.name')),
+        ];
+    }
+
+    public function mailServerFormConfig(): array
+    {
+        $config = $this->mailServerConfig();
+
+        return [
+            'host' => $config['host'],
+            'port' => $config['port'],
+            'username' => '',
+            'password' => '',
+            'encryption' => $config['encryption'],
+            'from_address' => $config['from_address'],
+            'from_name' => $config['from_name'],
+            'has_username' => filled($config['username']),
+            'has_password' => filled($config['password']),
+        ];
+    }
+
+    public function syncMailServerSettings(array $settings): void
+    {
+        $this->set('mail', 'mail.host', $settings['host'] ?? null);
+        $this->set('mail', 'mail.port', isset($settings['port']) ? (string) $settings['port'] : null);
+        $this->set('mail', 'mail.encryption', $this->normalizeMailEncryption($settings['encryption'] ?? null));
+        $this->set('mail', 'mail.from_address', $settings['from_address'] ?? null);
+        $this->set('mail', 'mail.from_name', $settings['from_name'] ?? null);
+
+        foreach (self::MAIL_SERVER_SECRET_KEYS as $key) {
+            $field = str($key)->after('mail.')->toString();
+
+            if (! array_key_exists($field, $settings)) {
+                continue;
+            }
+
+            $value = $settings[$field];
+
+            if ($value === '__KEEP__') {
+                continue;
+            }
+
+            if (blank($value)) {
+                $this->forget($key);
+                continue;
+            }
+
+            $this->set('mail', $key, $value, true);
+        }
+    }
+
     public function syncMailNotificationSettings(array $settings): void
     {
         $this->set('mail_notifications', 'mail_notifications.enabled', (string) ($settings['enabled'] ?? false));
@@ -207,5 +277,17 @@ class PortalSettings
         }
 
         return $this->cache = $settings;
+    }
+
+    private function normalizeMailEncryption(mixed $value): ?string
+    {
+        $normalized = strtolower(trim((string) $value));
+
+        return match ($normalized) {
+            '', 'none', 'null' => null,
+            'ssl', 'tls' => $normalized,
+            'smtps' => 'ssl',
+            default => null,
+        };
     }
 }

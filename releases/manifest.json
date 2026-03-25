@@ -1,8 +1,44 @@
 {
   "schema_version": 1,
   "generated_at": "2026-03-25T23:59:00+03:00",
-  "latest": "1.5.0",
+  "latest": "1.6.0",
   "releases": [
+    {
+      "version": "1.6.0",
+      "title": "Sekmeli ayarlar ve guvenli mail sunucusu yonetimi",
+      "summary": "Admin ayarlar ekrani ic sekmelere ayrildi; runtime-safe mail sunucusu ayarlari, deep-link davranisi ve admin-only baglanti testi eklendi.",
+      "release_date": "2026-03-25",
+      "changes": [
+        "Ayarlar ekrani guncellemeler, depolama, Mikro API, mail ve genel sistem sekmelerine ayrildi.",
+        "Settings save, validation ve test aksiyonlari ayni aktif sekmeye donecek sekilde query tab deep-link davranisi ile guncellendi.",
+        "MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, MAIL_ENCRYPTION, MAIL_FROM_ADDRESS ve MAIL_FROM_NAME system_settings uzerinden runtime override edilir hale getirildi.",
+        "Mail kullanici adi ve sifresi plaintext render edilmeden korunur; bos secret input mevcut degeri saklar.",
+        "Admin-only baglanti testi ve queue tabanli test mail akisi ayni guvenli mail pipeline uzerinde hizalandi."
+      ],
+      "changed_modules": [
+        "Admin Ayarlari",
+        "Mail Sunucusu",
+        "Mail Bildirimleri",
+        "Dokumantasyon",
+        "Testler"
+      ],
+      "migrations_included": false,
+      "schema_changes": {
+        "new_tables": [],
+        "new_columns": []
+      },
+      "warnings": [
+        "Bu pass yalniz runtime-safe mail alanlarini admin paneline tasir; bootstrap env degerleri env tarafinda kalir.",
+        "Baglanti testi auth ve baglanti seviyesinde kontrol saglar, teslimat garantisi vermez.",
+        "Queue worker calismiyorsa test mail ve yeni siparis bildirimleri kuyrukta bekler."
+      ],
+      "post_update_notes": [
+        "Admin ayarlar ekraninda Mail / Exchange sekmesinden kayitli mail sunucusu ayarlarini dogrulayin",
+        "Baglantiyi Test Et aksiyonu ile SMTP/Exchange baglantisini kontrol edin",
+        "Test Mail Gonder aksiyonu ile queue worker ve teslimat hattini dogrulayin"
+      ],
+      "applied_migrations": []
+    },
     {
       "version": "1.5.0",
       "title": "Exchange yeni siparis bildirimleri",

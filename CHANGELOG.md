@@ -2,6 +2,26 @@
 
 Tum anlamli surumler bu dosyada tutulur. Surum kaynagi olarak repo icindeki `releases/manifest.json` ile birlikte kullanilir.
 
+## [1.6.0] - 2026-03-25
+
+Ozet:
+Admin ayarlar ekrani ic sekmelere ayrildi, mevcut persistence korunarak guvenli mail sunucusu yonetimi ve admin-only baglanti testi eklendi.
+
+Temel degisiklikler:
+- `Ayarlar` ekrani `Guncellemeler`, `Depolama / Spaces`, `Mikro API`, `Mail / Exchange` ve `Genel Sistem` sekmelerine ayrildi.
+- Settings deep-link davranisi `?tab=` ile korunacak sekilde save, validation ve test aksiyonlari ayni aktif sekmeye donduruldu.
+- `system_settings` uzerinden `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_ENCRYPTION`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` runtime override destegi eklendi.
+- Mail kullanici adi ve sifresi plaintext render edilmeden, bos birakildiginda mevcut degeri koruyacak sekilde guvenli hale getirildi.
+- Admin-only `Baglantiyi Test Et` aksiyonu ve ayni mail pipeline uzerinden calisan test mail akisi guclendirildi.
+
+Sema degisiklikleri:
+- Bu surumde yeni migration yok.
+
+Operasyon notlari:
+- Bu pass yalniz runtime-safe mail sunucusu alanlarini admin paneline tasir; `MAIL_MAILER`, `MAIL_URL`, `MAIL_SCHEME` gibi bootstrap detaylari env tarafinda kalir.
+- Mail connection testi baglanti/auth seviyesinde kontrol saglar, teslimat garantisi vermez.
+- Queue worker calismiyorsa test mail ve yeni siparis bildirimleri kuyrukta bekler.
+
 ## [1.5.0] - 2026-03-25
 
 Ozet:

@@ -53,5 +53,18 @@ class AppServiceProvider extends ServiceProvider
             'filesystems.disks.spaces.bucket' => $spaces['bucket'],
             'filesystems.disks.spaces.url' => $spaces['url'],
         ]);
+
+        $mail = $settings->mailServerConfig();
+
+        config([
+            'mail.mailers.smtp.host' => $mail['host'],
+            'mail.mailers.smtp.port' => $mail['port'],
+            'mail.mailers.smtp.username' => $mail['username'],
+            'mail.mailers.smtp.password' => $mail['password'],
+            'mail.mailers.smtp.encryption' => $mail['encryption'],
+            'mail.mailers.smtp.scheme' => $mail['encryption'] === 'ssl' ? 'smtps' : null,
+            'mail.from.address' => $mail['from_address'],
+            'mail.from.name' => $mail['from_name'],
+        ]);
     }
 }

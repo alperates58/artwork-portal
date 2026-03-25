@@ -31,10 +31,10 @@ class UpdateManagementTest extends TestCase
             'https://raw.githubusercontent.com/alperates58/artwork-portal/*/releases/manifest.json' => Http::response([
                 'schema_version' => 1,
                 'generated_at' => now()->toIso8601String(),
-                'latest' => '1.5.0',
+                'latest' => '1.6.1',
                 'releases' => [
                     [
-                        'version' => '1.5.0',
+                        'version' => '1.6.1',
                         'title' => 'Yeni release',
                         'summary' => 'Update release özeti',
                         'release_date' => now()->toDateString(),
@@ -81,7 +81,7 @@ class UpdateManagementTest extends TestCase
             'status' => 'success',
             'trigger_source' => 'admin',
             'actor_id' => $admin->id,
-            'to_version' => '1.5.0',
+            'to_version' => '1.6.1',
             'release_title' => 'Yeni release',
         ]);
 
@@ -128,7 +128,7 @@ class UpdateManagementTest extends TestCase
             'status' => 'pending',
             'trigger_source' => 'admin',
             'actor_id' => $admin->id,
-            'to_version' => '1.5.0',
+            'to_version' => '1.6.1',
         ]);
     }
 
@@ -171,5 +171,27 @@ class UpdateManagementTest extends TestCase
             ->assertSee('Gelen Değişiklikler')
             ->assertSee('Update Geçmişi')
             ->assertSee('Yeni release');
+    }
+    public function test_settings_page_supports_deep_linked_tabs(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.settings.edit', ['tab' => 'mail']))
+            ->assertOk()
+            ->assertSee('Mail Sunucusu');
+    }
+
+    public function test_update_actions_redirect_back_to_updates_tab(): void
+    {
+        $this->fakeGithubReleaseResponses();
+
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.settings.update-check', ['tab' => 'updates']), [
+                'tab' => 'updates',
+            ])
+            ->assertRedirect(route('admin.settings.edit', ['tab' => 'updates']));
     }
 }

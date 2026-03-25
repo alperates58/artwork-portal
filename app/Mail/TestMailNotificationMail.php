@@ -31,8 +31,6 @@ class TestMailNotificationMail extends Mailable
             with: [
                 'sentAt' => now()->timezone(config('app.timezone', 'Europe/Istanbul'))->format('d.m.Y H:i'),
                 'mailer' => (string) config('mail.default'),
-                'host' => (string) config('mail.mailers.smtp.host'),
-                'port' => (string) config('mail.mailers.smtp.port'),
             ]
         );
     }

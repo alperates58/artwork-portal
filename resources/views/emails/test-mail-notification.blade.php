@@ -5,8 +5,6 @@
 <ul>
     <li><strong>Gonderim Zamani:</strong> {{ $sentAt }}</li>
     <li><strong>Mailer:</strong> {{ $mailer }}</li>
-    <li><strong>SMTP Host:</strong> {{ $host ?: '-' }}</li>
-    <li><strong>SMTP Port:</strong> {{ $port ?: '-' }}</li>
 </ul>
 
-<p>Bu mesajin ulasmasi, temel SMTP/Exchange baglantisinin calisabildigini gosterir.</p>
+<p>Bu mesajin ulasmasi, Lider Portal icindeki temel mail gonderim hattinin calisabildigini gosterir.</p>

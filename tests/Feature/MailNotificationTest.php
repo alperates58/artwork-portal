@@ -12,7 +12,9 @@ use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\Erp\MikroOrderService;
 use App\Services\MailNotificationService;
+use App\Services\MailServerConnectionTester;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
@@ -84,6 +86,148 @@ class MailNotificationTest extends TestCase
         Queue::assertPushed(SendMailNotificationTestJob::class, fn (SendMailNotificationTestJob $job) => $job->recipient === 'stored-test@example.com');
     }
 
+    public function test_admin_can_persist_mail_server_settings_without_rendering_secrets(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->put(route('admin.settings.update', ['tab' => 'mail']), [
+                'tab' => 'mail',
+                'settings_section' => 'mail',
+                'mail_server' => [
+                    'host' => 'smtp.example.com',
+                    'port' => 587,
+                    'username' => 'portal-user',
+                    'password' => 'super-secret-password',
+                    'encryption' => 'tls',
+                    'from_address' => 'portal@example.com',
+                    'from_name' => 'Lider Portal',
+                ],
+                'mail_notifications' => [
+                    'enabled' => '1',
+                    'graphics_to' => 'graphics@example.com',
+                    'graphics_cc' => '',
+                    'graphics_bcc' => '',
+                    'new_order_subject' => 'Yeni siparis geldi: {order_no}',
+                    'override_from_name' => 'Lider Portal',
+                    'override_from_address' => 'portal@example.com',
+                    'test_recipient' => 'test@example.com',
+                ],
+            ])
+            ->assertRedirect(route('admin.settings.edit', ['tab' => 'mail']));
+
+        $username = SystemSetting::query()->where('key', 'mail.username')->firstOrFail();
+        $password = SystemSetting::query()->where('key', 'mail.password')->firstOrFail();
+
+        $this->assertTrue($username->is_encrypted);
+        $this->assertTrue($password->is_encrypted);
+        $this->assertSame('portal-user', Crypt::decryptString($username->value));
+        $this->assertSame('super-secret-password', Crypt::decryptString($password->value));
+
+        $response = $this->actingAs($admin)->get(route('admin.settings.edit', ['tab' => 'mail']));
+
+        $response->assertOk();
+        $response->assertDontSee('portal-user');
+        $response->assertDontSee('super-secret-password');
+        $response->assertSee('Kayitli kullanici var', false);
+        $response->assertSee('Kayitli sifre var', false);
+    }
+
+    public function test_blank_mail_password_preserves_existing_secret(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        SystemSetting::query()->create([
+            'group' => 'mail',
+            'key' => 'mail.password',
+            'value' => encrypt('persist-mail-password'),
+            'is_encrypted' => true,
+        ]);
+
+        SystemSetting::query()->create([
+            'group' => 'mail',
+            'key' => 'mail.username',
+            'value' => encrypt('persist-user'),
+            'is_encrypted' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.settings.update', ['tab' => 'mail']), [
+                'tab' => 'mail',
+                'settings_section' => 'mail',
+                'mail_server' => [
+                    'host' => 'smtp.example.com',
+                    'port' => 587,
+                    'username' => '',
+                    'password' => '',
+                    'encryption' => 'tls',
+                    'from_address' => 'portal@example.com',
+                    'from_name' => 'Lider Portal',
+                ],
+                'mail_notifications' => [
+                    'enabled' => '1',
+                    'graphics_to' => 'graphics@example.com',
+                    'graphics_cc' => '',
+                    'graphics_bcc' => '',
+                    'new_order_subject' => 'Yeni siparis geldi: {order_no}',
+                    'override_from_name' => 'Lider Portal',
+                    'override_from_address' => 'portal@example.com',
+                    'test_recipient' => 'test@example.com',
+                ],
+            ])
+            ->assertRedirect(route('admin.settings.edit', ['tab' => 'mail']));
+
+        $this->assertSame(
+            'persist-mail-password',
+            decrypt(SystemSetting::query()->where('key', 'mail.password')->value('value'))
+        );
+        $this->assertSame(
+            'persist-user',
+            decrypt(SystemSetting::query()->where('key', 'mail.username')->value('value'))
+        );
+    }
+
+    public function test_mail_validation_redirects_back_to_same_tab(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->from(route('admin.settings.edit', ['tab' => 'mail']))
+            ->put(route('admin.settings.update', ['tab' => 'mail']), [
+                'tab' => 'mail',
+                'settings_section' => 'mail',
+                'mail_server' => [
+                    'host' => '',
+                    'port' => 0,
+                    'username' => '',
+                    'password' => '',
+                    'encryption' => 'tls',
+                    'from_address' => 'not-an-email',
+                    'from_name' => '',
+                ],
+                'mail_notifications' => [
+                    'enabled' => '1',
+                    'graphics_to' => 'bad-email',
+                ],
+            ])
+            ->assertRedirect(route('admin.settings.edit', ['tab' => 'mail']));
+    }
+
+    public function test_admin_can_run_mail_connection_test_and_stay_on_same_tab(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $this->seedMailServerSettings();
+
+        $tester = $this->mock(MailServerConnectionTester::class);
+        $tester->shouldReceive('test')->once();
+
+        $this->actingAs($admin)
+            ->post(route('admin.settings.mail-connection-test', ['tab' => 'mail']), [
+                'tab' => 'mail',
+            ])
+            ->assertRedirect(route('admin.settings.edit', ['tab' => 'mail']));
+    }
+
     public function test_non_admin_cannot_queue_test_mail(): void
     {
         Queue::fake();
@@ -97,6 +241,17 @@ class MailNotificationTest extends TestCase
             ->assertForbidden();
 
         Queue::assertNothingPushed();
+    }
+
+    public function test_non_admin_cannot_run_mail_connection_test(): void
+    {
+        $user = User::factory()->purchasing()->create();
+
+        $this->actingAs($user)
+            ->post(route('admin.settings.mail-connection-test', ['tab' => 'mail']), [
+                'tab' => 'mail',
+            ])
+            ->assertForbidden();
     }
 
     public function test_supplier_sync_queues_new_order_notification_only_once_for_new_mikro_order(): void
@@ -274,6 +429,28 @@ class MailNotificationTest extends TestCase
                     'group' => 'mail_notifications',
                     'value' => $value,
                     'is_encrypted' => false,
+                ]
+            );
+        }
+    }
+
+    private function seedMailServerSettings(): void
+    {
+        foreach ([
+            'mail.host' => ['value' => 'smtp.example.com', 'encrypted' => false],
+            'mail.port' => ['value' => '587', 'encrypted' => false],
+            'mail.username' => ['value' => encrypt('portal-user'), 'encrypted' => true],
+            'mail.password' => ['value' => encrypt('portal-secret'), 'encrypted' => true],
+            'mail.encryption' => ['value' => 'tls', 'encrypted' => false],
+            'mail.from_address' => ['value' => 'portal@example.com', 'encrypted' => false],
+            'mail.from_name' => ['value' => 'Lider Portal', 'encrypted' => false],
+        ] as $key => $setting) {
+            SystemSetting::query()->updateOrCreate(
+                ['key' => $key],
+                [
+                    'group' => 'mail',
+                    'value' => $setting['value'],
+                    'is_encrypted' => $setting['encrypted'],
                 ]
             );
         }
