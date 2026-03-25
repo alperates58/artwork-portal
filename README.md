@@ -311,3 +311,47 @@ docker/
 - CSRF tüm formlarda aktif
 - Pasif kullanıcı girişi engellenir
 - Setup ekranı çift kilitli (lock dosyası + .env bayrağı)
+# Admin Update Foundation
+
+Bu pass ile admin panelindeki update alani guvenli bir temel kazanmistir.
+
+- Kurulu commit, branch ve varsa `APP_VERSION` gorulur.
+- Son basarili `portal:update` sonucu gorulur.
+- GitHub uzerindeki son commit backend tarafinda kontrol edilir.
+- Son kontrol zamani ve kisa update gecmisi tutulur.
+
+Yeni kontrol komutu:
+
+```bash
+php artisan portal:update:check
+```
+
+Opsiyonel ortam degiskenleri:
+
+```env
+APP_VERSION=
+GITHUB_UPDATE_REPOSITORY=alperates58/artwork-portal
+GITHUB_UPDATE_BRANCH=main
+GITHUB_UPDATE_TOKEN=
+```
+
+Guvenlik siniri:
+
+- Admin paneli `git pull`, `composer install`, `migrate --force` veya rollback calistirmaz.
+- Bu islemler halen kontrollu CLI veya deploy pipeline adimi olarak yapilmalidir.
+- GitHub erisimi gecici olarak basarisiz olursa panel hata mesaji gosterir ama mevcut portal akislarini bozmaz.
+
+Onerilen deploy akisi:
+
+```bash
+git fetch --all --prune
+git status
+git pull origin main
+composer install --no-dev --optimize-autoloader
+php artisan portal:update
+```
+
+Rollback notu:
+
+- Kod rollback ancak release klasoru, snapshot veya image-tag stratejisi ile makul sekilde guvenli olabilir.
+- Veritabani rollback migration turune bagli oldugu icin admin panelinden guvenli otomasyon olarak sunulmaz.

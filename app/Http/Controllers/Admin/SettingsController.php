@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\GithubUpdateChecker;
 use App\Services\PortalSettings;
 use App\Services\PortalUpdateStatus;
 use Illuminate\Http\RedirectResponse;
@@ -14,6 +15,7 @@ class SettingsController extends Controller
     public function __construct(
         private PortalSettings $settings,
         private PortalUpdateStatus $updateStatus,
+        private GithubUpdateChecker $githubUpdateChecker,
     ) {}
 
     public function edit(): View
@@ -65,5 +67,18 @@ class SettingsController extends Controller
         $this->settings->syncMikroSettings($mikro);
 
         return back()->with('success', 'Sistem ayarlari guncellendi.');
+    }
+
+    public function checkUpdates(Request $request): RedirectResponse
+    {
+        $result = $this->githubUpdateChecker->checkAndStore(
+            actor: $request->user(),
+            triggerSource: 'admin'
+        );
+
+        return back()->with(
+            $result['status'] === 'success' ? 'success' : 'warning',
+            $result['message']
+        );
     }
 }

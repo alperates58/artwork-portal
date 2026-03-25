@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'github_updates' => [
+        'repository' => env('GITHUB_UPDATE_REPOSITORY', 'alperates58/artwork-portal'),
+        'branch' => env('GITHUB_UPDATE_BRANCH', 'main'),
+        'token' => env('GITHUB_UPDATE_TOKEN'),
+    ],
+
 ];
