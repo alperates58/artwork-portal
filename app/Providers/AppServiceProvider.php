@@ -9,6 +9,7 @@ use App\Models\PurchaseOrderLine;
 use App\Policies\ArtworkPolicy;
 use App\Policies\OrderPolicy;
 use App\Services\PortalSettings;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -21,6 +22,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        date_default_timezone_set((string) config('app.timezone', 'Europe/Istanbul'));
+        Carbon::setLocale((string) config('app.locale', 'tr'));
+
         Gate::policy(PurchaseOrder::class, OrderPolicy::class);
         Gate::policy(PurchaseOrderLine::class, OrderPolicy::class);
         Gate::policy(Artwork::class, ArtworkPolicy::class);

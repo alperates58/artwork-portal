@@ -5,6 +5,8 @@ namespace App\Console\Commands;
 use App\Services\PortalUpdateStatus;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class PortalUpdateCommand extends Command
 {
@@ -14,6 +16,10 @@ class PortalUpdateCommand extends Command
 
     public function handle(PortalUpdateStatus $updateStatus): int
     {
+        $fromVersion = Schema::hasTable('system_settings')
+            ? DB::table('system_settings')->where('key', 'system.update.last_version')->value('value')
+            : null;
+        $ranMigrationsBefore = $this->ranMigrations();
         $steps = [
             'migrate --force',
             'storage:link',
@@ -40,9 +46,14 @@ class PortalUpdateCommand extends Command
                 }
             }
 
-            $updateStatus->markRun('success', 'portal:update basariyla tamamlandi.');
+            $updateStatus->markRun('success', 'portal:update basariyla tamamlandi.', [
+                'from_version' => $fromVersion,
+                'applied_migrations' => array_values(array_diff($this->ranMigrations(), $ranMigrationsBefore)),
+            ]);
         } catch (\Throwable $exception) {
-            $updateStatus->markRun('failed', $exception->getMessage());
+            $updateStatus->markRun('failed', $exception->getMessage(), [
+                'from_version' => $fromVersion,
+            ]);
 
             throw $exception;
         }
@@ -52,5 +63,17 @@ class PortalUpdateCommand extends Command
         $this->line('Not: Scheduler ve queue supervisor servisleri ayri olarak calisir durumda olmalidir.');
 
         return self::SUCCESS;
+    }
+
+    private function ranMigrations(): array
+    {
+        if (! Schema::hasTable('migrations')) {
+            return [];
+        }
+
+        return DB::table('migrations')
+            ->orderBy('id')
+            ->pluck('migration')
+            ->all();
     }
 }

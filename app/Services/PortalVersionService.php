@@ -4,10 +4,14 @@ namespace App\Services;
 
 class PortalVersionService
 {
+    public function __construct(
+        private ReleaseManifestService $manifestService,
+    ) {}
+
     public function current(): array
     {
         $headPath = base_path('.git/HEAD');
-        $appVersion = config('app.version');
+        $appVersion = $this->manifestService->resolveCurrentVersion(config('app.version'));
 
         if (! is_file($headPath)) {
             return [

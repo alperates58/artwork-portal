@@ -13,6 +13,7 @@ class GithubUpdateChecker
     public function __construct(
         private PortalVersionService $versionService,
         private PortalUpdateStatus $updateStatus,
+        private ReleaseManifestService $manifestService,
     ) {}
 
     public function checkAndStore(?User $actor = null, string $triggerSource = 'manual'): array
@@ -24,6 +25,8 @@ class GithubUpdateChecker
         $message = 'GitHub kontrolu yapilamadi.';
         $remoteCommit = null;
         $remoteVersion = null;
+        $remoteManifest = null;
+        $incomingChanges = null;
         $meta = [];
         $updateAvailable = null;
 
@@ -43,16 +46,25 @@ class GithubUpdateChecker
 
             $data = $response->json();
             $remoteCommit = substr((string) data_get($data, 'sha'), 0, 7) ?: null;
-            $remoteVersion = $remoteCommit;
+            $remoteManifest = $this->manifestService->remoteManifest($branch);
+            $incomingChanges = $remoteManifest
+                ? $this->manifestService->summarizeIncomingChanges($current['version'], $remoteManifest)
+                : null;
+            $remoteVersion = $incomingChanges['target_version'] ?? $remoteCommit;
             $updateAvailable = filled($remoteCommit) && filled($current['commit']) ? $remoteCommit !== $current['commit'] : null;
+            if ($incomingChanges) {
+                $updateAvailable = version_compare((string) $incomingChanges['target_version'], (string) $current['version'], '>');
+            }
             $status = 'success';
             $message = $updateAvailable
-                ? 'GitHub uzerinde daha yeni bir commit bulundu.'
-                : 'Kurulu commit ile GitHub branch commit bilgisi ayni.';
+                ? 'GitHub uzerinde daha yeni bir surum bulundu.'
+                : 'Kurulu surum ile GitHub manifest surumu ayni.';
             $meta = [
                 'html_url' => data_get($data, 'html_url'),
                 'commit_message' => data_get($data, 'commit.message'),
                 'commit_author_date' => data_get($data, 'commit.author.date'),
+                'manifest_available' => $remoteManifest !== null,
+                'incoming_changes' => $incomingChanges,
             ];
         } catch (RequestException $exception) {
             $response = $exception->response;
@@ -72,7 +84,7 @@ class GithubUpdateChecker
         }
 
         if ($this->hasEventsTable()) {
-            PortalUpdateEvent::query()->create([
+            PortalUpdateEvent::query()->create($this->eventPayload([
                 'type' => 'check',
                 'status' => $status,
                 'trigger_source' => $triggerSource,
@@ -82,12 +94,24 @@ class GithubUpdateChecker
                 'local_version' => $current['version'],
                 'remote_commit' => $remoteCommit,
                 'remote_version' => $remoteVersion,
+                'from_version' => $current['version'],
+                'to_version' => $incomingChanges['target_version'] ?? $remoteVersion,
                 'update_available' => $updateAvailable,
                 'message' => $message,
                 'meta' => $meta,
                 'started_at' => $checkedAt,
                 'completed_at' => now(),
-            ]);
+                'release_title' => $incomingChanges['title'] ?? null,
+                'release_summary' => $incomingChanges['summary'] ?? null,
+                'change_summary' => $incomingChanges['changes'] ?? null,
+                'changed_modules' => $incomingChanges['changed_modules'] ?? null,
+                'migrations_included' => $incomingChanges['migrations_included'] ?? null,
+                'schema_changes' => $incomingChanges['schema_changes'] ?? null,
+                'warnings' => $incomingChanges['warnings'] ?? null,
+                'post_update_notes' => $incomingChanges['post_update_notes'] ?? null,
+                'applied_migrations' => $incomingChanges['applied_migrations'] ?? null,
+                'release_date' => data_get($incomingChanges, 'target_release.release_date'),
+            ]));
         }
 
         $this->updateStatus->markCheck(
@@ -106,7 +130,9 @@ class GithubUpdateChecker
             'branch' => $branch,
             'current_commit' => $current['commit'],
             'remote_commit' => $remoteCommit,
+            'remote_version' => $remoteVersion,
             'update_available' => $updateAvailable,
+            'incoming_changes' => $incomingChanges,
             'meta' => $meta,
         ];
     }
@@ -114,5 +140,18 @@ class GithubUpdateChecker
     private function hasEventsTable(): bool
     {
         return Schema::hasTable('portal_update_events');
+    }
+
+    private function eventPayload(array $payload): array
+    {
+        static $columns = null;
+
+        if ($columns === null) {
+            $columns = $this->hasEventsTable()
+                ? Schema::getColumnListing('portal_update_events')
+                : [];
+        }
+
+        return array_intersect_key($payload, array_flip($columns));
     }
 }

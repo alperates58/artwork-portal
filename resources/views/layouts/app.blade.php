@@ -119,6 +119,12 @@
             </x-ui.alert>
         @endif
 
+        @if(session('warning'))
+            <x-ui.alert variant="warning" class="mx-6 mt-4">
+                <p class="font-medium">{{ session('warning') }}</p>
+            </x-ui.alert>
+        @endif
+
         @if(session('error') || $errors->any())
             <x-ui.alert variant="danger" class="mx-6 mt-4">
                 <div>

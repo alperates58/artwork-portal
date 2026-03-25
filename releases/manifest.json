@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-03-25T18:00:00+03:00",
+  "latest": "1.2.0",
+  "releases": [
+    {
+      "version": "1.2.0",
+      "title": "Update görünürlüğü, asset sertleştirme ve production hazırlığı",
+      "summary": "Admin update akışı release notları, schema farkları, prepare onayı ve daha net history ile güçlendirildi; asset hattı Vite/Tailwind tabanına taşınarak production için hazırlık yapıldı.",
+      "release_date": "2026-03-25",
+      "changes": [
+        "Admin ayarlar ekranına hedef sürüm, release özeti, modül listesi, migration/schema bilgisi ve uyarılar eklendi.",
+        "Update history kayıtları sürüm geçişi, release başlığı, migration bilgisi ve post-update notlarıyla zenginleştirildi.",
+        "Admin paneli için tehlikeli tek tık deploy yerine güvenli 'hazırla ve onayla' akışı eklendi.",
+        "Tailwind Play CDN yerine Vite + Tailwind tabanlı yerel asset hattı eklendi; build varsa yerel asset kullanımı desteklendi.",
+        "KURULUM.md ve CHANGELOG.md production odaklı sürüm, Redis, Spaces, timezone ve DigitalOcean notlarıyla güncellendi."
+      ],
+      "changed_modules": [
+        "Admin Ayarları",
+        "Update Sistemi",
+        "Frontend Asset Hattı",
+        "Kurulum ve Deployment Dokümantasyonu"
+      ],
+      "migrations_included": true,
+      "schema_changes": {
+        "new_tables": [],
+        "new_columns": [
+          "portal_update_events.from_version",
+          "portal_update_events.to_version",
+          "portal_update_events.release_title",
+          "portal_update_events.release_summary",
+          "portal_update_events.change_summary",
+          "portal_update_events.changed_modules",
+          "portal_update_events.migrations_included",
+          "portal_update_events.schema_changes",
+          "portal_update_events.warnings",
+          "portal_update_events.post_update_notes",
+          "portal_update_events.applied_migrations",
+          "portal_update_events.release_date"
+        ]
+      },
+      "warnings": [
+        "Bu sürüm web isteği içinden git pull, composer install veya rollback çalıştırmaz.",
+        "Production ortamında update öncesi veritabanı ve depolama yedeği alınmalıdır.",
+        "Yeni asset hattı için production deploy sırasında npm install ve npm run build adımları uygulanmalıdır."
+      ],
+      "post_update_notes": [
+        "docker compose exec app php artisan migrate --force",
+        "docker compose exec app php artisan portal:update",
+        "npm install && npm run build veya CI/CD içinde eşdeğer build adımı",
+        "Queue, scheduler ve Redis servislerinin ayakta olduğunu doğrulayın."
+      ],
+      "applied_migrations": [
+        "2026_03_25_010000_add_release_metadata_to_portal_update_events_table"
+      ]
+    },
+    {
+      "version": "1.1.0",
+      "title": "Admin update görünürlüğü için temel altyapı",
+      "summary": "GitHub kontrolü, temel update history kaydı ve admin ayarlar ekranında commit/branch görünürlüğü eklendi.",
+      "release_date": "2026-03-24",
+      "changes": [
+        "portal:update ve portal:update:check akışları admin görünürlüğü ile ilişkilendirildi.",
+        "portal_update_events tablosu ile temel update history kaydı eklendi.",
+        "Admin ayarlar ekranında son kontrol ve son deploy bilgisi gösterilmeye başlandı."
+      ],
+      "changed_modules": [
+        "Admin Ayarları",
+        "Update Sistemi"
+      ],
+      "migrations_included": true,
+      "schema_changes": {
+        "new_tables": [
+          "portal_update_events"
+        ],
+        "new_columns": []
+      },
+      "warnings": [
+        "Bu sürüm yalnız görünürlük sağlar; otomatik deploy yapmaz."
+      ],
+      "post_update_notes": [
+        "GitHub erişimi için gerekiyorsa GITHUB_UPDATE_TOKEN tanımlayın."
+      ],
+      "applied_migrations": [
+        "2026_03_25_000000_create_portal_update_events_table"
+      ]
+    }
+  ]
+}

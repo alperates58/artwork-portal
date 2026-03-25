@@ -138,6 +138,30 @@
 <?php endif; ?>
         <?php endif; ?>
 
+        <?php if(session('warning')): ?>
+            <?php if (isset($component)) { $__componentOriginal746de018ded8594083eb43be3f1332e1 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal746de018ded8594083eb43be3f1332e1 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.ui.alert','data' => ['variant' => 'warning','class' => 'mx-6 mt-4']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('ui.alert'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['variant' => 'warning','class' => 'mx-6 mt-4']); ?>
+                <p class="font-medium"><?php echo e(session('warning')); ?></p>
+             <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal746de018ded8594083eb43be3f1332e1)): ?>
+<?php $attributes = $__attributesOriginal746de018ded8594083eb43be3f1332e1; ?>
+<?php unset($__attributesOriginal746de018ded8594083eb43be3f1332e1); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal746de018ded8594083eb43be3f1332e1)): ?>
+<?php $component = $__componentOriginal746de018ded8594083eb43be3f1332e1; ?>
+<?php unset($__componentOriginal746de018ded8594083eb43be3f1332e1); ?>
+<?php endif; ?>
+        <?php endif; ?>
+
         <?php if(session('error') || $errors->any()): ?>
             <?php if (isset($component)) { $__componentOriginal746de018ded8594083eb43be3f1332e1 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal746de018ded8594083eb43be3f1332e1 = $attributes; } ?>

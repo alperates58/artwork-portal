@@ -1,8 +1,16 @@
-# Lider Portal Kurulum ve Guncelleme
+# Lider Portal Kurulum ve Güncelleme
 
-Bu dokuman mevcut Laravel 11 + Docker tabanli Lider Portal reposunun mevcut durumuna gore hazirlandi. Proje greenfield degildir; setup wizard, admin paneli, supplier portal, Redis, queue, scheduler, artwork/revision akislar ve Spaces destegi zaten vardir.
+Bu doküman mevcut Laravel 11 + Docker tabanlı Lider Portal reposu için hazırlanmıştır. Proje greenfield değildir; setup wizard, admin paneli, supplier portal, artwork/revision akışları, Redis, queue, scheduler ve Spaces desteği zaten vardır. Amaç mevcut çalışan davranışı koruyarak production kurulumu ve güncelleme sürecini güvenli hale getirmektir.
 
-## 1. Lokal Docker kurulumu
+## 1. Mimari notlar
+
+- Veritabanı oluşturma bugün altyapı seviyesindedir.
+- Lokal Docker akışında MySQL container veritabanını hazır getirir.
+- Setup wizard uygulama içi kurulum, admin kullanıcı ve bağlantı doğrulama rolünü sürdürür.
+- Bu pass içinde setup wizard veritabanı oluşturan bir araca dönüştürülmemiştir.
+- İleride istenirse “DB oluşturma uygulama sorumluluğu mu, altyapı sorumluluğu mu?” kararı ayrı mimari iş olarak netleştirilmelidir.
+
+## 2. Lokal Docker kurulumu
 
 ```powershell
 git clone <repo-url> artwork-portal
@@ -11,7 +19,7 @@ Copy-Item .env.example .env
 powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 ```
 
-Sik kullanilan komutlar:
+Sık kullanılan komutlar:
 
 ```powershell
 .\scripts\dev.ps1 up
@@ -21,32 +29,44 @@ Sik kullanilan komutlar:
 .\scripts\dev.ps1 clear
 ```
 
-Ilk acilis:
+İlk açılış:
 
 - Uygulama: `http://localhost`
 - Setup wizard gerekiyorsa: `http://localhost/setup`
 
-Lokal `.env` notlari:
+Lokal `.env` notları:
 
 - `APP_ENV=production`
 - `APP_DEBUG=false`
+- `APP_VERSION=1.2.0`
+- `APP_TIMEZONE=Europe/Istanbul`
 - `FILESYSTEM_DISK=local`
 - `CACHE_STORE=redis`
 - `QUEUE_CONNECTION=redis`
 - `SESSION_DRIVER=redis`
 - `PHP_OPCACHE_VALIDATE_TIMESTAMPS=1`
-- `APP_SLOW_REQUEST_THRESHOLD_MS=800` yalnizca analiz gerektiginde acilmalidir
+- `APP_SLOW_REQUEST_THRESHOLD_MS=800` yalnız analiz gerektiğinde açılmalıdır
 
-## 2. Production Droplet kurulumu
+## 3. DigitalOcean Droplet hazırlığı
 
-Sunucu hazirligi:
+Ubuntu 22.04 veya 24.04 önerilir.
 
 ```bash
 sudo apt update
-sudo apt install -y ca-certificates curl git
+sudo apt install -y ca-certificates curl git ufw
 curl -fsSL https://get.docker.com | sh
 sudo apt install -y docker-compose-plugin
 sudo usermod -aG docker $USER
+newgrp docker
+```
+
+Temel güvenlik:
+
+```bash
+sudo ufw allow OpenSSH
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
 ```
 
 Kod kurulumu:
@@ -57,154 +77,35 @@ cd /var/www/artwork-portal
 cp .env.example .env
 ```
 
-Production `.env` icin kritik alanlar:
+## 4. Production `.env` zorunlu alanları
+
+En az şu alanları doldurun:
 
 - `APP_NAME="Lider Portal"`
 - `APP_URL=https://portal.ornekdomain.com`
-- `APP_INSTALLED=true`
-- MySQL ve Redis sifreleri
+- `APP_ENV=production`
+- `APP_DEBUG=false`
+- `APP_VERSION=1.2.0`
+- `APP_TIMEZONE=Europe/Istanbul`
+- `APP_INSTALLED=true` veya ilk kurulum wizard kullanılacaksa geçici olarak `false`
+- `DB_*` alanları
+- `REDIS_*` alanları
 - `FILESYSTEM_DISK=spaces`
-- tum `DO_SPACES_*` alanlari
-- gerekiyorsa `MIKRO_*` alanlari
+- tüm `DO_SPACES_*` alanları
+- gerekiyorsa `MIKRO_*` alanları
 - `PHP_OPCACHE_VALIDATE_TIMESTAMPS=0`
-- `APP_SLOW_REQUEST_THRESHOLD_MS=800`
 
-Container baslatma:
+## 5. Redis kurulumu ve beklenti
 
-```bash
-docker compose build app mysql
-docker compose up -d
-docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate --force
-docker compose exec app php artisan portal:update
-```
+Production için Redis öneri değil, fiilen beklenen çalışma şeklidir. Cache, queue ve session sürücüsü Redis olacak şekilde ayarlıdır.
 
-Notlar:
+Bu repo Docker Compose içinde Redis servisiyle gelir. Production’da ayrıca sistem seviyesinde Redis kurmanız gerekmez; compose servisi ayakta olduğu sürece uygulama bunu kullanır.
 
-- Ilk kurulum wizard ile yapilacaksa gecici olarak `APP_INSTALLED=false` kullanilabilir.
-- Mevcut sistem tasiniyorsa hazir `.env` + `portal:update` akisi daha kontrolludur.
-
-## 3. Runtime ayarlar
-
-`.env` icinde kalmasi gerekenler:
-
-- `APP_KEY`
-- container, DB ve Redis host bilgileri
-- ilk bootstrap icin gerekli varsayilanlar
-
-Admin panelinden yonetilebilen runtime ayarlar:
-
-- Spaces disk secimi ve baglanti alanlari
-- Mikro enabled, base URL, API key/kullanici bilgileri, sirket kodu, calisma yili, timeout, SSL dogrulamasi, sevk endpoint yolu ve sync araligi
-
-Bu runtime ayarlar `system_settings` tablosunda tutulur ve calisma zamaninda `.env` degerlerinin uzerine yazabilir. Ilk ayaga kalkis icin `.env` yine gereklidir.
-
-## 4. Guncelleme akisi
-
-GitHub'dan yeni commit geldikten sonra tam kurulum tekrar calistirilmaz.
-
-Temel komut:
-
-```bash
-docker compose exec app php artisan portal:update
-```
-
-`portal:update` su adimlari uygular:
-
-- `migrate --force`
-- `storage:link`
-- `optimize:clear`
-- `queue:restart`
-- production ortaminda `config:cache`, `route:cache`, `view:cache`
-
-Bu sayede veri korunur, yeni migration'lar uygulanir ve portal yeniden kurulum istemeden guncellenir.
-
-## 5. Admin Update Foundation
-
-Bu pass ile admin update alani guvenli bir temel kazandi. Admin artik su bilgileri gorebilir:
-
-- kurulu commit
-- aktif branch
-- `APP_VERSION` varsa uygulama versiyonu
-- son basarili `portal:update` kaydi
-- son GitHub kontrol sonucu
-- son kontrol zamani
-- kisa update gecmisi
-
-GitHub kontrol komutu:
-
-```bash
-docker compose exec app php artisan portal:update:check
-```
-
-Opsiyonel `.env` alanlari:
-
-- `APP_VERSION`
-- `GITHUB_UPDATE_REPOSITORY`
-- `GITHUB_UPDATE_BRANCH`
-- `GITHUB_UPDATE_TOKEN`
-
-Davranis notlari:
-
-- Public repo icin token zorunlu degildir.
-- Sik kontrol yapilacaksa GitHub API rate limit icin token tanimlamak daha sagliklidir.
-- Branch once yerel git bilgisinden okunur; okunamazsa `GITHUB_UPDATE_BRANCH` kullanilir.
-- GitHub gecici olarak erisilemezse panel bozulmaz; hata kaydi tutulur.
-
-## 6. Guvenli update sinirlari
-
-Admin paneli su anda yalnizca backend uzerinden GitHub kontrolu yapar. Web isteginden su adimlar bilerek calistirilmaz:
-
-- `git pull`
-- `composer install`
-- `migrate --force`
-- servis restart
-- rollback
-
-Onerilen production update sirasi:
-
-```bash
-cd /var/www/artwork-portal
-git fetch --all --prune
-git status
-git pull origin main
-docker compose build app
-docker compose up -d
-docker compose exec app composer install --no-dev --optimize-autoloader
-docker compose exec app php artisan portal:update
-```
-
-Tek tik deploy ancak su kosullar netlestiginde dusunulmelidir:
-
-- dogru deploy kullanicisi
-- yazma izinleri
-- repo clone yapisi
-- supervisor/systemd/docker operasyon sahipligi
-- bakim penceresi ve hata geri donus proseduru
-
-## 7. Rollback gercegi
-
-Rollback ancak su stratejilerden biri varsa makul sekilde guvenli olabilir:
-
-- release klasorleri + symlink gecisi
-- Docker image tag ile geri donus
-- snapshot / yedek + bakim penceresi
-
-Tek basina `git checkout <old-commit>` guvenli rollback sayilmaz. Cunku:
-
-- migration sonrasi veri geriye uyumlu olmayabilir
-- queue isleri eski ve yeni kodla karisik calisabilir
-- Spaces uzerindeki dosya degisiklikleri geri alinmayabilir
-
-Bu nedenle admin panelinde rollback butonu yoktur.
-
-## 8. Queue, scheduler ve cache
-
-Production sonrasi kontrol:
+Doğrulama:
 
 ```bash
 docker compose ps
-docker compose logs -f app nginx queue scheduler
+docker compose logs -f redis queue scheduler
 docker compose exec app php artisan about
 ```
 
@@ -213,41 +114,173 @@ Beklenen durum:
 - cache `redis`
 - queue `redis`
 - session `redis`
-- `queue` servisi calisiyor
-- `scheduler` servisi calisiyor
+- `queue` servisi çalışıyor
+- `scheduler` servisi çalışıyor
 
-## 9. Spaces ve guvenli dosya akisi
+Redis yoksa:
 
-- `FILESYSTEM_DISK=spaces` olmadan Spaces aktif olmaz
-- tum `DO_SPACES_*` alanlari dolu olmalidir
-- dosyalar public acilmaz
-- indirme akisi guvenli endpoint + presigned URL uzerinden calisir
+- `SESSION_DRIVER=file` gibi sessiz fallback yapmayın
+- önce Redis servisini ayağa kaldırın
+- sonra `php artisan optimize:clear` çalıştırın
 
-## 10. Operasyonel notlar
+## 6. Spaces yapılandırması
 
-Turkce karakter problemi gorunurse:
+Production için örnek:
 
-- kaynak dosyalarin UTF-8 kaydedildigini dogrulayin
-- container yeniden build edin
-- tarayici cache temizleyin
+```env
+FILESYSTEM_DISK=spaces
+DO_SPACES_KEY=xxx
+DO_SPACES_SECRET=xxx
+DO_SPACES_ENDPOINT=https://fra1.digitaloceanspaces.com
+DO_SPACES_REGION=fra1
+DO_SPACES_BUCKET=lider-portal-prod
+DO_SPACES_URL=https://lider-portal-prod.fra1.digitaloceanspaces.com
+```
 
-Admin ekranlari yavas ise:
+Notlar:
 
-- Windows Docker bind mount gecikmesi hissedilebilir
-- `APP_SLOW_REQUEST_THRESHOLD_MS=800` ile log toplayin
-- `docker compose logs -f mysql` ile slow query logunu izleyin
+- Bucket private kalmalıdır
+- İndirme akışı public URL üzerinden değil, yetkili endpoint + presigned URL ile çalışır
+- `FILESYSTEM_DISK=spaces` olmadan yalnız Spaces bilgisi girmek yeterli değildir
 
-Frontend ilk yukleme gecikmesi:
+## 7. Container build ve ilk ayağa kaldırma
 
-- proje halen Tailwind Play CDN kullaniyor
-- production ilk yuklemede tarayici tarafinda ek gecikme ve dis CDN bagimliligi olabilir
+```bash
+cd /var/www/artwork-portal
+docker compose build app mysql
+docker compose up -d --force-recreate app mysql redis queue scheduler nginx
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate --force
+docker compose exec app php artisan storage:link
+docker compose exec app php artisan portal:update
+```
 
-## 11. Son kontrol listesi
+İlk kurulum wizard kullanılacaksa:
 
-1. Login calisiyor mu
-2. Admin panel aciliyor mu
-3. Supplier portal aciliyor mu
-4. Siparis goruntuleme ve duzenleme calisiyor mu
-5. Upload/download akisi calisiyor mu
-6. Queue job'lari isleniyor mu
-7. `portal:update` sonrasi sistem yeniden kurulum istemeden aciliyor mu
+- `.env` içinde geçici olarak `APP_INSTALLED=false`
+- tarayıcıda `/setup`
+- kurulum tamamlanınca uygulama kilitlenir
+
+Mevcut çalışan kurulum taşınıyorsa:
+
+- `APP_INSTALLED=true`
+- hazır `.env`
+- `migrate --force`
+- `portal:update`
+
+daha kontrollü akıştır.
+
+## 8. Frontend asset build
+
+Bu repo artık production dostu yerel asset hattı için `Vite + Tailwind` yapılandırması içerir.
+
+Production deploy sırasında şu adım zorunludur:
+
+```bash
+npm install
+npm run build
+```
+
+Notlar:
+
+- Build çıktısı `public/build` altına yazılır
+- Build varsa uygulama yerel asset kullanır
+- Build yoksa yalnız geçici fallback olarak eski CDN yolu devreye girer
+- Production’da fallback’e güvenmeyin; mutlaka build alın
+
+## 9. Güvenli update akışı
+
+Admin paneli artık şunları gösterir:
+
+- kurulu sürüm
+- hedef sürüm
+- release özeti
+- değişiklik maddeleri
+- etkilenen modüller
+- migration/schema görünürlüğü
+- uyarılar
+- post-update notları
+- zengin update history
+
+GitHub kontrol komutu:
+
+```bash
+docker compose exec app php artisan portal:update:check
+```
+
+Uygulama update komutu:
+
+```bash
+docker compose exec app php artisan portal:update
+```
+
+`portal:update` şu adımları uygular:
+
+- `migrate --force`
+- `storage:link`
+- `optimize:clear`
+- `queue:restart`
+- production ortamında `config:cache`, `route:cache`, `view:cache`
+
+Admin panelindeki “Hazırlığı Onayla” işlemi:
+
+- deploy çalıştırmaz
+- rollback yapmaz
+- yalnız hedef release için onaylı hazırlık kaydı oluşturur
+
+Önerilen production update sırası:
+
+```bash
+cd /var/www/artwork-portal
+git fetch --all --prune
+git status
+git pull origin main
+docker compose build app
+docker compose up -d --force-recreate app queue scheduler nginx
+docker compose exec app composer install --no-dev --optimize-autoloader
+npm install
+npm run build
+docker compose exec app php artisan portal:update
+```
+
+## 10. Rollback gerçeği
+
+Güvenli rollback için şu stratejilerden biri gerekir:
+
+- release klasörleri + symlink geçişi
+- Docker image tag ile geri dönüş
+- snapshot / yedek + bakım penceresi
+
+Şunlar güvenli rollback sayılmaz:
+
+- tek başına `git checkout <old-commit>`
+- migration sonrası şemasal uyumsuzluğu hesaba katmayan geri dönüş
+- queue ve scheduler karışık kod sürümleriyle çalışırken yapılan acele geri dönüş
+
+Bu nedenle admin panelinde rollback butonu yoktur.
+
+## 11. Timezone ve UTF-8 disiplini
+
+Bu repo için standart:
+
+- timezone: `Europe/Istanbul`
+- locale: `tr`
+- dosya kodlaması: `UTF-8`
+
+Kontrol noktaları:
+
+- update geçmişi saatleri Istanbul zamanına göre görünmelidir
+- yeni release notları ve changelog Türkçe karakterleri bozmadan görünmelidir
+- mojibake görülürse ilgili dosya UTF-8 olarak yeniden kaydedilmelidir
+
+## 12. Son doğrulama listesi
+
+1. Login çalışıyor mu
+2. Admin panel açılıyor mu
+3. Supplier portal açılıyor mu
+4. Sipariş ve artwork akışları bozulmadı mı
+5. Upload/download akışı çalışıyor mu
+6. Redis, queue ve scheduler ayakta mı
+7. `portal:update` sonrası sistem yeniden kurulum istemeden açılıyor mu
+8. Admin ayarlar ekranında release notları ve history görünüyor mu
+9. `npm run build` sonrası layout bozulmadan açılıyor mu

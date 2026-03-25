@@ -1,11 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Şifremi Unuttum — {{ config('app.name') }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    @include('partials.ui-head', ['title' => 'Şifremi Unuttum'])
 </head>
 <body class="bg-slate-50 font-sans antialiased min-h-screen flex items-center justify-center p-4">
 <div class="w-full max-w-sm">

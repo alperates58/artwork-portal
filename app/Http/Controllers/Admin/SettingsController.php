@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\GithubUpdateChecker;
+use App\Services\PortalUpdatePreparationService;
 use App\Services\PortalSettings;
 use App\Services\PortalUpdateStatus;
 use Illuminate\Http\RedirectResponse;
@@ -16,6 +17,7 @@ class SettingsController extends Controller
         private PortalSettings $settings,
         private PortalUpdateStatus $updateStatus,
         private GithubUpdateChecker $githubUpdateChecker,
+        private PortalUpdatePreparationService $updatePreparationService,
     ) {}
 
     public function edit(): View
@@ -80,5 +82,44 @@ class SettingsController extends Controller
             $result['status'] === 'success' ? 'success' : 'warning',
             $result['message']
         );
+    }
+
+    public function prepareUpdate(Request $request): RedirectResponse
+    {
+        $status = $this->updateStatus->snapshot();
+
+        if (($status['update_available'] ?? null) !== true) {
+            return back()->with('warning', 'Hazırlık onayı için önce yeni bir update bulunmalıdır.');
+        }
+
+        $release = $status['latest_remote_release'] ?? null;
+        $incoming = $release && filled($release['version'] ?? null)
+            ? [
+                'current_version' => $status['current_version'],
+                'target_version' => $release['version'],
+                'target_release' => [
+                    'version' => $release['version'],
+                    'title' => $release['title'] ?? null,
+                    'summary' => $release['summary'] ?? null,
+                    'changes' => $release['change_summary'] ?? [],
+                    'changed_modules' => $release['changed_modules'] ?? [],
+                    'migrations_included' => $release['migrations_included'] ?? false,
+                    'schema_changes' => $release['schema_changes'] ?? ['new_tables' => [], 'new_columns' => []],
+                    'warnings' => $release['warnings'] ?? [],
+                    'post_update_notes' => $release['post_update_notes'] ?? [],
+                    'applied_migrations' => $release['applied_migrations'] ?? [],
+                    'release_date' => $release['release_date'] ?? null,
+                ],
+                'release_count' => 1,
+            ]
+            : null;
+
+        if (! $incoming || empty($incoming['target_release'])) {
+            return back()->with('warning', 'Onaylanacak hazir bir update paketi bulunamadi. Once GitHub kontrolu yapin.');
+        }
+
+        $this->updatePreparationService->prepare($request->user(), $incoming);
+
+        return back()->with('success', 'Update hazirligi kaydedildi. Bundan sonraki adim kontrollu CLI/deploy akisi ile tamamlanmalidir.');
     }
 }
