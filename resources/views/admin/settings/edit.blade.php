@@ -472,8 +472,84 @@
         </div>
     </div>
 
+    <div class="card p-6 space-y-5">
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <h2 class="text-lg font-semibold text-slate-900">Mail Bildirimleri</h2>
+                <p class="text-sm text-slate-500 mt-1">Exchange/SMTP kimlik bilgileri `.env` tarafinda kalir. Bu alan yalniz runtime bildirim davranisini yonetir.</p>
+            </div>
+            <div class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                Otomatik yeni siparis bildirimi yalniz Mikro ile ilk kez gelen siparislerde calisir.
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <input type="hidden" name="mail_notifications[enabled]" value="0">
+            <input type="checkbox" name="mail_notifications[enabled]" value="1" class="rounded border-slate-300 text-brand-600" {{ !empty($mailNotifications['enabled']) ? 'checked' : '' }}>
+            <label class="text-sm text-slate-700">Yeni siparis mail bildirimleri etkin</label>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+            <div>
+                <label class="label">Grafik Departmani Alicilar</label>
+                <textarea name="mail_notifications[graphics_to]" class="input min-h-24">{{ old('mail_notifications.graphics_to', $mailNotifications['graphics_to'] ?? '') }}</textarea>
+                <p class="mt-1 text-xs text-slate-500">Virgul veya bosluk ile birden fazla e-posta girilebilir.</p>
+            </div>
+            <div>
+                <label class="label">Yeni Siparis Konu Sablongu</label>
+                <input class="input" type="text" name="mail_notifications[new_order_subject]" value="{{ old('mail_notifications.new_order_subject', $mailNotifications['new_order_subject'] ?? 'Yeni siparis geldi: {order_no}') }}">
+                <p class="mt-1 text-xs text-slate-500">Desteklenen alanlar: {order_no}, {supplier}, {order_date}, {line_count}</p>
+            </div>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+            <div>
+                <label class="label">CC Listesi</label>
+                <textarea name="mail_notifications[graphics_cc]" class="input min-h-20">{{ old('mail_notifications.graphics_cc', $mailNotifications['graphics_cc'] ?? '') }}</textarea>
+            </div>
+            <div>
+                <label class="label">BCC Listesi</label>
+                <textarea name="mail_notifications[graphics_bcc]" class="input min-h-20">{{ old('mail_notifications.graphics_bcc', $mailNotifications['graphics_bcc'] ?? '') }}</textarea>
+            </div>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-3">
+            <div>
+                <label class="label">Override From Name</label>
+                <input class="input" type="text" name="mail_notifications[override_from_name]" value="{{ old('mail_notifications.override_from_name', $mailNotifications['override_from_name'] ?? '') }}" placeholder="Bos birakilirsa env fallback kullanilir">
+            </div>
+            <div>
+                <label class="label">Override From Address</label>
+                <input class="input" type="email" name="mail_notifications[override_from_address]" value="{{ old('mail_notifications.override_from_address', $mailNotifications['override_from_address'] ?? '') }}" placeholder="portal@sirketiniz.com">
+            </div>
+            <div>
+                <label class="label">Kayitli Test Alicisi</label>
+                <input class="input" type="email" name="mail_notifications[test_recipient]" value="{{ old('mail_notifications.test_recipient', $mailNotifications['test_recipient'] ?? '') }}" placeholder="grafik@sirketiniz.com">
+            </div>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 p-4">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-sm font-semibold text-slate-900">Test Mail Gonder</p>
+                    <p class="mt-1 text-xs text-slate-500">Kayitli test alicisi varsa o kullanilir. Yoksa asagidaki adrese tek seferlik test gonderebilirsiniz.</p>
+                </div>
+                <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                    <div>
+                        <label class="label">Tek Seferlik Test Alicisi</label>
+                        <input class="input" type="email" name="test_mail_recipient" value="{{ old('test_mail_recipient', $mailNotifications['test_recipient'] ?? '') }}" placeholder="test@sirketiniz.com" form="mail-test-form">
+                    </div>
+                    <button type="submit" class="btn btn-secondary" form="mail-test-form">Test Mail Kuyruga Al</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="flex justify-end">
         <button type="submit" class="btn btn-primary">Ayarları Kaydet</button>
     </div>
+</form>
+<form id="mail-test-form" method="POST" action="{{ route('admin.settings.mail-test') }}">
+    @csrf
 </form>
 @endsection

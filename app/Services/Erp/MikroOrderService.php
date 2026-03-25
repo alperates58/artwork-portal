@@ -9,6 +9,7 @@ use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
 use App\Models\SupplierMikroAccount;
 use App\Models\User;
+use App\Services\MailNotificationDispatcher;
 use App\Services\Mikro\MikroClient;
 use App\Services\Mikro\MikroException;
 use Illuminate\Support\Arr;
@@ -222,6 +223,12 @@ class MikroOrderService
         foreach (Arr::wrap($payload['line_items'] ?? []) as $linePayload) {
             $wasCreated = $this->upsertLine($order, $linePayload);
             $wasCreated ? $lineStats['created']++ : $lineStats['updated']++;
+        }
+
+        if (! $wasExisting) {
+            DB::afterCommit(function () use ($order): void {
+                app(MailNotificationDispatcher::class)->queueNewOrderNotification($order, 'mikro');
+            });
         }
 
         return [

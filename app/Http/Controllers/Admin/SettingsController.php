@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\GithubUpdateChecker;
+use App\Services\MailNotificationDispatcher;
 use App\Services\PortalUpdatePreparationService;
 use App\Services\PortalSettings;
 use App\Services\PortalUpdateStatus;
@@ -18,6 +19,7 @@ class SettingsController extends Controller
         private PortalUpdateStatus $updateStatus,
         private GithubUpdateChecker $githubUpdateChecker,
         private PortalUpdatePreparationService $updatePreparationService,
+        private MailNotificationDispatcher $mailDispatcher,
     ) {}
 
     public function edit(): View
@@ -25,6 +27,7 @@ class SettingsController extends Controller
         return view('admin.settings.edit', [
             'spaces' => $this->settings->spacesConfig(),
             'mikro' => $this->settings->mikroFormConfig(),
+            'mailNotifications' => $this->settings->mailNotificationFormConfig(),
             'updateStatus' => $this->updateStatus->snapshot(),
         ]);
     }
@@ -50,6 +53,20 @@ class SettingsController extends Controller
             'mikro.verify_ssl' => ['nullable', 'boolean'],
             'mikro.shipment_endpoint' => ['nullable', 'string', 'max:255'],
             'mikro.sync_interval_minutes' => ['required', 'integer', 'min:5', 'max:1440'],
+            'mail_notifications.enabled' => ['nullable', 'boolean'],
+            'mail_notifications.graphics_to' => ['nullable', 'string', 'max:1000', function ($attribute, $value, $fail) {
+                $this->validateEmailList($value, $fail);
+            }],
+            'mail_notifications.graphics_cc' => ['nullable', 'string', 'max:1000', function ($attribute, $value, $fail) {
+                $this->validateEmailList($value, $fail);
+            }],
+            'mail_notifications.graphics_bcc' => ['nullable', 'string', 'max:1000', function ($attribute, $value, $fail) {
+                $this->validateEmailList($value, $fail);
+            }],
+            'mail_notifications.new_order_subject' => ['nullable', 'string', 'max:255'],
+            'mail_notifications.override_from_name' => ['nullable', 'string', 'max:255'],
+            'mail_notifications.override_from_address' => ['nullable', 'email', 'max:255'],
+            'mail_notifications.test_recipient' => ['nullable', 'email', 'max:255'],
         ]);
 
         $this->settings->set('spaces', 'spaces.disk', $validated['spaces']['disk']);
@@ -66,8 +83,30 @@ class SettingsController extends Controller
         $mikro['password'] = filled($mikro['password'] ?? null) ? $mikro['password'] : '__KEEP__';
 
         $this->settings->syncMikroSettings($mikro);
+        if (array_key_exists('mail_notifications', $validated)) {
+            $this->settings->syncMailNotificationSettings($validated['mail_notifications'] ?? []);
+        }
 
         return back()->with('success', 'Sistem ayarlari guncellendi.');
+    }
+
+    public function sendTestMail(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'test_mail_recipient' => ['nullable', 'email', 'max:255'],
+        ]);
+
+        $queued = $this->mailDispatcher->queueTestNotification(
+            $validated['test_mail_recipient'] ?? null,
+            $request->user()?->id
+        );
+
+        return back()->with(
+            $queued ? 'success' : 'warning',
+            $queued
+                ? 'Test mail bildirimi kuyruga alindi.'
+                : 'Test mail icin gecerli bir alici adresi bulunamadi.'
+        );
     }
 
     public function checkUpdates(Request $request): RedirectResponse
@@ -120,5 +159,21 @@ class SettingsController extends Controller
         $this->updatePreparationService->prepare($request->user(), $incoming);
 
         return back()->with('success', 'Update hazirligi kaydedildi. Bundan sonraki adim kontrollu CLI/deploy akisi ile tamamlanmalidir.');
+    }
+
+    private function validateEmailList(?string $value, \Closure $fail): void
+    {
+        if (blank($value)) {
+            return;
+        }
+
+        $items = preg_split('/[\s,;]+/', (string) $value, -1, PREG_SPLIT_NO_EMPTY);
+
+        foreach ($items as $email) {
+            if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $fail('Lutfen gecerli e-posta adresleri girin.');
+                return;
+            }
+        }
     }
 }

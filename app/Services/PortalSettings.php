@@ -17,6 +17,8 @@ class PortalSettings
         'mikro.password',
     ];
 
+    private const MAIL_NOTIFICATION_DEFAULT_SUBJECT = 'Yeni siparis geldi: {order_no}';
+
     public function get(string $key, mixed $default = null): mixed
     {
         return $this->all()[$key] ?? $default;
@@ -136,6 +138,41 @@ class PortalSettings
 
             $this->set('mikro', $key, $value, true);
         }
+    }
+
+    public function mailNotificationConfig(): array
+    {
+        return [
+            'enabled' => filter_var($this->get('mail_notifications.enabled', false), FILTER_VALIDATE_BOOL),
+            'graphics_to' => (string) $this->get('mail_notifications.graphics_to', ''),
+            'graphics_cc' => (string) $this->get('mail_notifications.graphics_cc', ''),
+            'graphics_bcc' => (string) $this->get('mail_notifications.graphics_bcc', ''),
+            'new_order_subject' => (string) $this->get('mail_notifications.new_order_subject', self::MAIL_NOTIFICATION_DEFAULT_SUBJECT),
+            'override_from_name' => $this->get('mail_notifications.override_from_name'),
+            'override_from_address' => $this->get('mail_notifications.override_from_address'),
+            'test_recipient' => $this->get('mail_notifications.test_recipient'),
+        ];
+    }
+
+    public function mailNotificationFormConfig(): array
+    {
+        return $this->mailNotificationConfig();
+    }
+
+    public function syncMailNotificationSettings(array $settings): void
+    {
+        $this->set('mail_notifications', 'mail_notifications.enabled', (string) ($settings['enabled'] ?? false));
+        $this->set('mail_notifications', 'mail_notifications.graphics_to', $settings['graphics_to'] ?? null);
+        $this->set('mail_notifications', 'mail_notifications.graphics_cc', $settings['graphics_cc'] ?? null);
+        $this->set('mail_notifications', 'mail_notifications.graphics_bcc', $settings['graphics_bcc'] ?? null);
+        $this->set(
+            'mail_notifications',
+            'mail_notifications.new_order_subject',
+            $settings['new_order_subject'] ?? self::MAIL_NOTIFICATION_DEFAULT_SUBJECT
+        );
+        $this->set('mail_notifications', 'mail_notifications.override_from_name', $settings['override_from_name'] ?? null);
+        $this->set('mail_notifications', 'mail_notifications.override_from_address', $settings['override_from_address'] ?? null);
+        $this->set('mail_notifications', 'mail_notifications.test_recipient', $settings['test_recipient'] ?? null);
     }
 
     public function hasSettingsTable(): bool

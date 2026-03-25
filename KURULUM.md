@@ -97,7 +97,7 @@ En az şu alanları doldurun:
 - `APP_URL=https://portal.ornekdomain.com`
 - `APP_ENV=production`
 - `APP_DEBUG=false`
-- `APP_VERSION=1.4.1`
+- `APP_VERSION=1.5.0`
 - `APP_TIMEZONE=Europe/Istanbul`
 - `APP_INSTALLED=true` veya ilk kurulum wizard kullanılacaksa geçici olarak `false`
 - `DB_*` alanları
@@ -280,3 +280,36 @@ Mikro supplier sync manuel dogrulama:
 2. "Simdi Senkronla" butonuna basin.
 3. Queue worker logunda job'in calistigini dogrulayin.
 4. Supplier ekraninda son sync zamani, durum ve hata ozetinin guncellendigini kontrol edin.
+
+## 13. Exchange / SMTP mail notlari
+
+Bu repo Exchange icin Laravel'in SMTP uyumlu mail katmanini kullanir. Native EWS veya OAuth implementation bu pass kapsaminda yoktur.
+
+Gerekli bootstrap env alanlari:
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=exchange.ornek.local
+MAIL_PORT=587
+MAIL_USERNAME=portal@firma.com
+MAIL_PASSWORD=super-secret
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=portal@firma.com
+MAIL_FROM_NAME="Lider Portal"
+```
+
+Runtime admin ayarlari:
+
+- yeni siparis bildirimleri etkin/pasif
+- Grafik Departmani alicilari
+- CC / BCC listeleri
+- yeni siparis konu sablonu
+- override from name / address
+- test mail alicisi
+
+Davranis notlari:
+
+- Otomatik bildirim yalniz Mikro ile ilk kez olusan sipariste gonderilir.
+- Mail disabled veya SMTP erisilemez olsa bile siparis sync akisi bozulmaz.
+- Test mail ve otomatik bildirimler queue worker gerektirir.
+- MAIL_PASSWORD gibi secret alanlar admin paneline geri basilmadan env'de tutulur.

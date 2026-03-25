@@ -1,8 +1,45 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-03-25T23:45:00+03:00",
-  "latest": "1.4.1",
+  "generated_at": "2026-03-25T23:59:00+03:00",
+  "latest": "1.5.0",
   "releases": [
+    {
+      "version": "1.5.0",
+      "title": "Exchange yeni siparis bildirimleri",
+      "summary": "SMTP uyumlu Exchange mail ayarlari, Grafik Departmani alici yonetimi ve yalniz yeni Mikro siparislerde calisan queue tabanli bildirim akisi eklendi.",
+      "release_date": "2026-03-25",
+      "changes": [
+        "Admin ayarlar ekranina mail notification enabled, Grafik Departmani alicilari, CC/BCC, konu sablonu, from override ve test alicisi alanlari eklendi.",
+        "Yeni siparis bildirimi MikroOrderService icinde yalniz ilk insert sonrasi afterCommit ile queue job olarak tetiklenir hale getirildi.",
+        "SendNewOrderNotificationJob ve SendMailNotificationTestJob ile mail gonderimi sync/request akisindan ayrildi.",
+        "mail.notification.queued, sent, skipped, failed ve test.queued audit kayitlari eklendi.",
+        "Mail notification davranisi icin feature testleri ve deployment dokumantasyonu guncellendi."
+      ],
+      "changed_modules": [
+        "Mail Bildirimleri",
+        "Admin Ayarlari",
+        "Mikro Senkronizasyonu",
+        "Queue",
+        "Dokumantasyon"
+      ],
+      "migrations_included": false,
+      "schema_changes": {
+        "new_tables": [],
+        "new_columns": []
+      },
+      "warnings": [
+        "Kurum Exchange ortami basic SMTP yerine relay veya modern auth isteyebilir; production ayrintilari manuel dogrulanmalidir.",
+        "Queue worker calismiyorsa yeni siparis ve test mail bildirimleri gonderilmez, yalniz kuyrukta bekler.",
+        "MAIL_PASSWORD ve diger bootstrap secret'lar admin paneline tasinmaz; yalniz env uzerinden yonetilir."
+      ],
+      "post_update_notes": [
+        "Production .env icinde MAIL_* alanlarini kurum Exchange/SMTP bilgileriyle doldurun",
+        "Admin ayarlar ekranindan Grafik Departmani alicilarini ve subject sablonunu kaydedin",
+        "docker compose exec app php artisan queue:work --queue=default",
+        "Admin ayarlar ekranindan test mail gonderimini dogrulayin"
+      ],
+      "applied_migrations": []
+    },
     {
       "version": "1.4.1",
       "title": "Mikro Phase 2 cleanup ve identity hardening",

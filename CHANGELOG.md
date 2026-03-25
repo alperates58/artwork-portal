@@ -2,6 +2,27 @@
 
 Tum anlamli surumler bu dosyada tutulur. Surum kaynagi olarak repo icindeki `releases/manifest.json` ile birlikte kullanilir.
 
+## [1.5.0] - 2026-03-25
+
+Ozet:
+Exchange/SMTP uyumlu yeni siparis mail bildirimleri, admin tarafindan yonetilebilir runtime ayarlar ve guvenli test mail akisi mevcut Mikro siparis senkronizasyonu bozulmadan eklendi.
+
+Temel degisiklikler:
+- Admin ayarlar ekranina Grafik Departmani alicilari, CC/BCC, konu sablonu, override from ve test alicisi alanlari eklendi.
+- Yeni siparis bildirimi yalniz Mikro sync ile ilk kez olusan siparislerde, commit sonrasi queue job olarak tetiklenecek sekilde baglandi.
+- `SendNewOrderNotificationJob` ve `SendMailNotificationTestJob` ile mail gonderimi kullanici/sync request'inden ayrildi.
+- Yeni siparis ve test mail akislarina ait basari, skip ve failure durumlari audit log ile gorunur hale getirildi.
+- Mail ayarlari persistence, queue dispatch, disabled skip ve failure davranislari icin yeni feature testleri eklendi.
+
+Sema degisiklikleri:
+- Bu surumde yeni migration yok.
+
+Operasyon notlari:
+- Exchange icin Laravel SMTP ayarlari `.env` uzerinden yapilandirilir: `MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_ENCRYPTION`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME`.
+- Queue worker calismiyorsa otomatik yeni siparis bildirimi ve test mail isleri yalniz kuyruga yazilir.
+- Mail disabled veya SMTP erisilemez olsa bile siparis sync akisi rollback olmaz.
+- Native Exchange OAuth/EWS destegi bu surum kapsamina dahil edilmemistir; kurum SMTP/relay ayrintisi production ortaminda dogrulanmalidir.
+
 ## [1.4.1] - 2026-03-25
 
 Ozet:

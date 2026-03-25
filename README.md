@@ -361,6 +361,14 @@ GITHUB_UPDATE_BRANCH=main
 GITHUB_UPDATE_TOKEN=
 ```
 
+Mail bildirimleri notu:
+
+- Exchange icin bu repo native EWS/OAuth degil, Laravel SMTP uyumlu konfigurasyon bekler.
+- Gerekli bootstrap env alanlari: `MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_ENCRYPTION`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME`.
+- Grafik Departmani alicilari, CC/BCC, konu sablonu ve test alicisi admin ayarlar ekranindan runtime olarak yonetilir.
+- Yeni siparis bildirimi yalniz Mikro ile ilk kez gelen siparislerde queue uzerinden gonderilir.
+- Queue worker calismiyorsa test mail ve yeni siparis bildirimleri beklemede kalir.
+
 Guvenlik siniri:
 
 - Admin paneli `git pull`, `composer install`, `migrate --force` veya rollback calistirmaz.
