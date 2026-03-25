@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Services\PortalSettings;
 use App\Services\SpacesStorageService;
 use Tests\TestCase;
 
@@ -20,7 +21,7 @@ class SpacesStorageServiceTest extends TestCase
             'filesystems.disks.spaces.endpoint' => 'https://fra1.digitaloceanspaces.com',
             'filesystems.disks.spaces.bucket'   => 'test-bucket',
         ]);
-        $this->service = new SpacesStorageService();
+        $this->service = new SpacesStorageService(new PortalSettings());
     }
 
     public function test_build_path_produces_correct_structure(): void

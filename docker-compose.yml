@@ -25,6 +25,16 @@ services:
     networks:
       - portal
 
+  node:
+    image: node:24-bookworm-slim
+    container_name: artwork_node
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - node_modules:/var/www/html/node_modules
+    networks:
+      - portal
+
   nginx:
     image: nginx:1.25-alpine
     container_name: artwork_nginx
@@ -121,6 +131,8 @@ volumes:
   mysql_data:
     driver: local
   redis_data:
+    driver: local
+  node_modules:
     driver: local
 
 networks:

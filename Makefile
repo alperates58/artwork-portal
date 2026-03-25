@@ -1,4 +1,4 @@
-.PHONY: up down build restart logs shell migrate fresh seed install clear cache setup test test-unit test-feature erp-sync
+.PHONY: up down build restart logs shell migrate fresh seed install clear cache setup test test-unit test-feature erp-sync assets-install assets-build
 
 up:
 	docker compose up -d
@@ -8,6 +8,12 @@ down:
 
 build:
 	docker compose build --no-cache
+
+assets-install:
+	docker compose run --rm node npm ci
+
+assets-build:
+	docker compose run --rm node npm run build
 
 restart:
 	docker compose down && docker compose up -d
@@ -61,10 +67,12 @@ queue-work:
 
 setup:
 	cp .env.example .env
-	docker compose build
+	docker compose build app
 	docker compose up -d
 	sleep 8
 	docker compose exec app composer install
+	docker compose run --rm node npm ci
+	docker compose run --rm node npm run build
 	docker compose exec app php artisan key:generate
 	docker compose exec app php artisan migrate --seed
 	@echo ""

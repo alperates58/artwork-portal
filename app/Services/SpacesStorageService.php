@@ -25,7 +25,9 @@ class SpacesStorageService
         return sprintf(
             'artworks/supplier/%d/orders/%s/lines/%d/rev/%d/%s.%s',
             $supplierId,
-            Str::slug($orderNo),
+            Str::of($orderNo)
+                ->replace(['/', '\\'], ' ')
+                ->slug(),
             $lineId,
             $revisionNo,
             $uuid,

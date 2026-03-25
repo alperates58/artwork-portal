@@ -1,5 +1,5 @@
 param(
-  [ValidateSet("up","down","restart","logs","shell","migrate","fresh","test","clear","cache")]
+  [ValidateSet("up","down","restart","logs","shell","migrate","fresh","test","clear","cache","assets-install","assets-build")]
   [string]$Cmd = "up"
 )
 
@@ -15,6 +15,8 @@ switch ($Cmd) {
   "fresh"    { docker compose exec app php artisan migrate:fresh --seed }
   "test"     { docker compose exec app php artisan test }
   "clear"    { docker compose exec app php artisan optimize:clear }
+  "assets-install" { docker compose run --rm node npm ci }
+  "assets-build"   { docker compose run --rm node npm run build }
   "cache"    {
     docker compose exec app php artisan config:cache
     docker compose exec app php artisan route:cache
