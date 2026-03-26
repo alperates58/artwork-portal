@@ -170,6 +170,66 @@ class ArtworkUploadTest extends TestCase
         ]);
     }
 
+    public function test_upload_form_shows_gallery_card_filters_preview_and_metadata(): void
+    {
+        $category = ArtworkCategory::factory()->create(['name' => 'Kutu']);
+        $tag = ArtworkTag::factory()->create(['name' => 'Onaylı']);
+        $galleryItem = ArtworkGallery::factory()->create([
+            'uploaded_by' => $this->adminUser->id,
+            'category_id' => $category->id,
+            'name' => 'lider-kutu.ai',
+            'file_type' => 'application/postscript',
+        ]);
+        $galleryItem->tags()->attach($tag);
+
+        $this->actingAs($this->graphicUser)
+            ->get(route('artworks.create', $this->line, [
+                'gallery_search' => 'lider',
+                'gallery_category_id' => $category->id,
+                'gallery_tag_id' => $tag->id,
+            ]))
+            ->assertOk()
+            ->assertSee('Görüntüle')
+            ->assertSee('lider-kutu.ai')
+            ->assertSee('Kutu')
+            ->assertSee('Onaylı');
+    }
+
+    public function test_graphic_user_can_preview_gallery_image(): void
+    {
+        Storage::disk('local')->put('artworks/gallery/preview.png', 'fake-image');
+
+        $galleryItem = ArtworkGallery::factory()->create([
+            'uploaded_by' => $this->adminUser->id,
+            'file_disk' => 'local',
+            'file_path' => 'artworks/gallery/preview.png',
+            'file_type' => 'image/png',
+            'name' => 'preview.png',
+        ]);
+
+        $this->actingAs($this->graphicUser)
+            ->get(route('artworks.gallery.preview', $galleryItem))
+            ->assertOk()
+            ->assertHeader('content-type', 'image/png');
+    }
+
+    public function test_purchasing_user_cannot_preview_gallery_image(): void
+    {
+        Storage::disk('local')->put('artworks/gallery/purchasing-preview.png', 'fake-image');
+
+        $galleryItem = ArtworkGallery::factory()->create([
+            'uploaded_by' => $this->adminUser->id,
+            'file_disk' => 'local',
+            'file_path' => 'artworks/gallery/purchasing-preview.png',
+            'file_type' => 'image/png',
+            'name' => 'purchasing-preview.png',
+        ]);
+
+        $this->actingAs($this->purchasingUser)
+            ->get(route('artworks.gallery.preview', $galleryItem))
+            ->assertForbidden();
+    }
+
     public function test_uploading_new_revision_deactivates_old(): void
     {
         $this->mock(SpacesStorageService::class, function ($mock) {

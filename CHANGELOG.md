@@ -2,6 +2,26 @@
 
 Tum anlamli surumler bu dosyada tutulur. Surum kaynagi olarak repo icindeki `releases/manifest.json` ile birlikte kullanilir.
 
+## [1.9.0] - 2026-03-26
+
+Ozet:
+Artwork galerisi daha kullanilabilir bir grid deneyimine tasindi; UTF-8 sorunlari, dosya tipi farkindaligi, preview akisi ve reuse ekraninin filtrelenebilirligi guclendirildi.
+
+Temel degisiklikler:
+- Admin `Artwork Galerisi` ekrani kart/grid duzenine alindi; thumbnail veya dosya ikonu, kategori, etiketler, dosya tipi, boyut, kullanim sayisi ve son kullanim bilgisi eklendi.
+- Admin galeri ve artwork upload/reuse ekranlarina ortak `Goruntule` preview modal akisi eklendi; gorseller hafif preview ile, diger dosyalar metadata odakli sunulur.
+- Galeri, kategori, etiket, buton ve placeholder metinlerinde UTF-8/Turkce duzeltmeleri yapildi; bozuk dosya adlari presentation seviyesinde normalize edilir hale getirildi.
+- Upload ekranindaki galeri secim paneli kart tabanli hale getirildi; kategori ve etiket filtreleri ayni backend sorgusu ile reuse akisina daha gorunur sekilde baglandi.
+- Artwork gallery presentation helper'lari, image preview endpoint'i ve yeni feature/unit testleri ile dosya tipi farkindaligi ve usage gorunurlugu sertlestirildi.
+
+Sema degisiklikleri:
+- Bu surumde yeni migration yok.
+
+Operasyon notlari:
+- Gorsel preview route'u yalnizca admin/graphic upload yetkisi olan ic kullanicilar icin aciktir.
+- Spaces kullanilan ortamlarda image preview gecici inline URL ile sunulur; local diskte mevcut private storage akisi korunur.
+- Frontend degisikliklerinin production ortaminda gorunmesi icin build alinmis assetler deploy edilmelidir.
+
 ## [1.8.0] - 2026-03-26
 
 Ozet:

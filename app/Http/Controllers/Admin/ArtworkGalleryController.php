@@ -20,6 +20,7 @@ class ArtworkGalleryController extends Controller
         $galleryItems = ArtworkGallery::query()
             ->with(['category:id,name', 'tags:id,name', 'uploadedBy:id,name'])
             ->withCount('usages')
+            ->withMax('usages', 'used_at')
             ->when(request('search'), fn ($query, $search) => $query->where('name', 'like', '%' . $search . '%'))
             ->when(request('category_id'), fn ($query, $categoryId) => $query->where('category_id', $categoryId))
             ->when(request('tag_id'), fn ($query, $tagId) => $query->whereHas('tags', fn ($tagQuery) => $tagQuery->where('artwork_tags.id', $tagId)))
@@ -35,7 +36,7 @@ class ArtworkGalleryController extends Controller
 
     public function storeCategory(): RedirectResponse
     {
-        $validated = request()->validate([
+        $validated = request()->validateWithBag('storeCategory', [
             'name' => ['required', 'string', 'max:120', 'unique:artwork_categories,name'],
         ]);
 
@@ -48,7 +49,7 @@ class ArtworkGalleryController extends Controller
 
     public function storeTag(): RedirectResponse
     {
-        $validated = request()->validate([
+        $validated = request()->validateWithBag('storeTag', [
             'name' => ['required', 'string', 'max:120', 'unique:artwork_tags,name'],
         ]);
 
@@ -68,7 +69,7 @@ class ArtworkGalleryController extends Controller
             'usages.supplier:id,name',
             'usages.order:id,order_no,order_date',
             'usages.line:id,product_code,line_no',
-        ]);
+        ])->loadCount('usages')->loadMax('usages', 'used_at');
 
         $categories = ArtworkCategory::query()->orderBy('name')->get(['id', 'name']);
         $tags = ArtworkTag::query()->orderBy('name')->get(['id', 'name']);
@@ -88,6 +89,6 @@ class ArtworkGalleryController extends Controller
 
         return redirect()
             ->route('admin.artwork-gallery.edit', $artworkGallery)
-            ->with('success', 'Artwork galerisi kaydi guncellendi.');
+            ->with('success', 'Artwork galerisi kaydı güncellendi.');
     }
 }

@@ -43,4 +43,5 @@ COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/zzz-opcache.ini
 COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-CMD ["entrypoint.sh"]
+ENTRYPOINT ["entrypoint.sh"]
+CMD ["php-fpm"]

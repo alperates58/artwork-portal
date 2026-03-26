@@ -29,6 +29,8 @@ class ArtworkController extends Controller
 
         $galleryItems = ArtworkGallery::query()
             ->with(['category:id,name', 'tags:id,name', 'uploadedBy:id,name'])
+            ->withCount('usages')
+            ->withMax('usages', 'used_at')
             ->when(request('gallery_search'), fn ($query, $search) => $query->where('name', 'like', '%' . $search . '%'))
             ->when(request('gallery_category_id'), fn ($query, $categoryId) => $query->where('category_id', $categoryId))
             ->when(request('gallery_tag_id'), fn ($query, $tagId) => $query->whereHas('tags', fn ($tagQuery) => $tagQuery->where('artwork_tags.id', $tagId)))

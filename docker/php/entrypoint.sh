@@ -16,4 +16,4 @@ if [ -f /var/www/html/composer.json ] && [ ! -d /var/www/html/vendor ]; then
     composer install --no-interaction --prefer-dist
 fi
 
-exec php-fpm
+exec "$@"

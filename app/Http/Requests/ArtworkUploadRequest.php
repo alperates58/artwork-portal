@@ -35,12 +35,12 @@ class ArtworkUploadRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'source_type.required' => 'Lutfen bir kaynak tipi secin.',
-            'artwork_file.required_if' => 'Yeni dosya yukleme icin bir dosya secin.',
-            'artwork_file.file' => 'Gecersiz dosya.',
-            'artwork_file.mimes' => 'Izin verilen formatlar: PDF, ZIP, AI, EPS, SVG, PNG, JPG, TIF, PSD, INDD.',
+            'source_type.required' => 'Lütfen bir kaynak tipi seçin.',
+            'artwork_file.required_if' => 'Yeni dosya yükleme için bir dosya seçin.',
+            'artwork_file.file' => 'Geçersiz dosya.',
+            'artwork_file.mimes' => 'İzin verilen formatlar: PDF, ZIP, AI, EPS, SVG, PNG, JPG, TIF, PSD, INDD.',
             'artwork_file.max' => 'Maksimum dosya boyutu 1.2 GB\'dir.',
-            'gallery_item_id.required_if' => 'Galeriden secim icin bir artwork secin.',
+            'gallery_item_id.required_if' => 'Galeriden seçim için bir artwork seçin.',
         ];
     }
 }

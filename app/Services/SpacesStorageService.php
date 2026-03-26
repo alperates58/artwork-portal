@@ -81,6 +81,26 @@ class SpacesStorageService
         return (string) $request->getUri();
     }
 
+    public function presignedInlineUrl(string $path, int $minutes = 5, ?string $disk = null): string
+    {
+        if (! $this->usesSpaces($disk)) {
+            throw new \RuntimeException('Presigned URL yalnızca Spaces diski yapılandırıldığında üretilebilir.');
+        }
+
+        $client = $this->client();
+        $spaces = $this->settings->spacesConfig();
+
+        $command = $client->getCommand('GetObject', [
+            'Bucket' => $spaces['bucket'],
+            'Key' => $path,
+            'ResponseContentDisposition' => 'inline; filename="' . basename($path) . '"',
+        ]);
+
+        $request = $client->createPresignedRequest($command, "+{$minutes} minutes");
+
+        return (string) $request->getUri();
+    }
+
     public function delete(string $path, ?string $disk = null): bool
     {
         return Storage::disk($this->diskName($disk))->delete($path);

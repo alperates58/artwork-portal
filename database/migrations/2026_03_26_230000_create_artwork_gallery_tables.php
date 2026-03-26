@@ -76,6 +76,7 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('artwork_revisions', function (Blueprint $table) {
+            $table->dropIndex('artwork_revisions_artwork_gallery_id_index');
             $table->dropConstrainedForeignId('artwork_gallery_id');
         });
 

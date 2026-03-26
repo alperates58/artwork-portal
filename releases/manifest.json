@@ -1,8 +1,44 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-03-26T23:59:00+03:00",
-  "latest": "1.8.0",
+  "generated_at": "2026-03-26T23:59:59+03:00",
+  "latest": "1.9.0",
   "releases": [
+    {
+      "version": "1.9.0",
+      "title": "Artwork galerisi grid, preview ve UTF-8 iyilestirmesi",
+      "summary": "Artwork galerisi daha kullanilabilir kart deneyimine tasindi; preview, dosya tipi farkindaligi, UTF-8 metin temizligi ve reuse secim akisi mevcut upload/revision yapisi korunarak guclendirildi.",
+      "release_date": "2026-03-26",
+      "changes": [
+        "Admin artwork galerisi listesi kart/grid duzenine alindi ve thumbnail, dosya tipi, kategori, etiket, boyut, kullanim ve son kullanim bilgileri gorunur hale getirildi.",
+        "Admin galeri ve artwork upload ekranina ortak dialog tabanli Goruntule preview akisi eklendi; image dosyalar hafif preview, diger dosyalar metadata odakli ikon sunumu ile gosterilir.",
+        "Kategori, etiket, buton, placeholder ve galeri metinlerinde UTF-8/Turkce duzeltmeleri yapildi; bozuk dosya adlari presentation seviyesinde normalize edilir hale getirildi.",
+        "Artwork upload reuse paneli kart tabanli secime gecirildi ve kategori/etiket filtreleri backend sorgulari ile birlikte daha net gorunur kilindi.",
+        "Artwork gallery presentation helper'lari, guvenli image preview route'u ve yeni feature/unit testleri ile usage gorunurlugu ve dosya tipi ayrimi genisletildi."
+      ],
+      "changed_modules": [
+        "Artwork Galerisi",
+        "Artwork Upload",
+        "Admin Panel",
+        "Presentation Layer",
+        "Testler"
+      ],
+      "migrations_included": false,
+      "schema_changes": {
+        "new_tables": [],
+        "new_columns": []
+      },
+      "warnings": [
+        "Bu surum mevcut upload, revision ve gallery reuse is kurallarini degistirmez; yalnizca sunum ve kullanilabilirlik katmanini genisletir.",
+        "Image preview route'u yalnizca admin ve graphic gibi artwork yukleme yetkisi olan ic kullanicilar tarafindan kullanilabilir.",
+        "Frontend degisikliklerinin production ortaminda gorunmesi icin build alinmis assetler deploy edilmelidir."
+      ],
+      "post_update_notes": [
+        "Admin panelinde Artwork Galerisi ekraninda filtreleme, Goruntule modal'i ve kart gorunumunu manuel dogrulayin",
+        "Artwork yukleme ekraninda yeni dosya ve galeriden sec reuse akislarini kategori/etiket filtreleriyle test edin",
+        "docker compose run --rm node npm run build"
+      ],
+      "applied_migrations": []
+    },
     {
       "version": "1.8.0",
       "title": "Merkezi artwork galerisi ve reuse sistemi",

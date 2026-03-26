@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Artwork\ArtworkGalleryPreviewController;
 use App\Http\Controllers\Artwork\ArtworkController;
 use App\Http\Controllers\Artwork\DownloadController;
 use App\Http\Controllers\Auth\LoginController;
@@ -56,6 +57,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::patch('/revizyon/{revision}/aktif', [ArtworkController::class, 'activate'])->name('artworks.activate');
         Route::get('/satir/{line}/revizyonlar', [ArtworkController::class, 'revisions'])->name('artworks.revisions');
         Route::get('/indir/{revision}', [DownloadController::class, 'download'])->name('artwork.download');
+        Route::get('/galeri/{artworkGallery}/onizleme', ArtworkGalleryPreviewController::class)->name('artworks.gallery.preview');
     });
 
     Route::middleware('role:admin,purchasing')
