@@ -131,6 +131,8 @@ class MailNotificationTest extends TestCase
         $response->assertDontSee('super-secret-password');
         $response->assertSee('Kayitli kullanici var', false);
         $response->assertSee('Kayitli sifre var', false);
+        $response->assertSee('Ayarlar alt navigasyonu');
+        $response->assertSee('Mail operasyon rehberi');
     }
 
     public function test_blank_mail_password_preserves_existing_secret(): void

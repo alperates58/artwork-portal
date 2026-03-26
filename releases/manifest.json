@@ -1,8 +1,92 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-03-25T23:59:00+03:00",
-  "latest": "1.6.0",
+  "generated_at": "2026-03-26T23:59:00+03:00",
+  "latest": "1.8.0",
   "releases": [
+    {
+      "version": "1.8.0",
+      "title": "Merkezi artwork galerisi ve reuse sistemi",
+      "summary": "Artwork dosyalari merkezi galeride saklanir hale getirildi; mevcut revision akisi korunarak galeriden secim, kullanim izleme ve admin yonetim ekranlari eklendi.",
+      "release_date": "2026-03-26",
+      "changes": [
+        "artwork_categories, artwork_tags, artwork_gallery, artwork_gallery_tag ve artwork_gallery_usages tablolari ile yeniden kullanilabilir artwork veri modeli eklendi.",
+        "artwork_revisions tablosu artwork_gallery_id referansi alacak sekilde genisletildi.",
+        "Artwork upload ekrani yeni dosya yukleme ve galeriden secim modlarini destekler hale getirildi.",
+        "Yeni uploadlar otomatik olarak galeriye kaydolur; galeriden reuse akisi yeni dosya yuklemeden revision uretir.",
+        "Admin paneline Artwork Galerisi listesi, kategori/etiket yonetimi, kayit duzenleme ve kullanim gecmisi gorunurlugu eklendi.",
+        "Upload, reuse, category/tag assignment ve admin gallery yonetimi icin test kapsami genisletildi."
+      ],
+      "changed_modules": [
+        "Artwork Upload",
+        "Artwork Galerisi",
+        "Admin Panel",
+        "Raporlama Hazirlik Verisi",
+        "Testler"
+      ],
+      "migrations_included": true,
+      "schema_changes": {
+        "new_tables": [
+          "artwork_categories",
+          "artwork_tags",
+          "artwork_gallery",
+          "artwork_gallery_tag",
+          "artwork_gallery_usages"
+        ],
+        "new_columns": [
+          "artwork_revisions.artwork_gallery_id"
+        ]
+      },
+      "warnings": [
+        "Reuse akisi fiziksel dosya kopyalamaz; galerideki mevcut path revision kaydina baglanir.",
+        "Artwork galerisi yalniz ic kullanicilar icindir; supplier portali icin yeni bir gorunum eklenmemistir.",
+        "Frontend degisikliklerinin production ortaminda gorunmesi icin build alinmis assetler deploy edilmelidir."
+      ],
+      "post_update_notes": [
+        "docker compose exec app php artisan migrate --force",
+        "Upload ekraninda yeni dosya ve galeriden secim akislarini manuel dogrulayin",
+        "Admin panelinde Artwork Galerisi ekraninda filtreleme, kategori ve etiket yonetimini kontrol edin",
+        "docker compose run --rm node npm run build"
+      ],
+      "applied_migrations": [
+        "2026_03_26_230000_create_artwork_gallery_tables"
+      ]
+    },
+    {
+      "version": "1.7.0",
+      "title": "Admin shell ve settings navigasyon iyilestirmesi",
+      "summary": "Admin panel kabugu daha profesyonel bir hiyerarsiye tasindi; Ayarlar ekranina net alt navigasyon ve toggle edilebilir yardimci panel eklendi.",
+      "release_date": "2026-03-26",
+      "changes": [
+        "Sidebar branding alani buyutuldu ve Lider Portal markasi daha net bir shell girisi haline getirildi.",
+        "Header, sayfa basligi ve aciklama hiyerarsisi ile daha guclu bir ust bant yapisina kavustu.",
+        "Ayarlar ekrani kategori bazli alt navigasyon, bolum aciklamalari ve hizli gecis paneli ile yeniden duzenlendi.",
+        "Sag yardimci panel vanilla JS ile acilip kapanabilir hale getirildi ve tercih localStorage uzerinde saklanmaya baslandi.",
+        "Settings deep-link ve ayni tab'a donen redirect davranisi korunarak ilgili feature testleri genisletildi."
+      ],
+      "changed_modules": [
+        "Admin Shell",
+        "Admin Ayarlari",
+        "Branding",
+        "Frontend Asset Hatti",
+        "Testler"
+      ],
+      "migrations_included": false,
+      "schema_changes": {
+        "new_tables": [],
+        "new_columns": []
+      },
+      "warnings": [
+        "Sag yardimci panel durumu tarayici localStorage uzerinde saklanir.",
+        "Bu pass is kurallarini degistirmez; yalniz admin shell/navigation yuzeyini iyilestirir.",
+        "Degisikliklerin gorunmesi icin build alinmis frontend assetleri deploy edilmelidir."
+      ],
+      "post_update_notes": [
+        "Admin panelde Ayarlar ekranini desktop ve dar ekranlarda manuel dogrulayin",
+        "Sag yardimci panel toggle davranisinin sayfa yenileme sonrasi korundugunu kontrol edin",
+        "docker compose run --rm node npm run build"
+      ],
+      "applied_migrations": []
+    },
     {
       "version": "1.6.0",
       "title": "Sekmeli ayarlar ve guvenli mail sunucusu yonetimi",

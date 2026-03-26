@@ -8,32 +8,39 @@ class ArtworkUploadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // Yetki kontrolü controller'da Policy ile yapılıyor
+        return true;
     }
 
     public function rules(): array
     {
         return [
+            'source_type' => ['required', 'in:upload,gallery'],
             'artwork_file' => [
-                'required',
+                'required_if:source_type,upload',
+                'nullable',
                 'file',
-                // İzin verilen formatlar
                 'mimes:pdf,zip,ai,eps,svg,png,jpg,jpeg,tif,tiff,psd,indd',
-                // Max 1.2 GB (byte cinsinden)
                 'max:1228800',
             ],
+            'gallery_item_id' => ['required_if:source_type,gallery', 'nullable', 'integer', 'exists:artwork_gallery,id'],
             'title' => ['nullable', 'string', 'max:200'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'gallery_name' => ['nullable', 'string', 'max:200'],
+            'category_id' => ['nullable', 'integer', 'exists:artwork_categories,id'],
+            'tag_ids' => ['nullable', 'array'],
+            'tag_ids.*' => ['integer', 'exists:artwork_tags,id'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'artwork_file.required' => 'Lütfen bir dosya seçin.',
-            'artwork_file.file'     => 'Geçersiz dosya.',
-            'artwork_file.mimes'    => 'İzin verilen formatlar: PDF, ZIP, AI, EPS, SVG, PNG, JPG, TIF, PSD, INDD.',
-            'artwork_file.max'      => 'Maksimum dosya boyutu 1.2 GB\'dir.',
+            'source_type.required' => 'Lutfen bir kaynak tipi secin.',
+            'artwork_file.required_if' => 'Yeni dosya yukleme icin bir dosya secin.',
+            'artwork_file.file' => 'Gecersiz dosya.',
+            'artwork_file.mimes' => 'Izin verilen formatlar: PDF, ZIP, AI, EPS, SVG, PNG, JPG, TIF, PSD, INDD.',
+            'artwork_file.max' => 'Maksimum dosya boyutu 1.2 GB\'dir.',
+            'gallery_item_id.required_if' => 'Galeriden secim icin bir artwork secin.',
         ];
     }
 }

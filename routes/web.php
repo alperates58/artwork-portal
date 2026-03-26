@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ArtworkGalleryController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\MikroTestController;
 use App\Http\Controllers\Admin\ReportController;
@@ -91,6 +92,11 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/integrations/mikro/test', MikroTestController::class)->name('integrations.mikro.test');
             Route::get('/raporlar', [ReportController::class, 'index'])->name('reports.index');
             Route::get('/loglar', [AuditLogController::class, 'index'])->name('logs.index');
+            Route::get('/artwork-galerisi', [ArtworkGalleryController::class, 'index'])->name('artwork-gallery.index');
+            Route::post('/artwork-galerisi/kategoriler', [ArtworkGalleryController::class, 'storeCategory'])->name('artwork-gallery.categories.store');
+            Route::post('/artwork-galerisi/etiketler', [ArtworkGalleryController::class, 'storeTag'])->name('artwork-gallery.tags.store');
+            Route::get('/artwork-galerisi/{artworkGallery}/duzenle', [ArtworkGalleryController::class, 'edit'])->name('artwork-gallery.edit');
+            Route::patch('/artwork-galerisi/{artworkGallery}', [ArtworkGalleryController::class, 'update'])->name('artwork-gallery.update');
         });
 
     Route::post('/admin/erp/sync', [\App\Http\Controllers\Admin\ErpSyncController::class, 'sync'])

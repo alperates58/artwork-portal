@@ -31,18 +31,18 @@ class UpdateManagementTest extends TestCase
             'https://raw.githubusercontent.com/alperates58/artwork-portal/*/releases/manifest.json' => Http::response([
                 'schema_version' => 1,
                 'generated_at' => now()->toIso8601String(),
-                'latest' => '1.6.1',
+                'latest' => '1.7.1',
                 'releases' => [
                     [
-                        'version' => '1.6.1',
+                        'version' => '1.7.1',
                         'title' => 'Yeni release',
-                        'summary' => 'Update release özeti',
+                        'summary' => 'Update release ozeti',
                         'release_date' => now()->toDateString(),
                         'changes' => [
-                            'Admin ekranına release notları eklendi.',
+                            'Admin ekranina release notlari eklendi.',
                         ],
                         'changed_modules' => [
-                            'Admin Ayarları',
+                            'Admin Ayarlari',
                         ],
                         'migrations_included' => true,
                         'schema_changes' => [
@@ -52,7 +52,7 @@ class UpdateManagementTest extends TestCase
                             ],
                         ],
                         'warnings' => [
-                            'Yedek alın.',
+                            'Yedek alin.',
                         ],
                         'post_update_notes' => [
                             'php artisan portal:update',
@@ -81,7 +81,7 @@ class UpdateManagementTest extends TestCase
             'status' => 'success',
             'trigger_source' => 'admin',
             'actor_id' => $admin->id,
-            'to_version' => '1.6.1',
+            'to_version' => '1.7.1',
             'release_title' => 'Yeni release',
         ]);
 
@@ -128,7 +128,7 @@ class UpdateManagementTest extends TestCase
             'status' => 'pending',
             'trigger_source' => 'admin',
             'actor_id' => $admin->id,
-            'to_version' => '1.6.1',
+            'to_version' => '1.7.1',
         ]);
     }
 
@@ -146,20 +146,20 @@ class UpdateManagementTest extends TestCase
             'from_version' => '1.2.0',
             'to_version' => '1.3.0',
             'release_title' => 'Yeni release',
-            'release_summary' => 'Update release özeti',
-            'change_summary' => ['Admin ekranına release notları eklendi.'],
-            'changed_modules' => ['Admin Ayarları'],
+            'release_summary' => 'Update release ozeti',
+            'change_summary' => ['Admin ekranina release notlari eklendi.'],
+            'changed_modules' => ['Admin Ayarlari'],
             'migrations_included' => true,
             'schema_changes' => [
                 'new_tables' => [],
                 'new_columns' => ['portal_update_events.release_title'],
             ],
-            'warnings' => ['Yedek alın.'],
+            'warnings' => ['Yedek alin.'],
             'post_update_notes' => ['php artisan portal:update'],
             'applied_migrations' => ['2026_03_25_010000_add_release_metadata_to_portal_update_events_table'],
             'release_date' => now()->toDateString(),
             'update_available' => true,
-            'message' => 'GitHub üzerinde daha yeni bir sürüm bulundu.',
+            'message' => 'GitHub uzerinde daha yeni bir surum bulundu.',
             'started_at' => now(),
             'completed_at' => now(),
         ]);
@@ -167,11 +167,12 @@ class UpdateManagementTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.settings.edit'))
             ->assertOk()
-            ->assertSee('GitHub Kontrolü Yap')
-            ->assertSee('Gelen Değişiklikler')
-            ->assertSee('Update Geçmişi')
+            ->assertSee('GitHub Kontrolu Yap')
+            ->assertSee('Gelen Degisiklikler')
+            ->assertSee('Update Gecmisi')
             ->assertSee('Yeni release');
     }
+
     public function test_settings_page_supports_deep_linked_tabs(): void
     {
         $admin = User::factory()->create(['role' => UserRole::ADMIN]);
@@ -179,7 +180,9 @@ class UpdateManagementTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.settings.edit', ['tab' => 'mail']))
             ->assertOk()
-            ->assertSee('Mail Sunucusu');
+            ->assertSee('Mail Sunucusu')
+            ->assertSee('Ayarlar alt navigasyonu')
+            ->assertSee('Yardimci Panel');
     }
 
     public function test_update_actions_redirect_back_to_updates_tab(): void
@@ -193,5 +196,22 @@ class UpdateManagementTest extends TestCase
                 'tab' => 'updates',
             ])
             ->assertRedirect(route('admin.settings.edit', ['tab' => 'updates']));
+    }
+
+    public function test_storage_validation_redirects_back_to_storage_tab(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.settings.update', ['tab' => 'storage']), [
+                'tab' => 'storage',
+                'settings_section' => 'storage',
+                'spaces' => [
+                    'disk' => 'spaces',
+                    'endpoint' => 'not-a-valid-url',
+                    'url' => 'also-invalid',
+                ],
+            ])
+            ->assertRedirect(route('admin.settings.edit', ['tab' => 'storage']));
     }
 }

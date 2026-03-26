@@ -2,6 +2,51 @@
 
 Tum anlamli surumler bu dosyada tutulur. Surum kaynagi olarak repo icindeki `releases/manifest.json` ile birlikte kullanilir.
 
+## [1.8.0] - 2026-03-26
+
+Ozet:
+Merkezi artwork galerisi, yeniden kullanim akisi ve kullanim izlenebilirligi mevcut revision sistemi korunarak eklendi.
+
+Temel degisiklikler:
+- `artwork_gallery`, `artwork_categories`, `artwork_tags` ve `artwork_gallery_usages` ile tekrar kullanilabilir artwork ana deposu eklendi.
+- Artwork upload ekrani `Yeni dosya yukle` ve `Galeriden sec` olmak uzere iki kaynak tipini destekler hale getirildi.
+- Yeni dosya yuklemeleri artik otomatik olarak galeriye kaydolur; galeriden secimde fiziksel dosya tekrar yuklenmeden yeni revision olusur.
+- Admin paneline arama, kategori, etiket, kullanim gecmisi ve temel duzenleme aksiyonlariyla `Artwork Galerisi` bolumu eklendi.
+- Usage kayitlari supplier, order ve order line baglami ile tutulmaya baslandi; upload ve reuse akislarina ait test kapsami genisletildi.
+
+Sema degisiklikleri:
+- `artwork_categories`
+- `artwork_tags`
+- `artwork_gallery`
+- `artwork_gallery_tag`
+- `artwork_gallery_usages`
+- `artwork_revisions.artwork_gallery_id`
+
+Operasyon notlari:
+- Reuse akisi yeni fiziksel dosya olusturmaz; mevcut galeri path bilgisini revision kaydina referans olarak baglar.
+- Supplier portali galeriye dogrudan erismez; mevcut aktif revision ve download authorization kurallari korunur.
+- Yeni admin ekranlarinin guncel assetlerle gorunmesi icin frontend build alinmalidir.
+
+## [1.7.0] - 2026-03-26
+
+Ozet:
+Admin shell ve ayarlar navigasyonu daha kurumsal bir kabuk yapisina tasindi; branding alani guclendirildi ve ayarlar ekranina toggle edilebilir yardimci panel eklendi.
+
+Temel degisiklikler:
+- `layouts.app` daha guclu header hiyerarsisi, iyilestirilmis sidebar spacing'i ve buyutulmus Lider branding alani ile guncellendi.
+- `Ayarlar` ekrani daha net bir alt navigasyon, bolum bazli aciklamalar ve sag yardimci panel ile yeniden duzenlendi.
+- Sag yardimci panel vanilla JS ile acilip kapanabilir hale getirildi ve kullanici tercihi localStorage uzerinde korunmaya baslandi.
+- Ayarlar sayfasinda `?tab=` deep-link, validation ve save sonrasi ayni bolume donme davranisi korundu.
+- Admin shell/navigation iyilestirmeleri icin feature testleri genisletildi.
+
+Sema degisiklikleri:
+- Bu surumde yeni migration yok.
+
+Operasyon notlari:
+- Sag yardimci panel varsayilan olarak genis ekranda acik, dar ekranda kapalidir.
+- Bu pass yalniz admin shell/navigation yuzeyini iyilestirir; mevcut Mikro, mail, Spaces ve update akislarini degistirmez.
+- Frontend degisiklikleri icin build alinmadan production gorunumu guncellenmez.
+
 ## [1.6.0] - 2026-03-25
 
 Ozet:

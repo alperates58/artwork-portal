@@ -12,6 +12,7 @@ class ArtworkRevision extends Model
 
     protected $fillable = [
         'artwork_id',
+        'artwork_gallery_id',
         'revision_no',
         'original_filename',
         'stored_filename',
@@ -43,6 +44,11 @@ class ArtworkRevision extends Model
     public function artwork(): BelongsTo
     {
         return $this->belongsTo(Artwork::class);
+    }
+
+    public function galleryItem(): BelongsTo
+    {
+        return $this->belongsTo(ArtworkGallery::class, 'artwork_gallery_id');
     }
 
     public function uploadedBy(): BelongsTo

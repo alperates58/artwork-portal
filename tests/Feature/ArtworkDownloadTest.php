@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Models\Artwork;
+use App\Models\ArtworkGallery;
 use App\Models\ArtworkRevision;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
@@ -119,6 +120,30 @@ class ArtworkDownloadTest extends TestCase
         $this->actingAs($this->graphicUser)
              ->get(route('artwork.download', $this->archivedRevision))
              ->assertRedirect();
+    }
+
+    public function test_supplier_can_download_reused_gallery_revision(): void
+    {
+        $galleryItem = ArtworkGallery::factory()->create([
+            'file_disk' => 'spaces',
+            'file_path' => 'artworks/gallery/reused.pdf',
+        ]);
+
+        $reusedRevision = ArtworkRevision::factory()->create([
+            'artwork_id' => $this->activeRevision->artwork_id,
+            'artwork_gallery_id' => $galleryItem->id,
+            'revision_no' => 3,
+            'is_active' => true,
+            'spaces_path' => 'artworks/gallery/reused.pdf',
+            'original_filename' => 'reused.pdf',
+        ]);
+
+        $this->activeRevision->artwork->update(['active_revision_id' => $reusedRevision->id]);
+        $this->activeRevision->update(['is_active' => false]);
+
+        $this->actingAs($this->supplier1User)
+            ->get(route('portal.download', $reusedRevision))
+            ->assertRedirect('https://spaces.example.com/fake-presigned-url');
     }
 
     // ─── Download log testleri ────────────────────────────────────

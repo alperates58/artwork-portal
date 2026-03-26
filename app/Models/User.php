@@ -68,6 +68,11 @@ class User extends Authenticatable
         return $this->hasMany(ArtworkRevision::class, 'uploaded_by');
     }
 
+    public function uploadedGalleryItems(): HasMany
+    {
+        return $this->hasMany(ArtworkGallery::class, 'uploaded_by');
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === UserRole::ADMIN;

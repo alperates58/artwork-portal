@@ -17,7 +17,7 @@
 
 @layer components {
   .card {
-    @apply overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04)];
+    @apply overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04)];
   }
 
   .label {
@@ -136,7 +136,7 @@
   }
 
   .sidebar-link {
-    @apply flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 transition;
+    @apply flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-medium text-slate-600 transition;
   }
 
   .sidebar-link:hover {
@@ -144,21 +144,66 @@
   }
 
   .sidebar-link.active {
-    @apply text-brand-900;
-    background: rgba(244, 154, 11, 0.1);
+    @apply text-brand-900 shadow-[0_12px_30px_rgba(244,154,11,0.12)];
+    background: linear-gradient(180deg, rgba(255, 247, 237, 0.96), rgba(255, 237, 213, 0.82));
   }
 
-  .settings-tab-link {
-    @apply inline-flex items-center rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition;
+  .brand-shell {
+    position: relative;
   }
 
-  .settings-tab-link:hover {
-    @apply border-slate-300 bg-slate-50 text-slate-900;
+  .brand-mark {
+    @apply flex h-16 w-16 items-center justify-center rounded-[24px] border border-white/70 bg-white/95 shadow-[0_14px_30px_rgba(15,23,42,0.08)];
   }
 
-  .settings-tab-link.active {
-    @apply border-transparent text-brand-900;
-    background: rgba(244, 154, 11, 0.12);
+  .brand-eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-700;
+  }
+
+  .settings-nav-link {
+    @apply block rounded-[22px] border border-transparent bg-transparent px-4 py-4 transition;
+  }
+
+  .settings-nav-link:hover {
+    @apply border-slate-200 bg-slate-50/80;
+  }
+
+  .settings-nav-link.active {
+    border-color: rgba(244, 154, 11, 0.24);
+    background: linear-gradient(180deg, rgba(255, 247, 237, 0.98), rgba(255, 237, 213, 0.78));
+    box-shadow: 0 16px 36px rgba(244, 154, 11, 0.12);
+  }
+
+  .settings-nav-dot {
+    @apply mt-1.5 h-2.5 w-2.5 flex-shrink-0 rounded-full bg-slate-200 transition;
+  }
+
+  .settings-nav-dot.active {
+    @apply bg-brand-500 shadow-[0_0_0_6px_rgba(244,154,11,0.12)];
+  }
+
+  .settings-mini-link {
+    @apply flex items-center justify-between gap-3 rounded-2xl border border-transparent px-3 py-2.5 text-sm text-slate-600 transition;
+  }
+
+  .settings-mini-link:hover {
+    @apply border-slate-200 bg-slate-50 text-slate-900;
+  }
+
+  .settings-mini-link.active {
+    @apply border-brand-200 bg-brand-50/70 text-brand-900;
+  }
+
+  .page-context-aside {
+    @apply hidden xl:block;
+  }
+
+  .page-context-aside[data-aside-state='closed'] {
+    @apply hidden;
+  }
+
+  .page-context-aside[data-aside-state='open'] {
+    @apply block;
   }
 
   .update-modal::backdrop {

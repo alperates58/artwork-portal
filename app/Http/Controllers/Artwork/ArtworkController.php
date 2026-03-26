@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Artwork;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ArtworkUploadRequest;
+use App\Models\ArtworkCategory;
+use App\Models\ArtworkGallery;
 use App\Models\ArtworkRevision;
+use App\Models\ArtworkTag;
 use App\Models\PurchaseOrderLine;
 use App\Services\ArtworkUploadService;
 use App\Services\AuditLogService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ArtworkController extends Controller
@@ -19,40 +21,52 @@ class ArtworkController extends Controller
         private AuditLogService $audit
     ) {}
 
-    /**
-     * Sipariş satırına artwork yükleme formu
-     */
     public function create(PurchaseOrderLine $line): View
     {
         $this->authorize('uploadArtwork', $line);
 
-        $line->load(['purchaseOrder.supplier', 'artwork.revisions.uploadedBy']);
+        $line->load(['purchaseOrder.supplier', 'artwork.revisions.uploadedBy', 'artwork.revisions.galleryItem']);
 
-        return view('artworks.create', compact('line'));
+        $galleryItems = ArtworkGallery::query()
+            ->with(['category:id,name', 'tags:id,name', 'uploadedBy:id,name'])
+            ->when(request('gallery_search'), fn ($query, $search) => $query->where('name', 'like', '%' . $search . '%'))
+            ->when(request('gallery_category_id'), fn ($query, $categoryId) => $query->where('category_id', $categoryId))
+            ->when(request('gallery_tag_id'), fn ($query, $tagId) => $query->whereHas('tags', fn ($tagQuery) => $tagQuery->where('artwork_tags.id', $tagId)))
+            ->latest()
+            ->limit(15)
+            ->get();
+
+        $categories = ArtworkCategory::query()->orderBy('name')->get(['id', 'name']);
+        $tags = ArtworkTag::query()->orderBy('name')->get(['id', 'name']);
+
+        return view('artworks.create', compact('line', 'galleryItems', 'categories', 'tags'));
     }
 
-    /**
-     * Artwork yükle (yeni veya revizyon)
-     */
     public function store(ArtworkUploadRequest $request, PurchaseOrderLine $line): RedirectResponse
     {
         $this->authorize('uploadArtwork', $line);
 
-        $revision = $this->uploadService->store(
-            line:     $line,
-            file:     $request->file('artwork_file'),
-            meta:     $request->only('title', 'notes'),
-            uploader: auth()->user()
-        );
+        $meta = $request->only('title', 'notes', 'gallery_name', 'category_id', 'tag_ids');
+
+        $revision = $request->input('source_type') === 'gallery'
+            ? $this->uploadService->storeFromGallery(
+                line: $line,
+                galleryItem: ArtworkGallery::query()->findOrFail($request->integer('gallery_item_id')),
+                meta: $meta,
+                uploader: auth()->user()
+            )
+            : $this->uploadService->storeUploadedFile(
+                line: $line,
+                file: $request->file('artwork_file'),
+                meta: $meta,
+                uploader: auth()->user()
+            );
 
         return redirect()
             ->route('order-lines.show', $line)
-            ->with('success', "Artwork başarıyla yüklendi. Revizyon: Rev.{$revision->revision_no}");
+            ->with('success', "Artwork basariyla islendi. Revizyon: Rev.{$revision->revision_no}");
     }
 
-    /**
-     * Revizyon detay ekranı (iç kullanıcılar)
-     */
     public function show(ArtworkRevision $revision): View
     {
         $this->authorize('view', $revision->artwork);
@@ -60,6 +74,8 @@ class ArtworkController extends Controller
         $revision->load([
             'artwork.orderLine.purchaseOrder.supplier',
             'uploadedBy',
+            'galleryItem.category',
+            'galleryItem.tags',
         ]);
 
         $this->uploadService->logView($revision, auth()->user());
@@ -68,28 +84,22 @@ class ArtworkController extends Controller
         return view('artworks.show', compact('revision'));
     }
 
-    /**
-     * Revizyonu aktif yap
-     */
     public function activate(ArtworkRevision $revision): RedirectResponse
     {
         $this->authorize('manageRevisions', $revision->artwork);
 
         $this->uploadService->activate($revision, auth()->user());
 
-        return back()->with('success', "Rev.{$revision->revision_no} aktif revizyon olarak işaretlendi.");
+        return back()->with('success', "Rev.{$revision->revision_no} aktif revizyon olarak isaretlendi.");
     }
 
-    /**
-     * Revizyon listesi (iç kullanıcılar — sipariş satırı bazında)
-     */
     public function revisions(PurchaseOrderLine $line): View
     {
         $this->authorize('view', $line);
 
         $line->load([
             'purchaseOrder.supplier',
-            'artwork.revisions' => fn ($q) => $q->with('uploadedBy')->orderByDesc('revision_no'),
+            'artwork.revisions' => fn ($query) => $query->with(['uploadedBy', 'galleryItem'])->orderByDesc('revision_no'),
         ]);
 
         return view('artworks.revisions', compact('line'));

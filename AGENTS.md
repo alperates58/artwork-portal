@@ -15,6 +15,16 @@ Current reality:
 - Admin panel works
 - Core MVP flows already exist
 
+The project has evolved beyond MVP and now includes:
+
+- Admin update/version management system
+- Release manifest and changelog tracking
+- Mikro ERP integration (Phase 2)
+- Exchange/SMTP mail notification system
+- Admin-manageable runtime settings (secret-safe)
+- Asset pipeline using Vite (no Tailwind CDN dependency)
+- Deployment target: DigitalOcean (Droplet + Spaces)
+
 Do NOT treat this repository as an incomplete scaffold unless verification clearly proves otherwise.
 
 ---
@@ -28,9 +38,10 @@ Do NOT treat this repository as an incomplete scaffold unless verification clear
 - Redis
 - Docker / Docker Compose
 - Local development on Windows + Docker
-- Storage supports both:
+- Storage supports:
   - local disk
   - DigitalOcean Spaces
+- Vite-based asset pipeline
 
 ---
 
@@ -40,14 +51,14 @@ Your job is NOT to rewrite the whole project.
 
 Your job is to:
 1. Preserve the existing architecture where reasonable
-2. Preserve working MVP behavior
+2. Preserve working behavior
 3. Identify real gaps, regressions, bottlenecks, and risks
 4. Apply safe and minimal fixes
 5. Build only the requested scope
 
 ---
 
-## Current Working MVP Scope (MUST BE PRESERVED)
+## Current Working Scope (MUST BE PRESERVED)
 
 The following features already exist and must continue working:
 
@@ -63,6 +74,10 @@ The following features already exist and must continue working:
 - secure file download
 - audit logging
 - revision view/download logging
+- update/version tracking system
+- Mikro ERP sync integration
+- mail notification system
+- admin settings system
 
 Do NOT remove, redesign, or weaken these flows.
 
@@ -85,162 +100,172 @@ Do NOT remove, redesign, or weaken these flows.
 - Forbidden roles: supplier, purchasing
 
 ### Download Authorization
-Authorized download must verify all required conditions, including:
+Must verify:
 - order access
 - supplier access
-- active/current revision restrictions where applicable
-- permission flags such as download capability
+- active revision rules
+- permission flags
 
 ### Logging
-The system must continue logging:
+The system must log:
 - uploads
 - views
 - downloads
-- audit trail actions
+- audit trail
 
-Do NOT silently remove or bypass logging behavior.
+Do NOT remove or bypass logging.
+
+---
+
+## Versioning & Update System (CRITICAL)
+
+The application includes a versioned update system.
+
+Rules:
+- APP_VERSION, CHANGELOG.md, and releases/manifest.json must ALWAYS be consistent
+- Admin panel shows update history and release notes
+- Do NOT introduce changes without updating version metadata when meaningful
+- Do NOT break update visibility or history
+- Do NOT implement unsafe auto-deploy or rollback via web
+
+---
+
+## Mikro ERP Integration (CRITICAL)
+
+Rules:
+- Supplier-based synchronization must be preserved
+- Use `supplier_mikro_accounts` as source of truth
+- `supplier_code` is the identity key (NOT supplier_name)
+- Order identity must NOT be globally unique (supplier-scoped)
+- `line_no` must use real ERP identity (`sip_satirno`)
+- Do NOT create parallel order systems
+- Prefer stable SQL VIEW contract
+- Sync must be queue-based and idempotent
+
+---
+
+## Mail Notification System
+
+Rules:
+- Mail must be queue-based
+- Must NOT block main flows
+- Secrets must NEVER be exposed
+- Runtime behavior is admin-managed
+- Test mail and real mail must use same logic
+- Prevent duplicate notifications
+
+---
+
+## Admin Settings System
+
+Rules:
+- Use existing system_settings structure
+- Do NOT create parallel config systems
+- Secrets must NOT be shown in UI
+- Empty input must preserve existing values
+- Must be admin-only where required
 
 ---
 
 ## Performance Priority (VERY IMPORTANT)
 
-The application is currently experiencing noticeable slowness in browser UI, especially in admin pages.
-
-Performance is now a PRIMARY priority.
+Performance is a PRIMARY concern.
 
 Focus on:
-- root cause analysis of slowness
-- N+1 query detection and removal
-- repeated queries in loops
+- N+1 queries
 - inefficient eager loading
-- unnecessary data loading
-- inefficient list/detail queries
-- Redis/session/cache misconfiguration
-- Laravel runtime optimization
-- logging overhead when relevant
-- Docker local environment misconfiguration
-- Windows volume mount performance impact
-- APP_DEBUG and local dev overhead
-- config/route/view cache strategy
-- PHP OPcache configuration
-- queue/session/cache driver correctness
+- repeated queries in loops
+- large Blade rendering cost
+- Redis/session/cache config
+- OPcache config
+- Docker + Windows volume I/O
+- APP_DEBUG overhead
+- config/route/view caching
+- frontend asset loading (no CDN dependency)
 
 Do NOT:
-- add heavy abstractions
-- introduce large caching systems
+- overengineer
+- introduce heavy caching layers
 - redesign architecture
-- overengineer performance fixes
 
 Prefer:
-- surgical query fixes
-- careful eager loading
-- minimal index additions only if clearly justified
-- config cleanup
+- surgical fixes
+- minimal query optimization
 - environment correctness
-- simple, explainable improvements
 
 ---
 
 ## Scope Control Rules
 
 Unless explicitly requested, do NOT:
-- rewrite the project
-- refactor large parts only for cleanliness
-- introduce Phase 2 / Phase 3 features
-- redesign the UI
-- replace the storage architecture
-- replace the authorization model
-- move major logic into new layers without clear need
 
-Prefer minimal safe changes over large refactors.
+- rewrite project
+- refactor large areas
+- redesign UI fully
+- introduce new architectures
+- replace storage system
+- break compatibility
+
+---
+
+## Admin Panel UX
+
+Rules:
+- Settings must use sub-navigation (not long pages)
+- Avoid clutter
+- Keep sidebar clean
+- Prefer incremental improvements
+- Do NOT perform full redesign unless requested
 
 ---
 
 ## Technical Expectations
 
-Use and preserve the current stack:
+Preserve:
 
 - Laravel
 - MySQL
-- Nginx
-- Docker / Docker Compose
 - Redis
-- local + Spaces-compatible file storage
-- controlled/authorized file delivery
-- Turkish UI where already present
-
-Keep local and production compatibility in mind.
-
----
-
-## Domain Model Expectations
-
-Expected main entities include:
-- users
-- roles
-- permissions
-- suppliers
-- supplier_users
-- purchase_orders
-- purchase_order_lines
-- artworks
-- artwork_revisions
-- artwork_download_logs
-- artwork_view_logs
-- audit_logs
-
-These already exist at least partially or fully.
-Do not assume absence without verification.
-
----
-
-## Critical Rules
-
-- Do NOT blindly rewrite the project
-- Do NOT change architecture unless truly necessary
-- Do NOT fake completion
-- File existence does NOT guarantee correctness
-- Verify behavior through code paths, config, queries, and tests where possible
-- If something cannot be verified, state that clearly
-- Preserve backward compatibility
-- Avoid unnecessary abstractions
-- Prefer small, surgical changes
-- Explain why each change is made
+- Docker
+- Spaces compatibility
+- Vite asset system
+- Turkish UI
 
 ---
 
 ## Performance Investigation Expectations
 
-When working on performance:
-- identify likely root causes first
-- distinguish app-level, DB-level, Redis-level, and Docker/environment-level slowness
-- inspect admin pages, portal pages, list pages, and detail pages
-- check for Blade-triggered lazy loading
-- check for repeated relationship access
-- verify session/cache/queue/lock configuration
-- verify Redis is actually usable if configured
-- verify local Docker setup is not causing avoidable slowdown
+When analyzing performance:
 
-If a change is production-only, say so explicitly.
-If a change is unsafe for local development, say so explicitly.
+- Identify root cause first
+- Separate:
+  - app-level
+  - DB-level
+  - Redis-level
+  - Docker-level
+- Inspect:
+  - Blade rendering
+  - relationship usage
+  - session/cache config
+  - container performance
 
 ---
 
 ## Output Expectations
 
-When asked to analyze or optimize, provide:
+When responding:
 
 1. Root cause analysis  
 2. Files changed  
 3. What was improved  
-4. Local vs production config recommendations  
+4. Local vs production recommendations  
 5. Manual test steps  
 6. Remaining risks  
 
-Also make clear:
-- what was verified
-- what was inferred
-- what still needs manual confirmation
+Also clearly state:
+- what is verified
+- what is inferred
+- what needs confirmation
 
 ---
 
@@ -249,7 +274,7 @@ Also make clear:
 - First analyze
 - Then plan
 - Then implement
-- Never jump into uncontrolled full-project generation
-- Never claim production readiness without verification
-- Never treat the project as empty or unfinished by default
-- Always preserve working flows unless they are clearly broken
+- Never jump into full rewrite
+- Never assume project is incomplete
+- Never claim production-ready without proof
+- Always preserve working flows

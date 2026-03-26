@@ -35,11 +35,11 @@ class SpacesStorageService
         );
     }
 
-    public function upload(UploadedFile $file, string $path): array
+    public function upload(UploadedFile $file, string $path, ?string $disk = null): array
     {
         $stream = fopen($file->getRealPath(), 'rb');
 
-        Storage::disk($this->diskName())->put($path, $stream, [
+        Storage::disk($this->diskName($disk))->put($path, $stream, [
             'visibility' => 'private',
             'ContentType' => $file->getMimeType(),
         ]);
@@ -57,10 +57,10 @@ class SpacesStorageService
         ];
     }
 
-    public function presignedUrl(string $path, int $minutes = 0): string
+    public function presignedUrl(string $path, int $minutes = 0, ?string $disk = null): string
     {
-        if (! $this->usesSpaces()) {
-            throw new \RuntimeException('Presigned URL yalnızca Spaces diski yapılandırıldığında üretilebilir.');
+        if (! $this->usesSpaces($disk)) {
+            throw new \RuntimeException('Presigned URL yalnizca Spaces diski yapilandirildiginda uretilebilir.');
         }
 
         if ($minutes === 0) {
@@ -81,24 +81,24 @@ class SpacesStorageService
         return (string) $request->getUri();
     }
 
-    public function delete(string $path): bool
+    public function delete(string $path, ?string $disk = null): bool
     {
-        return Storage::disk($this->diskName())->delete($path);
+        return Storage::disk($this->diskName($disk))->delete($path);
     }
 
-    public function exists(string $path): bool
+    public function exists(string $path, ?string $disk = null): bool
     {
-        return Storage::disk($this->diskName())->exists($path);
+        return Storage::disk($this->diskName($disk))->exists($path);
     }
 
-    public function usesSpaces(): bool
+    public function usesSpaces(?string $disk = null): bool
     {
-        return $this->diskName() === 'spaces';
+        return $this->diskName($disk) === 'spaces';
     }
 
-    private function diskName(): string
+    private function diskName(?string $disk = null): string
     {
-        return $this->settings->filesystemDisk();
+        return $disk ?: $this->settings->filesystemDisk();
     }
 
     private function client(): S3Client

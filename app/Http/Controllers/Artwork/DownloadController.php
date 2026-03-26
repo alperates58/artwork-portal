@@ -28,17 +28,18 @@ class DownloadController extends Controller
 
         $user = auth()->user();
         $supplierId = $revision->artwork->orderLine->purchaseOrder->supplier_id;
+        $storageDisk = $revision->galleryItem?->file_disk ?: $this->settings->filesystemDisk();
 
         if ($user->isSupplier() && ! $revision->is_active) {
-            abort(403, 'Bu dosyaya erişim yetkiniz bulunmamaktadır.');
+            abort(403, 'Bu dosyaya erisim yetkiniz bulunmamaktadir.');
         }
 
         if (! $user->canDownloadForSupplier($supplierId)) {
-            abort(403, 'Bu dosyayı indirme yetkiniz bulunmamaktadır.');
+            abort(403, 'Bu dosyayi indirme yetkiniz bulunmamaktadir.');
         }
 
-        if (! $this->spaces->exists($revision->spaces_path)) {
-            abort(404, 'Dosya bulunamadı. Lütfen yönetici ile iletişime geçin.');
+        if (! $this->spaces->exists($revision->spaces_path, $storageDisk)) {
+            abort(404, 'Dosya bulunamadi. Lutfen yonetici ile iletisime gecin.');
         }
 
         $this->uploadService->logDownload($revision, $user, null, $supplierId);
@@ -48,11 +49,11 @@ class DownloadController extends Controller
             'file_size' => $revision->file_size,
         ]);
 
-        if ($this->settings->filesystemDisk() === 'spaces') {
-            return redirect($this->spaces->presignedUrl($revision->spaces_path));
+        if ($storageDisk === 'spaces') {
+            return redirect($this->spaces->presignedUrl($revision->spaces_path, 0, $storageDisk));
         }
 
-        return Storage::disk($this->settings->filesystemDisk())
+        return Storage::disk($storageDisk)
             ->download($revision->spaces_path, $revision->original_filename);
     }
 }
