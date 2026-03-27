@@ -101,8 +101,11 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/raporlar', [ReportController::class, 'index'])->name('reports.index');
             Route::get('/loglar', [AuditLogController::class, 'index'])->name('logs.index');
             Route::get('/artwork-galerisi', [ArtworkGalleryController::class, 'index'])->name('artwork-gallery.index');
+            Route::get('/artwork-galerisi/yonetim', [ArtworkGalleryController::class, 'manage'])->name('artwork-gallery.manage');
             Route::post('/artwork-galerisi/kategoriler', [ArtworkGalleryController::class, 'storeCategory'])->name('artwork-gallery.categories.store');
+            Route::delete('/artwork-galerisi/kategoriler/{category}', [ArtworkGalleryController::class, 'destroyCategory'])->name('artwork-gallery.categories.destroy');
             Route::post('/artwork-galerisi/etiketler', [ArtworkGalleryController::class, 'storeTag'])->name('artwork-gallery.tags.store');
+            Route::delete('/artwork-galerisi/etiketler/{tag}', [ArtworkGalleryController::class, 'destroyTag'])->name('artwork-gallery.tags.destroy');
             Route::get('/artwork-galerisi/{artworkGallery}/duzenle', [ArtworkGalleryController::class, 'edit'])->name('artwork-gallery.edit');
             Route::patch('/artwork-galerisi/{artworkGallery}', [ArtworkGalleryController::class, 'update'])->name('artwork-gallery.update');
         });

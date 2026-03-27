@@ -17,21 +17,46 @@ class ArtworkGalleryController extends Controller
 
     public function index(): View
     {
-        $galleryItems = ArtworkGallery::query()
+        $query = ArtworkGallery::query()
             ->with(['category:id,name', 'tags:id,name', 'uploadedBy:id,name'])
             ->withCount('usages')
             ->withMax('usages', 'used_at')
-            ->when(request('search'), fn ($query, $search) => $query->where('name', 'like', '%' . $search . '%'))
-            ->when(request('category_id'), fn ($query, $categoryId) => $query->where('category_id', $categoryId))
-            ->when(request('tag_id'), fn ($query, $tagId) => $query->whereHas('tags', fn ($tagQuery) => $tagQuery->where('artwork_tags.id', $tagId)))
-            ->latest()
-            ->paginate(20)
-            ->withQueryString();
+            ->when(request('search'), fn ($q, $s) => $q->where('name', 'like', "%{$s}%"))
+            ->when(request('category_id'), fn ($q, $v) => $q->where('category_id', $v))
+            ->when(request('tag_id'), fn ($q, $v) => $q->whereHas('tags', fn ($t) => $t->where('artwork_tags.id', $v)))
+            ->when(request('type'), function ($q, $type) {
+                match ($type) {
+                    'image'  => $q->whereIn('file_type', ['image/jpeg','image/png','image/gif','image/webp','image/svg+xml'])
+                                  ->orWhereRaw("LOWER(name) REGEXP '\\\\.(jpg|jpeg|png|gif|webp|svg|bmp|tif|tiff)$'"),
+                    'pdf'    => $q->where('file_type', 'application/pdf')->orWhereRaw("LOWER(name) LIKE '%.pdf'"),
+                    'design' => $q->whereRaw("LOWER(name) REGEXP '\\\\.(ai|eps|psd|indd)$'"),
+                    default  => null,
+                };
+            });
+
+        $totalCount = (clone $query)->count();
+
+        $galleryItems = $query->latest()->paginate(24)->withQueryString();
 
         $categories = ArtworkCategory::query()->orderBy('name')->get(['id', 'name']);
-        $tags = ArtworkTag::query()->orderBy('name')->get(['id', 'name']);
+        $tags       = ArtworkTag::query()->orderBy('name')->get(['id', 'name']);
 
-        return view('admin.artwork-gallery.index', compact('galleryItems', 'categories', 'tags'));
+        return view('admin.artwork-gallery.index', compact('galleryItems', 'categories', 'tags', 'totalCount'));
+    }
+
+    public function manage(): View
+    {
+        $categories = ArtworkCategory::query()
+            ->withCount('galleryItems')
+            ->orderBy('name')
+            ->get();
+
+        $tags = ArtworkTag::query()
+            ->withCount('galleryItems')
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.artwork-gallery.manage', compact('categories', 'tags'));
     }
 
     public function storeCategory(): RedirectResponse
@@ -43,8 +68,17 @@ class ArtworkGalleryController extends Controller
         ArtworkCategory::create($validated);
 
         return redirect()
-            ->route('admin.artwork-gallery.index')
-            ->with('success', 'Artwork kategorisi eklendi.');
+            ->route('admin.artwork-gallery.manage')
+            ->with('success', 'Kategori eklendi.');
+    }
+
+    public function destroyCategory(ArtworkCategory $category): RedirectResponse
+    {
+        $category->delete();
+
+        return redirect()
+            ->route('admin.artwork-gallery.manage')
+            ->with('success', '"' . $category->name . '" kategorisi silindi.');
     }
 
     public function storeTag(): RedirectResponse
@@ -56,8 +90,17 @@ class ArtworkGalleryController extends Controller
         ArtworkTag::create($validated);
 
         return redirect()
-            ->route('admin.artwork-gallery.index')
-            ->with('success', 'Artwork etiketi eklendi.');
+            ->route('admin.artwork-gallery.manage')
+            ->with('success', 'Etiket eklendi.');
+    }
+
+    public function destroyTag(ArtworkTag $tag): RedirectResponse
+    {
+        $tag->delete();
+
+        return redirect()
+            ->route('admin.artwork-gallery.manage')
+            ->with('success', '"' . $tag->name . '" etiketi silindi.');
     }
 
     public function edit(ArtworkGallery $artworkGallery): View
