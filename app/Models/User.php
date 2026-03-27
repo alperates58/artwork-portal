@@ -87,7 +87,7 @@ class User extends Authenticatable
             UserRole::GRAPHIC->value => [
                 'dashboard'  => ['view'],
                 'orders'     => ['view'],
-                'gallery'    => ['view', 'upload', 'delete'],
+                'gallery'    => ['view', 'upload', 'delete', 'manage'],
             ],
         ];
 
@@ -106,7 +106,7 @@ class User extends Authenticatable
                 'suppliers' => ['view' => true, 'create' => false, 'edit' => false],
                 'users'     => ['view' => false, 'create' => false, 'edit' => false],
                 'reports'   => ['view' => true],
-                'gallery'   => ['view' => true, 'upload' => false, 'delete' => false],
+                'gallery'   => ['view' => true, 'upload' => false, 'delete' => false, 'manage' => false],
                 'logs'      => ['view' => false],
                 'settings'  => ['view' => false, 'edit' => false],
             ],
@@ -116,7 +116,7 @@ class User extends Authenticatable
                 'suppliers' => ['view' => false, 'create' => false, 'edit' => false],
                 'users'     => ['view' => false, 'create' => false, 'edit' => false],
                 'reports'   => ['view' => false],
-                'gallery'   => ['view' => true, 'upload' => true, 'delete' => true],
+                'gallery'   => ['view' => true, 'upload' => true, 'delete' => true, 'manage' => true],
                 'logs'      => ['view' => false],
                 'settings'  => ['view' => false, 'edit' => false],
             ],

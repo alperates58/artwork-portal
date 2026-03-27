@@ -52,6 +52,7 @@ class PermissionsController extends Controller
                 'view'   => 'Görüntüle',
                 'upload' => 'Yükle',
                 'delete' => 'Sil',
+                'manage' => 'Kategori & Etiket Yönetimi',
             ],
         ],
         'logs' => [
