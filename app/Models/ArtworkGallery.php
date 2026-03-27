@@ -17,6 +17,7 @@ class ArtworkGallery extends Model
 
     protected $fillable = [
         'name',
+        'stock_code',
         'category_id',
         'file_path',
         'file_disk',

@@ -10,7 +10,7 @@
 </div>
 <div>
     <label class="label">Rol *</label>
-    <select name="role" required class="input" id="roleSelect" onchange="toggleSupplier()">
+    <select name="role" required class="input" id="roleSelect" onchange="toggleRoleFields()">
         @foreach($roles as $role)
             <option value="{{ $role->value }}"
                 {{ old('role', $user->role->value ?? '') === $role->value ? 'selected' : '' }}>
@@ -33,6 +33,20 @@
     </select>
     @error('supplier_id')<p class="err">{{ $message }}</p>@enderror
 </div>
+<div id="departmentField" style="display:none">
+    <label class="label">Departman</label>
+    <select name="department_id" class="input">
+        <option value="">— Departman seçin (opsiyonel) —</option>
+        @foreach($departments as $dept)
+            <option value="{{ $dept->id }}"
+                {{ old('department_id', $user->department_id ?? '') == $dept->id ? 'selected' : '' }}>
+                {{ $dept->name }}
+            </option>
+        @endforeach
+    </select>
+    @error('department_id')<p class="err">{{ $message }}</p>@enderror
+    <p class="hint">Departman atanırsa, özel yetki tanımlanmamış kullanıcılar için departman yetkileri geçerli olur.</p>
+</div>
 <div>
     <label class="label">Şifre {{ isset($isCreate) && !$isCreate ? '(boş bırakılırsa değişmez)' : '*' }}</label>
     <input type="password" name="password" {{ isset($isCreate) && $isCreate ? 'required' : '' }}
@@ -51,9 +65,10 @@
     <label for="is_active" class="text-sm text-slate-700">Aktif</label>
 </div>
 <script>
-function toggleSupplier() {
+function toggleRoleFields() {
     const role = document.getElementById('roleSelect').value;
     document.getElementById('supplierField').style.display = role === 'supplier' ? 'block' : 'none';
+    document.getElementById('departmentField').style.display = (role === 'purchasing' || role === 'graphic') ? 'block' : 'none';
 }
-toggleSupplier();
+toggleRoleFields();
 </script>

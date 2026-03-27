@@ -42,6 +42,7 @@ class ArtworkUploadService
 
             $galleryItem = ArtworkGallery::create([
                 'name' => $meta['gallery_name'] ?? $fileData['original_filename'],
+                'stock_code' => $meta['stock_code'] ?? null,
                 'category_id' => $meta['category_id'] ?? null,
                 'file_path' => $fileData['spaces_path'],
                 'file_disk' => $this->settings->filesystemDisk(),

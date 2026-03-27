@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Models\Department;
 use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -32,26 +33,33 @@ class UserController extends Controller
 
     public function create(): View
     {
-        $suppliers = Supplier::active()->orderBy('name')->pluck('name', 'id');
-        $roles = UserRole::cases();
+        $suppliers   = Supplier::active()->orderBy('name')->pluck('name', 'id');
+        $roles       = UserRole::cases();
+        $departments = Department::orderBy('name')->get(['id', 'name']);
 
-        return view('admin.users.create', compact('suppliers', 'roles'));
+        return view('admin.users.create', compact('suppliers', 'roles', 'departments'));
     }
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', Rule::enum(UserRole::class)],
-            'supplier_id' => [
+            'name'          => ['required', 'string', 'max:100'],
+            'email'         => ['required', 'email', 'unique:users'],
+            'password'      => ['required', 'string', 'min:8', 'confirmed'],
+            'role'          => ['required', Rule::enum(UserRole::class)],
+            'supplier_id'   => [
                 Rule::requiredIf(fn () => $request->role === UserRole::SUPPLIER->value),
                 'nullable',
                 'exists:suppliers,id',
             ],
-            'is_active' => ['boolean'],
+            'department_id' => ['nullable', 'exists:departments,id'],
+            'is_active'     => ['boolean'],
         ]);
+
+        // Supplier and admin roles don't use departments
+        if (in_array($validated['role'] ?? null, [UserRole::SUPPLIER->value, UserRole::ADMIN->value], true)) {
+            $validated['department_id'] = null;
+        }
 
         $user = User::create($validated);
         $this->syncSupplierMapping($user);
@@ -63,33 +71,40 @@ class UserController extends Controller
 
     public function edit(User $user): View
     {
-        $suppliers = Supplier::active()->orderBy('name')->pluck('name', 'id');
-        $roles = UserRole::cases();
+        $suppliers   = Supplier::active()->orderBy('name')->pluck('name', 'id');
+        $roles       = UserRole::cases();
+        $departments = Department::orderBy('name')->get(['id', 'name']);
 
-        return view('admin.users.edit', compact('user', 'suppliers', 'roles'));
+        return view('admin.users.edit', compact('user', 'suppliers', 'roles', 'departments'));
     }
 
     public function update(Request $request, User $user): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', Rule::unique('users')->ignore($user)],
-            'role' => ['required', Rule::enum(UserRole::class)],
-            'supplier_id' => [
+            'name'          => ['required', 'string', 'max:100'],
+            'email'         => ['required', 'email', Rule::unique('users')->ignore($user)],
+            'role'          => ['required', Rule::enum(UserRole::class)],
+            'supplier_id'   => [
                 Rule::requiredIf(fn () => $request->role === UserRole::SUPPLIER->value),
                 'nullable',
                 'exists:suppliers,id',
             ],
-            'is_active' => ['boolean'],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'department_id' => ['nullable', 'exists:departments,id'],
+            'is_active'     => ['boolean'],
+            'password'      => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
 
         if (empty($validated['password'])) {
             unset($validated['password']);
         }
 
-        if (($validated['role'] ?? null) !== UserRole::SUPPLIER) {
+        if (($validated['role'] ?? null) !== UserRole::SUPPLIER->value) {
             $validated['supplier_id'] = null;
+        }
+
+        // Supplier and admin roles don't use departments
+        if (in_array($validated['role'] ?? null, [UserRole::SUPPLIER->value, UserRole::ADMIN->value], true)) {
+            $validated['department_id'] = null;
         }
 
         $user->update($validated);
@@ -98,6 +113,17 @@ class UserController extends Controller
         return redirect()
             ->route('admin.users.index')
             ->with('success', 'Kullanıcı güncellendi.');
+    }
+
+    public function destroy(User $user): RedirectResponse
+    {
+        abort_if($user->id === auth()->id(), 403, 'Kendi hesabınızı silemezsiniz.');
+
+        $user->delete();
+
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', "\"{$user->name}\" kullanıcısı silindi.");
     }
 
     public function toggleActive(User $user): RedirectResponse

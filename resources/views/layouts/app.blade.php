@@ -16,10 +16,10 @@
             background: #ffffff;
         }
 
-        /* ── Collapsed: icon strip (60px) ── */
+        /* ── Collapsed: icon strip (88px) ── */
         #sidebar-wrap.collapsed,
         #sidebar-wrap.collapsed #main-sidebar {
-            width: 60px;
+            width: 88px;
         }
 
         /* Hide text labels when collapsed */
@@ -40,22 +40,29 @@
             padding-right: 0;
         }
 
-        /* Logo: center image when collapsed */
+        /* Logo: center icon when collapsed */
         #sidebar-wrap.collapsed .sb-logo-wrap {
-            padding: 0.75rem 0.5rem;
+            padding: 0.75rem 0.25rem;
             justify-content: center;
+            border: none;
+            box-shadow: none;
+            background: transparent;
         }
-        #sidebar-wrap.collapsed .sb-logo-img {
-            height: 2rem;
+        #sidebar-wrap.collapsed .sb-logo-expanded {
+            display: none !important;
+        }
+        #sidebar-wrap.collapsed .sb-logo-collapsed {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
         }
 
         /* User footer when collapsed */
-        #sidebar-wrap.collapsed .sb-footer-inner {
-            justify-content: center;
-            gap: 0;
-        }
-        #sidebar-wrap.collapsed .sb-logout {
+        #sidebar-wrap.collapsed .sb-footer-expanded {
             display: none;
+        }
+        #sidebar-wrap.collapsed .sb-footer-collapsed {
+            display: block !important;
         }
 
         /* ── Mobile: sidebar as overlay ── */
@@ -106,7 +113,19 @@
         }
         .nav-group-items > div { overflow: hidden; }
 
-        /* ── Corporate color overrides (for compiled Tailwind classes) ── */
+        /* ── Corporate color overrides (force blue, override any cached styles) ── */
+        .btn-primary, button.btn-primary, a.btn-primary {
+            background: linear-gradient(180deg, #2563eb, #1d4ed8) !important;
+            color: #fff !important;
+        }
+        .btn-primary:hover, button.btn-primary:hover, a.btn-primary:hover {
+            background: linear-gradient(180deg, #3b82f6, #1d4ed8) !important;
+        }
+        .sidebar-link.active {
+            background-color: rgba(239,246,255,0.9) !important;
+            color: #1d4ed8 !important;
+        }
+        .sidebar-link.active svg { color: #2563eb !important; }
         .text-brand-700 { color: #1d4ed8; }
         .text-brand-900 { color: #1e3a8a; }
         .text-brand-500 { color: #3b82f6; }
@@ -123,7 +142,7 @@
         .bg-brand-50\/70 { background-color: rgba(239,246,255,0.7); }
     </style>
 </head>
-<body class="bg-slate-100 font-sans antialiased text-slate-900">
+<body class="font-sans antialiased text-slate-900" style="background: #f1f5f9;">
 @php
     $logoPath = trim((string) config('portal.logo_path'), '/');
     $logoUrl  = $logoPath !== '' ? asset($logoPath) : null;
@@ -134,10 +153,10 @@
     $hasPageAside       = View::hasSection('page-aside');
     $pageAsideStorageKey = trim((string) $__env->yieldContent('page-aside-storage-key', request()->route()?->getName() ?: 'default'));
     $pageSubtitle        = trim((string) $__env->yieldContent('page-subtitle', config('portal.brand_tagline')));
-    $settingsOpen        = request()->routeIs('admin.settings.*') || request()->routeIs('admin.permissions.*');
+    $settingsOpen        = request()->routeIs('admin.settings.*') || request()->routeIs('admin.permissions.*') || request()->routeIs('admin.departments.*');
 @endphp
 
-<div class="min-h-screen bg-slate-50">
+<div class="min-h-screen" style="background: #f1f5f9;">
     <div class="flex min-h-screen">
 
         {{-- ── Sidebar ── --}}
@@ -145,16 +164,34 @@
             <aside id="main-sidebar" class="h-screen sticky top-0 flex flex-col border-r border-slate-200 bg-white">
 
                 {{-- Logo --}}
+                @php
+                    $iconLogoUrl = asset('brand/logo2.png');
+                @endphp
                 <div class="border-b border-slate-200/80 px-4 py-4">
                     <a href="{{ route('dashboard') }}"
                        class="sb-logo-wrap group flex flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-sm transition hover:border-blue-100 hover:shadow-md">
-                        @if($logoUrl)
-                            <img src="{{ $logoUrl }}" alt="{{ config('portal.brand_name') }}" class="sb-logo-img h-16 w-auto object-contain">
-                        @else
-                            <div class="sb-logo-img h-16 w-16 rounded-2xl bg-brand-600"></div>
-                        @endif
-                        <div class="sb-logo-text text-center">
-                            <span class="block text-sm font-semibold text-slate-800">{{ config('portal.brand_name') }}</span>
+                        {{-- Expanded: full logo + brand name --}}
+                        <div class="sb-logo-expanded flex flex-col items-center gap-2">
+                            @if($logoUrl)
+                                <img src="{{ $logoUrl }}" alt="{{ config('portal.brand_name') }}" class="sb-logo-img h-16 w-auto object-contain">
+                            @else
+                                <div class="sb-logo-img h-16 w-16 rounded-2xl bg-brand-600 flex items-center justify-center text-white text-2xl font-bold">
+                                    {{ mb_substr(config('portal.brand_name'), 0, 1) }}
+                                </div>
+                            @endif
+                            <div class="sb-logo-text text-center">
+                                <span class="block text-sm font-semibold text-slate-800">{{ config('portal.brand_name') }}</span>
+                            </div>
+                        </div>
+                        {{-- Collapsed: icon only --}}
+                        <div class="sb-logo-collapsed hidden items-center justify-center">
+                            @if($iconLogoUrl)
+                                <img src="{{ $iconLogoUrl }}" alt="{{ config('portal.brand_name') }}" class="h-20 w-20 object-contain">
+                            @else
+                                <div class="h-11 w-11 rounded-xl bg-brand-600 flex items-center justify-center text-white text-lg font-bold">
+                                    {{ mb_substr(config('portal.brand_name'), 0, 1) }}
+                                </div>
+                            @endif
                         </div>
                     </a>
                 </div>
@@ -275,6 +312,15 @@
                                                             {{ request()->routeIs('admin.permissions.*') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
                                                         Yetkiler
                                                     </a>
+                                                    <a href="{{ route('admin.departments.index') }}"
+                                                       class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
+                                                              {{ request()->routeIs('admin.departments.*')
+                                                                  ? 'bg-brand-50 text-brand-700'
+                                                                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
+                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full
+                                                            {{ request()->routeIs('admin.departments.*') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                        Departmanlar
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>
@@ -282,12 +328,58 @@
                                 @endif
 
                                 @if($canViewReports)
-                                    <a href="{{ route('admin.reports.index') }}"
-                                       title="Raporlar"
-                                       class="sidebar-link {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">
-                                        <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                                        <span class="sb-label">Raporlar</span>
-                                    </a>
+                                    {{-- Raporlar nav group --}}
+                                    @php $reportsOpen = request()->routeIs('admin.reports.*') || request()->routeIs('admin.reports.stock-code'); @endphp
+                                    <div data-nav-group="reports" data-nav-group-open="{{ $reportsOpen ? 'true' : 'false' }}">
+                                        <button type="button"
+                                                data-nav-group-toggle="reports"
+                                                title="Raporlar"
+                                                class="sidebar-link w-full {{ $reportsOpen ? 'active' : '' }}">
+                                            <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                                            <span class="sb-label flex-1 text-left">Raporlar</span>
+                                            <svg data-nav-group-chevron="reports"
+                                                 class="sb-chevron h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 {{ $reportsOpen ? 'rotate-180 text-brand-500' : 'text-slate-400' }}"
+                                                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                                            </svg>
+                                        </button>
+                                        <div class="nav-group-items {{ $reportsOpen ? '' : 'closed' }}">
+                                            <div>
+                                                <div class="ml-4 mt-1 mb-1 space-y-0.5 border-l border-slate-200 pl-3">
+                                                    <a href="{{ route('admin.reports.index') }}"
+                                                       class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
+                                                              {{ request()->routeIs('admin.reports.index') ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
+                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.index') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                        Genel Bakış
+                                                    </a>
+                                                    <a href="{{ route('admin.reports.lead-time') }}"
+                                                       class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
+                                                              {{ request()->routeIs('admin.reports.lead-time') ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
+                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.lead-time') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                        Lead Time
+                                                    </a>
+                                                    <a href="{{ route('admin.reports.pending') }}"
+                                                       class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
+                                                              {{ request()->routeIs('admin.reports.pending') ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
+                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.pending') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                        Bekleyen Artwork
+                                                    </a>
+                                                    <a href="{{ route('admin.reports.category') }}"
+                                                       class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
+                                                              {{ request()->routeIs('admin.reports.category') ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
+                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.category') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                        Kategori & Etiket
+                                                    </a>
+                                                    <a href="{{ route('admin.reports.stock-code') }}"
+                                                       class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
+                                                              {{ request()->routeIs('admin.reports.stock-code') ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
+                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.stock-code') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                        Stok Kodu
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 @endif
 
                                 @if($canViewGallery)
@@ -343,9 +435,9 @@
                 </nav>
 
                 {{-- User footer --}}
-                <div class="border-t border-slate-200/80 p-3">
+                <div class="border-t border-slate-200/80 p-3 sb-footer-expanded">
                     <div class="rounded-3xl border border-slate-200/80 bg-slate-50/80 p-3 shadow-[0_10px_25px_rgba(15,23,42,0.04)]">
-                        <div class="sb-footer-inner flex items-center gap-3">
+                        <div class="flex items-center gap-3">
                             <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-brand-100 text-sm font-semibold text-brand-800 shadow-inner">
                                 {{ $userInitials }}
                             </div>
@@ -353,7 +445,7 @@
                                 <p class="truncate text-sm font-semibold text-slate-900">{{ $user?->name }}</p>
                                 <p class="text-xs text-slate-500">{{ $user?->role?->label() }}</p>
                             </div>
-                            <form method="POST" action="{{ route('logout') }}" class="sb-logout">
+                            <form method="POST" action="{{ route('logout') }}" class="sb-logout flex-shrink-0">
                                 @csrf
                                 <button type="submit"
                                         class="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-transparent text-slate-400 transition hover:border-slate-200 hover:bg-white hover:text-slate-700"
@@ -364,6 +456,22 @@
                         </div>
                     </div>
                 </div>
+                {{-- Collapsed footer: just avatar + logout --}}
+                <div class="sb-footer-collapsed hidden border-t border-slate-200/80 p-2">
+                    <div class="flex flex-col items-center gap-2 py-1">
+                        <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-100 text-sm font-semibold text-brand-800" title="{{ $user?->name }}">
+                            {{ $userInitials }}
+                        </div>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit"
+                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                                    title="Çıkış">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </aside>
         </div>
 
@@ -372,7 +480,7 @@
 
         {{-- ── Main content ── --}}
         <div class="flex min-w-0 flex-1 flex-col">
-            <header class="border-b border-slate-200 bg-white px-4 py-3 sm:px-6 lg:px-8">
+            <header class="border-b border-slate-200/70 bg-white px-4 py-3 sm:px-6 lg:px-8" style="box-shadow: 0 1px 0 rgba(15,23,42,0.04), 0 2px 8px rgba(15,23,42,0.03);">
                 <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div class="flex items-start gap-4">
                         {{-- Hamburger toggle --}}

@@ -32,6 +32,7 @@ class User extends Authenticatable
         'is_active',
         'last_login_at',
         'permissions',
+        'department_id',
     ];
 
     protected $hidden = [
@@ -69,6 +70,12 @@ class User extends Authenticatable
 
         if (! empty($perms)) {
             return ($perms[$screen][$action] ?? false) === true;
+        }
+
+        // Department permissions (middle priority between custom and role defaults)
+        $dept = $this->relationLoaded('department') ? $this->department : $this->department()->first();
+        if ($dept && ! empty($dept->permissions)) {
+            return ($dept->permissions[$screen][$action] ?? false) === true;
         }
 
         return $this->roleDefaultPermission($screen, $action);
@@ -127,6 +134,11 @@ class User extends Authenticatable
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
     }
 
     public function supplierMappings(): HasMany

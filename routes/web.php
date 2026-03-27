@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ArtworkGalleryController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\MikroTestController;
 use App\Http\Controllers\Admin\PermissionsController;
 use App\Http\Controllers\Admin\ReportController;
@@ -49,6 +50,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/siparisler/{order}/duzenle', [OrderController::class, 'edit'])->name('orders.edit');
         Route::patch('/siparisler/{order}', [OrderController::class, 'update'])->name('orders.update');
         Route::delete('/siparisler/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
+        Route::post('/siparisler/{order}/notlar', [OrderController::class, 'storeNote'])->name('orders.notes.store');
 
         Route::get('/satir/{line}', [OrderLineController::class, 'show'])->name('order-lines.show');
 
@@ -81,6 +83,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/kullanicilar/{user}/duzenle', [UserController::class, 'edit'])->name('users.edit');
             Route::patch('/kullanicilar/{user}', [UserController::class, 'update'])->name('users.update');
             Route::patch('/kullanicilar/{user}/aktif-tgl', [UserController::class, 'toggleActive'])->name('users.toggle');
+            Route::delete('/kullanicilar/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
             Route::get('/tedarikciler/{supplier}/duzenle', [SupplierController::class, 'edit'])->name('suppliers.edit');
             Route::patch('/tedarikciler/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
@@ -90,6 +93,13 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/yetkiler/{user}', [PermissionsController::class, 'show'])->name('permissions.show');
             Route::put('/yetkiler/{user}', [PermissionsController::class, 'update'])->name('permissions.update');
             Route::post('/yetkiler/{user}/sifirla', [PermissionsController::class, 'reset'])->name('permissions.reset');
+
+            Route::get('/departmanlar', [DepartmentController::class, 'index'])->name('departments.index');
+            Route::get('/departmanlar/yeni', [DepartmentController::class, 'create'])->name('departments.create');
+            Route::post('/departmanlar', [DepartmentController::class, 'store'])->name('departments.store');
+            Route::get('/departmanlar/{department}/duzenle', [DepartmentController::class, 'edit'])->name('departments.edit');
+            Route::patch('/departmanlar/{department}', [DepartmentController::class, 'update'])->name('departments.update');
+            Route::delete('/departmanlar/{department}', [DepartmentController::class, 'destroy'])->name('departments.destroy');
 
             Route::get('/ayarlar', [SettingsController::class, 'edit'])->name('settings.edit');
             Route::put('/ayarlar', [SettingsController::class, 'update'])->name('settings.update');
@@ -106,6 +116,10 @@ Route::middleware(['auth', 'active'])->group(function () {
         ->name('admin.')
         ->group(function () {
             Route::get('/raporlar', [ReportController::class, 'index'])->name('reports.index');
+            Route::get('/raporlar/lead-time', [ReportController::class, 'leadTime'])->name('reports.lead-time');
+            Route::get('/raporlar/bekleyen', [ReportController::class, 'pending'])->name('reports.pending');
+            Route::get('/raporlar/kategori', [ReportController::class, 'category'])->name('reports.category');
+            Route::get('/raporlar/stok-kodu', [ReportController::class, 'stockCode'])->name('reports.stock-code');
             Route::get('/loglar', [AuditLogController::class, 'index'])->name('logs.index');
             Route::get('/artwork-galerisi', [ArtworkGalleryController::class, 'index'])->name('artwork-gallery.index');
             Route::get('/artwork-galerisi/yonetim', [ArtworkGalleryController::class, 'manage'])->name('artwork-gallery.manage');

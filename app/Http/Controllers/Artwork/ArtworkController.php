@@ -31,7 +31,10 @@ class ArtworkController extends Controller
             ->with(['category:id,name', 'tags:id,name', 'uploadedBy:id,name'])
             ->withCount('usages')
             ->withMax('usages', 'used_at')
-            ->when(request('gallery_search'), fn ($query, $search) => $query->where('name', 'like', '%' . $search . '%'))
+            ->when(request('gallery_search'), fn ($query, $search) => $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('stock_code', 'like', '%' . $search . '%');
+            }))
             ->when(request('gallery_category_id'), fn ($query, $categoryId) => $query->where('category_id', $categoryId))
             ->when(request('gallery_tag_id'), fn ($query, $tagId) => $query->whereHas('tags', fn ($tagQuery) => $tagQuery->where('artwork_tags.id', $tagId)))
             ->latest()
@@ -48,7 +51,7 @@ class ArtworkController extends Controller
     {
         $this->authorize('uploadArtwork', $line);
 
-        $meta = $request->only('title', 'notes', 'gallery_name', 'category_id', 'tag_ids');
+        $meta = $request->only('title', 'notes', 'gallery_name', 'stock_code', 'description', 'category_id', 'tag_ids');
 
         $revision = $request->input('source_type') === 'gallery'
             ? $this->uploadService->storeFromGallery(

@@ -58,7 +58,7 @@ $fileTypeText = [
         <form method="GET" action="{{ route('admin.artwork-gallery.index') }}" id="gallery-filter-form">
             <div class="flex flex-wrap items-end gap-3">
                 {{-- Arama --}}
-                <div class="min-w-[220px] flex-1">
+                <div class="min-w-[180px] flex-1">
                     <div class="relative">
                         <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -66,7 +66,19 @@ $fileTypeText = [
                         <input name="search" value="{{ request('search') }}"
                                placeholder="Dosya adı ile ara…"
                                class="input pl-9"
-                               autocomplete="off">
+                               autocomplete="off"
+                               id="gallery-search-input">
+                    </div>
+                </div>
+
+                {{-- Stok kodu --}}
+                <div class="w-44">
+                    <div class="relative">
+                        <input name="stock_code" value="{{ request('stock_code') }}"
+                               placeholder="Stok kodu ara…"
+                               class="input"
+                               autocomplete="off"
+                               id="gallery-stock-input">
                     </div>
                 </div>
 
@@ -82,7 +94,7 @@ $fileTypeText = [
 
                 {{-- Etiket --}}
                 <div class="w-44">
-                    <select name="tag_id" class="input">
+                    <select name="tag_id" class="input" id="gallery-tag-select">
                         <option value="">Tüm etiketler</option>
                         @foreach($tags as $tag)
                             <option value="{{ $tag->id }}" @selected(request('tag_id') == $tag->id)>{{ $tag->display_name }}</option>
@@ -92,7 +104,7 @@ $fileTypeText = [
 
                 <button type="submit" class="btn btn-primary">Filtrele</button>
 
-                @if(request()->hasAny(['search','category_id','tag_id','type']))
+                @if(request()->hasAny(['search','stock_code','category_id','tag_id','type']))
                     <a href="{{ route('admin.artwork-gallery.index') }}" class="btn btn-secondary">Temizle</a>
                 @endif
             </div>
@@ -133,7 +145,7 @@ $fileTypeText = [
         </a>
     </div>
 
-    {{-- ── Galeri grid ── --}}
+    {{-- ── Galeri tablo ── --}}
     @if($galleryItems->isEmpty())
         <div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/60 py-20">
             <svg class="h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -143,123 +155,125 @@ $fileTypeText = [
             <a href="{{ route('admin.artwork-gallery.index') }}" class="mt-3 text-xs text-brand-600 hover:underline">Filtreleri temizle</a>
         </div>
     @else
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-            @foreach($galleryItems as $item)
-                @php
-                    $ext = strtoupper(pathinfo($item->name, PATHINFO_EXTENSION));
-                    $badgeClass = $fileTypeColors[$ext] ?? 'bg-slate-100 text-slate-600 border border-slate-200';
-                    $iconBg     = $fileTypeBg[$ext] ?? 'bg-slate-100';
-                    $iconText   = $fileTypeText[$ext] ?? 'text-slate-400';
-                @endphp
-                <article class="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.05)] transition hover:border-brand-200 hover:shadow-[0_8px_24px_rgba(244,154,11,0.10)]">
-
-                    {{-- Thumbnail --}}
-                    <div class="relative aspect-[4/3] w-full overflow-hidden {{ $item->is_image ? 'bg-slate-100' : $iconBg }}">
-                        @if($item->is_image)
-                            <img src="{{ route('artworks.gallery.preview', $item) }}"
-                                 alt="{{ $item->display_name }}"
-                                 class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                                 loading="lazy">
-                        @else
-                            <div class="flex h-full w-full flex-col items-center justify-center gap-2">
-                                @if($ext === 'PDF')
-                                    <svg class="h-14 w-14 {{ $iconText }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-                                        <path d="M7 3.75h7l4 4V20.25A1.75 1.75 0 0 1 16.25 22h-8.5A1.75 1.75 0 0 1 6 20.25v-14.5A1.75 1.75 0 0 1 7.75 4Z"/>
-                                        <path d="M14 3.75v4h4"/><path d="M8 15.25h8M8 18h5"/>
-                                    </svg>
-                                @elseif(in_array($ext, ['AI','EPS','PSD','INDD']))
-                                    <svg class="h-14 w-14 {{ $iconText }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-                                        <path d="M4.75 6.75A2.75 2.75 0 0 1 7.5 4h9A2.75 2.75 0 0 1 19.25 6.75v10.5A2.75 2.75 0 0 1 16.5 20h-9a2.75 2.75 0 0 1-2.75-2.75Z"/>
-                                        <path d="M8 16l2.5-3 2 2 3.5-5"/><path d="M8 9.5h.01"/>
-                                    </svg>
-                                @elseif($ext === 'ZIP')
-                                    <svg class="h-14 w-14 {{ $iconText }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-                                        <path d="M5 8a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V8z"/>
-                                        <path d="M12 10v4m0 0v2m0-2h2m-2 0h-2M10 6V4m4 0v2"/>
-                                    </svg>
+        <div class="card overflow-hidden">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-200 bg-slate-50 text-left">
+                        <th class="px-4 py-3 font-medium text-slate-600 w-16">Format</th>
+                        <th class="px-4 py-3 font-medium text-slate-600">Dosya Adı</th>
+                        <th class="px-4 py-3 font-medium text-slate-600 w-28">Stok Kodu</th>
+                        <th class="px-4 py-3 font-medium text-slate-600 w-32">Kategori</th>
+                        <th class="px-4 py-3 font-medium text-slate-600">Etiketler</th>
+                        <th class="px-4 py-3 font-medium text-slate-600 w-24 text-right">Boyut</th>
+                        <th class="px-4 py-3 font-medium text-slate-600 w-32">Yükleyen</th>
+                        <th class="px-4 py-3 font-medium text-slate-600 w-24">Tarih</th>
+                        <th class="px-4 py-3 font-medium text-slate-600 w-16 text-center">Kullanım</th>
+                        <th class="px-4 py-3 w-20"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @foreach($galleryItems as $item)
+                        @php
+                            $ext = strtoupper(pathinfo($item->name, PATHINFO_EXTENSION));
+                            $badgeClass = $fileTypeColors[$ext] ?? 'bg-slate-100 text-slate-600 border border-slate-200';
+                        @endphp
+                        <tr class="hover:bg-slate-50/60 group">
+                            <td class="px-4 py-3">
+                                <span class="inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-bold tracking-wide {{ $badgeClass }}">
+                                    {{ $ext ?: '—' }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 max-w-xs">
+                                <p class="truncate font-medium text-slate-900" title="{{ $item->display_name }}">{{ $item->display_name }}</p>
+                                <p class="text-xs text-slate-400 truncate">{{ $item->name }}</p>
+                            </td>
+                            <td class="px-4 py-3 text-xs">
+                                @if($item->stock_code)
+                                    <span class="font-mono font-semibold text-slate-800">{{ $item->stock_code }}</span>
                                 @else
-                                    <svg class="h-14 w-14 {{ $iconText }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-                                        <path d="M7 3.75h7l4 4V20.25A1.75 1.75 0 0 1 16.25 22h-8.5A1.75 1.75 0 0 1 6 20.25v-14.5A1.75 1.75 0 0 1 7.75 4Z"/>
-                                        <path d="M14 3.75v4h4"/>
-                                    </svg>
+                                    <span class="text-slate-300">—</span>
                                 @endif
-                                <span class="text-lg font-bold {{ $iconText }} opacity-60">{{ $ext }}</span>
-                            </div>
-                        @endif
-
-                        {{-- Hover overlay --}}
-                        <div class="absolute inset-0 flex items-center justify-center gap-2 bg-slate-900/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                            <button type="button"
-                                    data-dialog-open="gallery-preview-{{ $item->id }}"
-                                    class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/90 text-slate-700 transition hover:bg-white">
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                            </button>
-                            <a href="{{ route('admin.artwork-gallery.edit', $item) }}"
-                               class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/90 text-slate-700 transition hover:bg-white">
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                            </a>
-                        </div>
-
-                        {{-- File type badge --}}
-                        <span class="absolute left-2 top-2 inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-bold tracking-wide {{ $badgeClass }}">
-                            {{ $ext ?: '—' }}
-                        </span>
-
-                        {{-- Usage count --}}
-                        @if($item->usage_count > 0)
-                            <span class="absolute right-2 top-2 inline-flex items-center gap-1 rounded-lg bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
-                                <svg class="h-3 w-3 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                                {{ $item->usage_count }}
-                            </span>
-                        @endif
-                    </div>
-
-                    {{-- Info --}}
-                    <div class="flex flex-1 flex-col p-3">
-                        <p class="truncate text-sm font-semibold text-slate-900" title="{{ $item->display_name }}">
-                            {{ $item->display_name }}
-                        </p>
-
-                        <div class="mt-1 flex items-center gap-2 text-xs text-slate-400">
-                            <span>{{ $item->file_size_formatted }}</span>
-                            @if($item->category)
-                                <span class="text-slate-300">·</span>
-                                <span class="truncate">{{ $item->category->display_name }}</span>
-                            @endif
-                        </div>
-
-                        @if($item->tags->isNotEmpty())
-                            <div class="mt-2 flex flex-wrap gap-1">
-                                @foreach($item->tags->take(3) as $tag)
-                                    <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
-                                        {{ $tag->display_name }}
+                            </td>
+                            <td class="px-4 py-3 text-xs text-slate-600">
+                                {{ $item->category?->display_name ?? '—' }}
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach($item->tags->take(4) as $tag)
+                                        <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">{{ $tag->display_name }}</span>
+                                    @endforeach
+                                    @if($item->tags->count() > 4)
+                                        <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-400">+{{ $item->tags->count() - 4 }}</span>
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-xs text-slate-500 text-right whitespace-nowrap">{{ $item->file_size_formatted }}</td>
+                            <td class="px-4 py-3 text-xs text-slate-600 truncate max-w-[128px]">{{ $item->uploadedBy?->name ?? '—' }}</td>
+                            <td class="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{{ $item->created_at->format('d.m.Y') }}</td>
+                            <td class="px-4 py-3 text-center">
+                                @if($item->usage_count > 0)
+                                    <span class="inline-flex items-center gap-1 text-xs font-semibold text-slate-700">
+                                        <svg class="h-3 w-3 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                        {{ $item->usage_count }}
                                     </span>
-                                @endforeach
-                                @if($item->tags->count() > 3)
-                                    <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-400">+{{ $item->tags->count() - 3 }}</span>
+                                @else
+                                    <span class="text-xs text-slate-300">0</span>
                                 @endif
-                            </div>
-                        @endif
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button type="button"
+                                            data-dialog-open="gallery-preview-{{ $item->id }}"
+                                            class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition"
+                                            title="Önizle">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    </button>
+                                    <a href="{{ route('admin.artwork-gallery.edit', $item) }}"
+                                       class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-brand-700 transition"
+                                       title="Düzenle">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
 
-                        <div class="mt-auto pt-2 text-[10px] text-slate-400">
-                            {{ $item->created_at->format('d.m.Y') }}
-                            @if($item->uploadedBy)
-                                · {{ $item->uploadedBy->name }}
-                            @endif
-                        </div>
-                    </div>
-                </article>
-
-                @include('artwork-gallery.partials.preview-dialog', [
-                    'artworkGallery' => $item,
-                    'dialogId' => 'gallery-preview-' . $item->id,
-                ])
-            @endforeach
+                        @include('artwork-gallery.partials.preview-dialog', [
+                            'artworkGallery' => $item,
+                            'dialogId' => 'gallery-preview-' . $item->id,
+                        ])
+                    @endforeach
+                </tbody>
+            </table>
         </div>
 
         <div class="pt-2">
             {{ $galleryItems->links() }}
         </div>
     @endif
+
+@push('scripts')
+<script>
+(function () {
+    const form   = document.getElementById('gallery-filter-form');
+    const search = document.getElementById('gallery-search-input');
+    const stockInput = document.getElementById('gallery-stock-input');
+    const tagSel = document.getElementById('gallery-tag-select');
+    let   timer  = null;
+
+    function autoSubmit() {
+        clearTimeout(timer);
+        timer = setTimeout(() => form.submit(), 400);
+    }
+
+    if (search) search.addEventListener('input', autoSubmit);
+    if (stockInput) stockInput.addEventListener('input', autoSubmit);
+    if (tagSel) tagSel.addEventListener('change', () => form.submit());
+
+    // Also auto-submit category change
+    const catSel = form ? form.querySelector('select[name="category_id"]') : null;
+    if (catSel) catSel.addEventListener('change', () => form.submit());
+})();
+</script>
+@endpush
 </div>
 @endsection

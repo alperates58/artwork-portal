@@ -27,6 +27,7 @@ class ArtworkGalleryController extends Controller
             ->withCount('usages')
             ->withMax('usages', 'used_at')
             ->when(request('search'), fn ($q, $s) => $q->where('name', 'like', "%{$s}%"))
+            ->when(request('stock_code'), fn ($q, $s) => $q->where('stock_code', 'like', "%{$s}%"))
             ->when(request('category_id'), fn ($q, $v) => $q->where('category_id', $v))
             ->when(request('tag_id'), fn ($q, $v) => $q->whereHas('tags', fn ($t) => $t->where('artwork_tags.id', $v)))
             ->when(request('type'), function ($q, $type) {
@@ -82,6 +83,10 @@ class ArtworkGalleryController extends Controller
 
         ArtworkCategory::create($validated);
 
+        if (request()->boolean('_redirect_back')) {
+            return back()->with('success', 'Kategori eklendi.');
+        }
+
         return redirect()
             ->route('admin.artwork-gallery.manage')
             ->with('success', 'Kategori eklendi.');
@@ -113,6 +118,10 @@ class ArtworkGalleryController extends Controller
         ]);
 
         ArtworkTag::create($validated);
+
+        if (request()->boolean('_redirect_back')) {
+            return back()->with('success', 'Etiket eklendi.');
+        }
 
         return redirect()
             ->route('admin.artwork-gallery.manage')
@@ -162,7 +171,7 @@ class ArtworkGalleryController extends Controller
             403
         );
 
-        $artworkGallery->update($request->safe()->only(['name', 'category_id', 'revision_note']));
+        $artworkGallery->update($request->safe()->only(['name', 'stock_code', 'category_id', 'revision_note']));
         $artworkGallery->tags()->sync($request->input('tag_ids', []));
 
         $this->audit->log('artwork.gallery.update', $artworkGallery, [

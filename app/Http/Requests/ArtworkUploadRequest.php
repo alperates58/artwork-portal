@@ -26,6 +26,8 @@ class ArtworkUploadRequest extends FormRequest
             'title' => ['nullable', 'string', 'max:200'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'gallery_name' => ['nullable', 'string', 'max:200'],
+            'stock_code' => ['nullable', 'string', 'max:100'],
+            'description' => ['nullable', 'string', 'max:500'],
             'category_id' => ['nullable', 'integer', 'exists:artwork_categories,id'],
             'tag_ids' => ['nullable', 'array'],
             'tag_ids.*' => ['integer', 'exists:artwork_tags,id'],
