@@ -17,6 +17,11 @@ class ArtworkGalleryController extends Controller
 
     public function index(): View
     {
+        abort_if(
+            ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('gallery', 'view'),
+            403
+        );
+
         $query = ArtworkGallery::query()
             ->with(['category:id,name', 'tags:id,name', 'uploadedBy:id,name'])
             ->withCount('usages')
@@ -46,6 +51,11 @@ class ArtworkGalleryController extends Controller
 
     public function manage(): View
     {
+        abort_if(
+            ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('gallery', 'manage'),
+            403
+        );
+
         $categories = ArtworkCategory::query()
             ->withCount('galleryItems')
             ->orderBy('name')
@@ -61,6 +71,11 @@ class ArtworkGalleryController extends Controller
 
     public function storeCategory(): RedirectResponse
     {
+        abort_if(
+            ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('gallery', 'manage'),
+            403
+        );
+
         $validated = request()->validateWithBag('storeCategory', [
             'name' => ['required', 'string', 'max:120', 'unique:artwork_categories,name'],
         ]);
@@ -74,6 +89,11 @@ class ArtworkGalleryController extends Controller
 
     public function destroyCategory(ArtworkCategory $category): RedirectResponse
     {
+        abort_if(
+            ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('gallery', 'manage'),
+            403
+        );
+
         $category->delete();
 
         return redirect()
@@ -83,6 +103,11 @@ class ArtworkGalleryController extends Controller
 
     public function storeTag(): RedirectResponse
     {
+        abort_if(
+            ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('gallery', 'manage'),
+            403
+        );
+
         $validated = request()->validateWithBag('storeTag', [
             'name' => ['required', 'string', 'max:120', 'unique:artwork_tags,name'],
         ]);
@@ -96,6 +121,11 @@ class ArtworkGalleryController extends Controller
 
     public function destroyTag(ArtworkTag $tag): RedirectResponse
     {
+        abort_if(
+            ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('gallery', 'manage'),
+            403
+        );
+
         $tag->delete();
 
         return redirect()
@@ -105,6 +135,11 @@ class ArtworkGalleryController extends Controller
 
     public function edit(ArtworkGallery $artworkGallery): View
     {
+        abort_if(
+            ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('gallery', 'manage'),
+            403
+        );
+
         $artworkGallery->load([
             'category:id,name',
             'tags:id,name',
@@ -122,6 +157,11 @@ class ArtworkGalleryController extends Controller
 
     public function update(ArtworkGalleryUpdateRequest $request, ArtworkGallery $artworkGallery): RedirectResponse
     {
+        abort_if(
+            ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('gallery', 'manage'),
+            403
+        );
+
         $artworkGallery->update($request->safe()->only(['name', 'category_id', 'revision_note']));
         $artworkGallery->tags()->sync($request->input('tag_ids', []));
 

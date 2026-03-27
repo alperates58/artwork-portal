@@ -98,6 +98,13 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('/ayarlar/update-check', [SettingsController::class, 'checkUpdates'])->name('settings.update-check');
             Route::post('/ayarlar/update-prepare', [SettingsController::class, 'prepareUpdate'])->name('settings.update-prepare');
             Route::get('/integrations/mikro/test', MikroTestController::class)->name('integrations.mikro.test');
+        });
+
+    // Reports, Gallery, Logs — accessible to all internal roles; fine-grained access enforced in controllers via hasPermission()
+    Route::middleware('role:admin,purchasing,graphic')
+        ->prefix('admin')
+        ->name('admin.')
+        ->group(function () {
             Route::get('/raporlar', [ReportController::class, 'index'])->name('reports.index');
             Route::get('/loglar', [AuditLogController::class, 'index'])->name('logs.index');
             Route::get('/artwork-galerisi', [ArtworkGalleryController::class, 'index'])->name('artwork-gallery.index');

@@ -17,6 +17,11 @@ class ReportController extends Controller
 {
     public function index(): View
     {
+        abort_if(
+            ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('reports', 'view'),
+            403
+        );
+
         $summary = [
             'active_orders' => PurchaseOrder::query()->where('status', 'active')->count(),
             'pending_artwork' => PurchaseOrderLine::query()->where('artwork_status', 'pending')->count(),

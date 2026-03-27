@@ -27,6 +27,7 @@ class OrderController extends Controller
             ->withListMetrics()
             ->when($request->supplier_id, fn ($query) => $query->where('supplier_id', $request->supplier_id))
             ->when($request->status, fn ($query) => $query->where('status', $request->status))
+            ->when($request->artwork_status, fn ($query) => $query->whereHas('lines', fn ($q) => $q->where('artwork_status', $request->artwork_status)))
             ->when($request->search, fn ($query) => $query->search($request->search))
             ->orderByDesc('order_date')
             ->paginate(25)

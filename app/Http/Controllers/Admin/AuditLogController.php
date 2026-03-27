@@ -12,6 +12,11 @@ class AuditLogController extends Controller
 {
     public function index(Request $request): View
     {
+        abort_if(
+            ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('logs', 'view'),
+            403
+        );
+
         $logs = AuditLog::query()
             ->select(['id', 'user_id', 'action', 'payload', 'ip_address', 'created_at'])
             ->with('user:id,name,role')
