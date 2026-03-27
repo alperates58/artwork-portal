@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Vite Dev Server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "Docker Full Stack (Nginx + PHP + MySQL + Redis)",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": ["compose", "up"],
+      "port": 80
+    },
+    {
+      "name": "Laravel Artisan Serve (Docker'sız)",
+      "runtimeExecutable": "php",
+      "runtimeArgs": ["artisan", "serve", "--port=8000"],
+      "port": 8000
+    },
+    {
+      "name": "Queue Worker",
+      "runtimeExecutable": "php",
+      "runtimeArgs": ["artisan", "queue:work", "redis", "--sleep=3", "--tries=3"],
+      "port": 0
+    }
+  ]
+}
