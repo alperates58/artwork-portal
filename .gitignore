@@ -36,6 +36,10 @@
 # Logs
 npm-debug.log
 yarn-error.log
+*.log
+
+# Temporary files
+tmp_*
 
 # IDE
 /.fleet
