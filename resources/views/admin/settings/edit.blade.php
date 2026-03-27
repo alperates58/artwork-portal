@@ -2,7 +2,6 @@
 @section('title', 'Ayarlar')
 @section('page-title', 'Sistem Ayarlari')
 @section('page-subtitle', 'Guncelleme, entegrasyon ve altyapi ayarlarini daha net bir alt navigasyon ile yonetin.')
-@section('page-aside-storage-key', 'admin-settings-aside')
 
 @php
     $tabs = [
@@ -119,110 +118,9 @@
     $activeAside = $sectionHighlights[$activeTab];
 @endphp
 
-@section('page-aside')
-    <div class="card overflow-hidden border-slate-200/90 bg-white/95 shadow-[0_20px_40px_rgba(15,23,42,0.06)]">
-        <div class="border-b border-slate-200/80 px-5 py-4">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">{{ $activeSection['eyebrow'] }}</p>
-            <h2 class="mt-2 text-base font-semibold text-slate-950">{{ $activeAside['title'] }}</h2>
-            <p class="mt-2 text-sm leading-6 text-slate-500">{{ $activeAside['summary'] }}</p>
-        </div>
-        <div class="space-y-5 px-5 py-5">
-            <div class="space-y-3">
-                @foreach($activeAside['meta'] as $item)
-                    <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
-                        <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">{{ $item['label'] }}</p>
-                        <p class="mt-1 text-sm font-medium text-slate-900">{{ $item['value'] }}</p>
-                    </div>
-                @endforeach
-            </div>
-
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Bu bolumde dikkat</p>
-                <ul class="mt-3 space-y-3 text-sm leading-6 text-slate-600">
-                    @foreach($activeAside['points'] as $point)
-                        <li class="flex gap-3">
-                            <span class="mt-2 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-brand-500"></span>
-                            <span>{{ $point }}</span>
-                        </li>
-                    @endforeach
-                </ul>
-            </div>
-        </div>
-    </div>
-
-    <div class="card border-slate-200/90 bg-white/90 p-5">
-        <div class="flex items-center justify-between gap-3">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Hizli gecis</p>
-                <h3 class="mt-1 text-sm font-semibold text-slate-900">Ayar bolumleri</h3>
-            </div>
-            <x-ui.badge :variant="$statusVariant">
-                {{ $activeSection['label'] }}
-            </x-ui.badge>
-        </div>
-        <div class="mt-4 space-y-2">
-            @foreach($tabs as $tabKey => $tab)
-                <a href="{{ route('admin.settings.edit', ['tab' => $tabKey]) }}" class="settings-mini-link {{ $activeTab === $tabKey ? 'active' : '' }}">
-                    <span class="font-medium">{{ $tab['label'] }}</span>
-                    <span class="text-xs text-slate-500">{{ $tab['eyebrow'] }}</span>
-                </a>
-            @endforeach
-        </div>
-    </div>
-@endsection
-
 @section('content')
 <div class="space-y-6">
-    <section class="rounded-[28px] border border-slate-200/80 bg-white/95 p-5 shadow-[0_20px_40px_rgba(15,23,42,0.05)] sm:p-6">
-        <div class="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-            <div class="max-w-3xl">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">Admin ayarlari</p>
-                <h2 class="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Ayarlar menusu artik daha net bir alt yapida</h2>
-                <p class="mt-3 text-sm leading-6 text-slate-500">
-                    "Ayarlar" ana menude tek noktada kalir. Alt kategoriler ise bu sayfada daha okunur bir yapiyla ayrilir; mevcut save, validation ve deep-link davranisi korunur.
-                </p>
-            </div>
-            <div class="grid gap-3 sm:grid-cols-3 xl:w-[420px]">
-                <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Aktif bolum</p>
-                    <p class="mt-2 text-sm font-semibold text-slate-900">{{ $activeSection['label'] }}</p>
-                </div>
-                <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Deep-link</p>
-                    <p class="mt-2 text-sm font-semibold text-slate-900">?tab={{ $activeTab }}</p>
-                </div>
-                <div class="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Sag panel</p>
-                    <p class="mt-2 text-sm font-semibold text-slate-900">Ac / kapat</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <div class="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
-        <aside class="space-y-4">
-            <div class="card overflow-hidden border-slate-200/90 bg-white/95 shadow-[0_20px_40px_rgba(15,23,42,0.05)]">
-                <div class="border-b border-slate-200/80 px-5 py-4">
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Bolumler</p>
-                    <h2 class="mt-1 text-base font-semibold text-slate-900">Ayarlar alt navigasyonu</h2>
-                </div>
-                <div class="space-y-2 p-3">
-                    @foreach($tabs as $tabKey => $tab)
-                        <a href="{{ route('admin.settings.edit', ['tab' => $tabKey]) }}" class="settings-nav-link {{ $activeTab === $tabKey ? 'active' : '' }}">
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="min-w-0">
-                                    <p class="text-[11px] font-semibold uppercase tracking-[0.18em] {{ $activeTab === $tabKey ? 'text-brand-700' : 'text-slate-400' }}">{{ $tab['eyebrow'] }}</p>
-                                    <p class="mt-1 text-sm font-semibold text-slate-900">{{ $tab['label'] }}</p>
-                                    <p class="mt-1 text-xs leading-5 text-slate-500">{{ $tab['description'] }}</p>
-                                </div>
-                                <span class="settings-nav-dot {{ $activeTab === $tabKey ? 'active' : '' }}"></span>
-                            </div>
-                        </a>
-                    @endforeach
-                </div>
-            </div>
-        </aside>
-
+    <div>
         <div class="min-w-0 space-y-6">
             <section class="card overflow-hidden border-slate-200/90 bg-white/95 shadow-[0_20px_40px_rgba(15,23,42,0.05)]">
                 <div class="border-b border-slate-200/80 px-6 py-5">

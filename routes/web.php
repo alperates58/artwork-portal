@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ArtworkGalleryController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\MikroTestController;
+use App\Http\Controllers\Admin\PermissionsController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SupplierController;
@@ -84,6 +85,11 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/tedarikciler/{supplier}/duzenle', [SupplierController::class, 'edit'])->name('suppliers.edit');
             Route::patch('/tedarikciler/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
             Route::delete('/tedarikciler/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
+
+            Route::get('/yetkiler', [PermissionsController::class, 'index'])->name('permissions.index');
+            Route::get('/yetkiler/{user}', [PermissionsController::class, 'show'])->name('permissions.show');
+            Route::put('/yetkiler/{user}', [PermissionsController::class, 'update'])->name('permissions.update');
+            Route::post('/yetkiler/{user}/sifirla', [PermissionsController::class, 'reset'])->name('permissions.reset');
 
             Route::get('/ayarlar', [SettingsController::class, 'edit'])->name('settings.edit');
             Route::put('/ayarlar', [SettingsController::class, 'update'])->name('settings.update');

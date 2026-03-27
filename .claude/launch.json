@@ -11,7 +11,8 @@
       "name": "Docker Full Stack (Nginx + PHP + MySQL + Redis)",
       "runtimeExecutable": "docker",
       "runtimeArgs": ["compose", "up"],
-      "port": 80
+      "port": 80,
+      "autoPort": false
     },
     {
       "name": "Laravel Artisan Serve (Docker'sız)",

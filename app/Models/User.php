@@ -31,6 +31,7 @@ class User extends Authenticatable
         'supplier_id',
         'is_active',
         'last_login_at',
+        'permissions',
     ];
 
     protected $hidden = [
@@ -45,7 +46,82 @@ class User extends Authenticatable
             'is_active'     => 'boolean',
             'last_login_at' => 'datetime',
             'password'      => 'hashed',
+            'permissions'   => 'array',
         ];
+    }
+
+    /**
+     * Kullanıcının belirli bir ekran/aksiyona erişim yetkisi var mı?
+     * Admin her zaman tam yetkilidir. Özel permissions tanımlanmışsa onlar,
+     * yoksa role göre varsayılan yetkiler kullanılır.
+     */
+    public function hasPermission(string $screen, string $action = 'view'): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        if ($this->isSupplier()) {
+            return false;
+        }
+
+        $perms = $this->permissions;
+
+        if (! empty($perms)) {
+            return ($perms[$screen][$action] ?? false) === true;
+        }
+
+        return $this->roleDefaultPermission($screen, $action);
+    }
+
+    private function roleDefaultPermission(string $screen, string $action): bool
+    {
+        $defaults = [
+            UserRole::PURCHASING->value => [
+                'dashboard'  => ['view'],
+                'orders'     => ['view', 'create', 'edit'],
+                'suppliers'  => ['view'],
+                'reports'    => ['view'],
+                'gallery'    => ['view'],
+            ],
+            UserRole::GRAPHIC->value => [
+                'dashboard'  => ['view'],
+                'orders'     => ['view'],
+                'gallery'    => ['view', 'upload', 'delete'],
+            ],
+        ];
+
+        return in_array($action, $defaults[$this->role->value][$screen] ?? [], true);
+    }
+
+    /**
+     * Rolün varsayılan izinlerini dizi olarak döndürür (Yetkiler UI için).
+     */
+    public static function defaultPermissionsForRole(UserRole $role): array
+    {
+        return match ($role) {
+            UserRole::PURCHASING => [
+                'dashboard' => ['view' => true],
+                'orders'    => ['view' => true, 'create' => true, 'edit' => true, 'delete' => false],
+                'suppliers' => ['view' => true, 'create' => false, 'edit' => false],
+                'users'     => ['view' => false, 'create' => false, 'edit' => false],
+                'reports'   => ['view' => true],
+                'gallery'   => ['view' => true, 'upload' => false, 'delete' => false],
+                'logs'      => ['view' => false],
+                'settings'  => ['view' => false, 'edit' => false],
+            ],
+            UserRole::GRAPHIC => [
+                'dashboard' => ['view' => true],
+                'orders'    => ['view' => true, 'create' => false, 'edit' => false, 'delete' => false],
+                'suppliers' => ['view' => false, 'create' => false, 'edit' => false],
+                'users'     => ['view' => false, 'create' => false, 'edit' => false],
+                'reports'   => ['view' => false],
+                'gallery'   => ['view' => true, 'upload' => true, 'delete' => true],
+                'logs'      => ['view' => false],
+                'settings'  => ['view' => false, 'edit' => false],
+            ],
+            default => [],
+        };
     }
 
     public function supplier(): BelongsTo
