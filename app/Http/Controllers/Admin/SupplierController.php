@@ -13,7 +13,7 @@ class SupplierController extends Controller
 {
     public function index(Request $request): View
     {
-        abort_unless(auth()->user()->isAdmin() || auth()->user()->isPurchasing(), 403);
+        abort_unless(auth()->user()->hasPermission('suppliers'), 403);
 
         $suppliers = Supplier::query()
             ->select(['id', 'name', 'code', 'email', 'phone', 'is_active'])
@@ -31,14 +31,14 @@ class SupplierController extends Controller
 
     public function create(): View
     {
-        abort_unless(auth()->user()->isAdmin() || auth()->user()->isPurchasing(), 403);
+        abort_unless(auth()->user()->hasPermission('suppliers', 'create'), 403);
 
         return view('admin.suppliers.create');
     }
 
     public function store(Request $request): RedirectResponse
     {
-        abort_unless(auth()->user()->isAdmin() || auth()->user()->isPurchasing(), 403);
+        abort_unless(auth()->user()->hasPermission('suppliers', 'create'), 403);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:200'],
@@ -59,7 +59,7 @@ class SupplierController extends Controller
 
     public function show(Supplier $supplier): View
     {
-        abort_unless(auth()->user()->isAdmin() || auth()->user()->isPurchasing(), 403);
+        abort_unless(auth()->user()->hasPermission('suppliers'), 403);
 
         $supplier->load([
             'allUsers',

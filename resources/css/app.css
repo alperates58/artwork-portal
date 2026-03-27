@@ -4,10 +4,10 @@
 
 @layer base {
   :root {
-    --brand-500: #f49a0b;
-    --brand-600: #db7906;
-    --brand-700: #b65909;
-    --ring: rgba(244, 154, 11, 0.26);
+    --brand-500: #3b82f6;
+    --brand-600: #2563eb;
+    --brand-700: #1d4ed8;
+    --ring: rgba(59, 130, 246, 0.22);
   }
 
   [x-cloak] {
@@ -17,7 +17,7 @@
 
 @layer components {
   .card {
-    @apply overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04)];
+    @apply overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm;
   }
 
   .label {
@@ -37,7 +37,7 @@
   }
 
   .input:focus {
-    border-color: rgba(244, 154, 11, 0.8);
+    border-color: rgba(37, 99, 235, 0.7);
     box-shadow: 0 0 0 4px var(--ring);
   }
 
@@ -65,8 +65,9 @@
   }
 
   .btn-primary {
-    @apply text-white shadow-[0_10px_22px_rgba(180,89,9,0.16)];
+    @apply text-white;
     background: linear-gradient(180deg, var(--brand-600), var(--brand-700));
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
   }
 
   .btn-primary:hover {
@@ -74,11 +75,11 @@
   }
 
   .btn-secondary {
-    @apply border border-slate-300 bg-white text-slate-800;
+    @apply border border-slate-200 bg-white text-slate-700 shadow-sm;
   }
 
   .btn-secondary:hover {
-    @apply bg-slate-50;
+    @apply border-slate-300 bg-slate-50;
   }
 
   .badge {
@@ -86,19 +87,19 @@
   }
 
   .badge-success {
-    @apply border-emerald-200 bg-emerald-100 text-emerald-700;
+    @apply border-emerald-200 bg-emerald-50 text-emerald-700;
   }
 
   .badge-warning {
-    @apply border-amber-200 bg-amber-100 text-amber-700;
+    @apply border-amber-200 bg-amber-50 text-amber-700;
   }
 
   .badge-danger {
-    @apply border-red-200 bg-red-100 text-red-700;
+    @apply border-red-200 bg-red-50 text-red-700;
   }
 
   .badge-info {
-    @apply border-blue-200 bg-blue-100 text-blue-700;
+    @apply border-blue-200 bg-blue-50 text-blue-700;
   }
 
   .badge-gray {
@@ -120,7 +121,7 @@
   .step-dot.active {
     @apply text-white;
     background: linear-gradient(180deg, var(--brand-600), var(--brand-700));
-    box-shadow: 0 0 0 6px rgba(244, 154, 11, 0.12);
+    box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.12);
   }
 
   .step-line {
@@ -136,16 +137,17 @@
   }
 
   .sidebar-link {
-    @apply flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-medium text-slate-600 transition;
+    @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition;
   }
 
   .sidebar-link:hover {
-    @apply bg-slate-50 text-slate-900;
+    @apply bg-slate-100/80 text-slate-900;
   }
 
   .sidebar-link.active {
-    @apply text-brand-900 shadow-[0_12px_30px_rgba(244,154,11,0.12)];
-    background: linear-gradient(180deg, rgba(255, 247, 237, 0.96), rgba(255, 237, 213, 0.82));
+    @apply text-blue-900;
+    background: linear-gradient(135deg, rgba(239, 246, 255, 0.98), rgba(219, 234, 254, 0.80));
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
   }
 
   .brand-shell {
@@ -153,15 +155,15 @@
   }
 
   .brand-mark {
-    @apply flex h-16 w-16 items-center justify-center rounded-[24px] border border-white/70 bg-white/95 shadow-[0_14px_30px_rgba(15,23,42,0.08)];
+    @apply flex h-16 w-16 items-center justify-center rounded-[24px] border border-slate-100 bg-white shadow-sm;
   }
 
   .brand-eyebrow {
-    @apply text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-700;
+    @apply text-[10px] font-bold uppercase tracking-[0.22em] text-blue-600;
   }
 
   .settings-nav-link {
-    @apply block rounded-[22px] border border-transparent bg-transparent px-4 py-4 transition;
+    @apply block rounded-2xl border border-transparent bg-transparent px-4 py-4 transition;
   }
 
   .settings-nav-link:hover {
@@ -169,9 +171,9 @@
   }
 
   .settings-nav-link.active {
-    border-color: rgba(244, 154, 11, 0.24);
-    background: linear-gradient(180deg, rgba(255, 247, 237, 0.98), rgba(255, 237, 213, 0.78));
-    box-shadow: 0 16px 36px rgba(244, 154, 11, 0.12);
+    border-color: rgba(37, 99, 235, 0.2);
+    background: linear-gradient(180deg, rgba(239, 246, 255, 0.98), rgba(219, 234, 254, 0.72));
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.08);
   }
 
   .settings-nav-dot {
@@ -179,7 +181,8 @@
   }
 
   .settings-nav-dot.active {
-    @apply bg-brand-500 shadow-[0_0_0_6px_rgba(244,154,11,0.12)];
+    @apply bg-blue-500;
+    box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.12);
   }
 
   .settings-mini-link {
@@ -191,7 +194,7 @@
   }
 
   .settings-mini-link.active {
-    @apply border-brand-200 bg-brand-50/70 text-brand-900;
+    @apply border-blue-200 bg-blue-50/70 text-blue-900;
   }
 
   .page-context-aside {

@@ -3,22 +3,23 @@
 <head>
     @include('partials.ui-head', ['title' => trim($__env->yieldContent('title', config('portal.brand_name')))])
     <style>
-        /* ── Sidebar transitions ── */
+        /* ── Desktop: Sidebar transitions ── */
         #sidebar-wrap {
-            width: 288px;
+            width: 272px;
             flex-shrink: 0;
             transition: width .25s cubic-bezier(.4,0,.2,1);
         }
         #main-sidebar {
-            width: 288px;
+            width: 272px;
             transition: width .25s cubic-bezier(.4,0,.2,1);
             overflow: hidden;
+            background: #ffffff;
         }
 
-        /* ── Collapsed: icon strip (64px) ── */
+        /* ── Collapsed: icon strip (60px) ── */
         #sidebar-wrap.collapsed,
         #sidebar-wrap.collapsed #main-sidebar {
-            width: 64px;
+            width: 60px;
         }
 
         /* Hide text labels when collapsed */
@@ -41,12 +42,11 @@
 
         /* Logo: center image when collapsed */
         #sidebar-wrap.collapsed .sb-logo-wrap {
-            flex-direction: column;
-            align-items: center;
             padding: 0.75rem 0.5rem;
+            justify-content: center;
         }
         #sidebar-wrap.collapsed .sb-logo-img {
-            height: 2.5rem;
+            height: 2rem;
         }
 
         /* User footer when collapsed */
@@ -56,6 +56,43 @@
         }
         #sidebar-wrap.collapsed .sb-logout {
             display: none;
+        }
+
+        /* ── Mobile: sidebar as overlay ── */
+        @media (max-width: 1023px) {
+            #sidebar-wrap {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100vh;
+                z-index: 50;
+                width: 272px !important;
+                transform: translateX(-100%);
+                transition: transform .25s cubic-bezier(.4,0,.2,1);
+                box-shadow: 4px 0 24px rgba(15,23,42,0.12);
+            }
+            #sidebar-wrap.mobile-open {
+                transform: translateX(0);
+            }
+            #main-sidebar {
+                width: 272px !important;
+            }
+            /* Backdrop */
+            #sidebar-backdrop {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 23, 42, 0.4);
+                z-index: 49;
+                backdrop-filter: blur(2px);
+            }
+            #sidebar-backdrop.visible {
+                display: block;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            #sidebar-backdrop { display: none !important; }
         }
 
         /* ── Nav group submenu animation ── */
@@ -68,6 +105,22 @@
             grid-template-rows: 0fr;
         }
         .nav-group-items > div { overflow: hidden; }
+
+        /* ── Corporate color overrides (for compiled Tailwind classes) ── */
+        .text-brand-700 { color: #1d4ed8; }
+        .text-brand-900 { color: #1e3a8a; }
+        .text-brand-500 { color: #3b82f6; }
+        .hover\:text-brand-700:hover { color: #1d4ed8; }
+        .bg-brand-50 { background-color: #eff6ff; }
+        .bg-brand-100 { background-color: #dbeafe; }
+        .bg-brand-600 { background-color: #2563eb; }
+        .bg-brand-100 { background-color: #dbeafe; }
+        .border-brand-200 { border-color: #bfdbfe; }
+        .text-brand-800 { color: #1e40af; }
+        .bg-brand-500 { background-color: #3b82f6; }
+        .rotate-180 { transform: rotate(180deg); }
+        .text-brand-600 { color: #2563eb; }
+        .bg-brand-50\/70 { background-color: rgba(239,246,255,0.7); }
     </style>
 </head>
 <body class="bg-slate-100 font-sans antialiased text-slate-900">
@@ -84,25 +137,24 @@
     $settingsOpen        = request()->routeIs('admin.settings.*') || request()->routeIs('admin.permissions.*');
 @endphp
 
-<div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(244,154,11,0.08),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef2f7_100%)]">
+<div class="min-h-screen bg-slate-50">
     <div class="flex min-h-screen">
 
         {{-- ── Sidebar ── --}}
         <div id="sidebar-wrap">
-            <aside id="main-sidebar" class="h-screen sticky top-0 flex flex-col border-r border-slate-200/80 bg-white/95 backdrop-blur">
+            <aside id="main-sidebar" class="h-screen sticky top-0 flex flex-col border-r border-slate-200 bg-white">
 
                 {{-- Logo --}}
                 <div class="border-b border-slate-200/80 px-4 py-4">
                     <a href="{{ route('dashboard') }}"
-                       class="sb-logo-wrap group flex flex-col items-center gap-2 rounded-3xl border border-slate-200/80 bg-[linear-gradient(135deg,_rgba(255,255,255,0.96),_rgba(255,247,237,0.96))] px-4 py-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)] transition hover:border-brand-200">
+                       class="sb-logo-wrap group flex flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-sm transition hover:border-blue-100 hover:shadow-md">
                         @if($logoUrl)
                             <img src="{{ $logoUrl }}" alt="{{ config('portal.brand_name') }}" class="sb-logo-img h-16 w-auto object-contain">
                         @else
                             <div class="sb-logo-img h-16 w-16 rounded-2xl bg-brand-600"></div>
                         @endif
                         <div class="sb-logo-text text-center">
-                            <span class="brand-eyebrow block">Lider Kozmetik</span>
-                            <span class="block text-sm font-semibold text-slate-950">{{ config('portal.brand_name') }}</span>
+                            <span class="block text-sm font-semibold text-slate-800">{{ config('portal.brand_name') }}</span>
                         </div>
                     </a>
                 </div>
@@ -315,9 +367,12 @@
             </aside>
         </div>
 
+        {{-- ── Mobile sidebar backdrop ── --}}
+        <div id="sidebar-backdrop"></div>
+
         {{-- ── Main content ── --}}
         <div class="flex min-w-0 flex-1 flex-col">
-            <header class="border-b border-slate-200/80 bg-white/85 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
+            <header class="border-b border-slate-200 bg-white px-4 py-3 sm:px-6 lg:px-8">
                 <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div class="flex items-start gap-4">
                         {{-- Hamburger toggle --}}
@@ -409,10 +464,13 @@
     var SIDEBAR_KEY   = 'lider-portal:sidebar';
     var NAV_GROUP_KEY = 'lider-portal:nav-group:';
 
-    /* ── Sidebar collapse (icon strip) ── */
-    var wrap   = document.getElementById('sidebar-wrap');
-    var toggle = document.getElementById('sidebar-toggle');
+    var wrap     = document.getElementById('sidebar-wrap');
+    var toggle   = document.getElementById('sidebar-toggle');
+    var backdrop = document.getElementById('sidebar-backdrop');
 
+    function isMobile() { return window.innerWidth < 1024; }
+
+    /* ── Desktop: sidebar collapse (icon strip) ── */
     function setSidebar(state) {
         if (state === 'collapsed') {
             wrap.classList.add('collapsed');
@@ -422,14 +480,45 @@
         localStorage.setItem(SIDEBAR_KEY, state);
     }
 
+    /* ── Mobile: sidebar overlay ── */
+    function setMobileSidebar(open) {
+        if (open) {
+            wrap.classList.add('mobile-open');
+            if (backdrop) backdrop.classList.add('visible');
+        } else {
+            wrap.classList.remove('mobile-open');
+            if (backdrop) backdrop.classList.remove('visible');
+        }
+    }
+
     if (wrap && toggle) {
-        var stored = localStorage.getItem(SIDEBAR_KEY) || 'open';
-        setSidebar(stored);
+        if (!isMobile()) {
+            var stored = localStorage.getItem(SIDEBAR_KEY) || 'open';
+            setSidebar(stored);
+        }
 
         toggle.addEventListener('click', function () {
-            setSidebar(wrap.classList.contains('collapsed') ? 'open' : 'collapsed');
+            if (isMobile()) {
+                setMobileSidebar(!wrap.classList.contains('mobile-open'));
+            } else {
+                setSidebar(wrap.classList.contains('collapsed') ? 'open' : 'collapsed');
+            }
         });
     }
+
+    if (backdrop) {
+        backdrop.addEventListener('click', function () {
+            setMobileSidebar(false);
+        });
+    }
+
+    window.addEventListener('resize', function () {
+        if (!isMobile()) {
+            setMobileSidebar(false);
+            var stored = localStorage.getItem(SIDEBAR_KEY) || 'open';
+            setSidebar(stored);
+        }
+    });
 
     /* ── Nav group toggle (Ayarlar vb.) ── */
     document.querySelectorAll('[data-nav-group-toggle]').forEach(function (btn) {

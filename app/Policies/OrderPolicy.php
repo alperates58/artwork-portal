@@ -2,7 +2,6 @@
 
 namespace App\Policies;
 
-use App\Enums\UserRole;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\User;
@@ -29,7 +28,8 @@ class OrderPolicy
 
     public function create(User $user): bool
     {
-        return in_array($user->role, [UserRole::ADMIN, UserRole::PURCHASING], true);
+        if ($user->isSupplier()) return false;
+        return $user->hasPermission('orders', 'create');
     }
 
     public function uploadArtwork(User $user, PurchaseOrderLine $line): bool
@@ -39,11 +39,13 @@ class OrderPolicy
 
     public function update(User $user, PurchaseOrder $order): bool
     {
-        return in_array($user->role, [UserRole::ADMIN, UserRole::PURCHASING], true);
+        if ($user->isSupplier()) return false;
+        return $user->hasPermission('orders', 'edit');
     }
 
     public function delete(User $user, PurchaseOrder $order): bool
     {
-        return $user->isAdmin();
+        if ($user->isSupplier()) return false;
+        return $user->hasPermission('orders', 'delete');
     }
 }

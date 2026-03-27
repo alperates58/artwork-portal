@@ -79,19 +79,4 @@
         </div>
     </div>
 </div>
-
-@if(auth()->user()->isAdmin())
-<div class="card p-5 mt-6">
-    <div class="flex items-center justify-between">
-        <div>
-            <h2 class="text-sm font-semibold text-slate-900 mb-1">Mikro ERP Senkronizasyonu</h2>
-            <p class="text-xs text-slate-500">Son sync: {{ !empty($panels['last_erp_sync']) ? \Illuminate\Support\Carbon::parse($panels['last_erp_sync'])->diffForHumans() : 'Henüz çalıştırılmadı' }}</p>
-        </div>
-        <form method="POST" action="{{ route('admin.erp.sync') }}">
-            @csrf
-            <button type="submit" class="btn btn-secondary text-xs">Sync Çalıştır</button>
-        </form>
-    </div>
-</div>
-@endif
 @endsection
