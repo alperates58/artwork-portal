@@ -75,7 +75,7 @@
         @endcan
     </div>
 
-    <div class="lg:col-span-2">
+    <div class="lg:col-span-2 space-y-6">
         <div class="card">
             <div class="px-5 py-4 border-b border-slate-100">
                 <h2 class="text-sm font-semibold text-slate-900">Sipariş Satırları ({{ $order->lines->count() }})</h2>
@@ -133,6 +133,51 @@
                     </div>
                 @endforeach
             </div>
+        </div>
+
+        {{-- Sipariş Notları --}}
+        <div class="card">
+            <div class="px-5 py-4 border-b border-slate-100">
+                <h2 class="text-sm font-semibold text-slate-900">Sipariş Notları</h2>
+            </div>
+
+            @if($order->orderNotes->isNotEmpty())
+                <div class="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+                    @foreach($order->orderNotes as $note)
+                        <div class="px-5 py-4 flex gap-3">
+                            <div class="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span class="text-xs font-semibold text-brand-700">{{ strtoupper(substr($note->user->name, 0, 2)) }}</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs font-semibold text-slate-900">{{ $note->user->name }}</span>
+                                    <span class="text-xs text-slate-400">{{ $note->created_at->format('d.m.Y H:i') }}</span>
+                                </div>
+                                <p class="text-sm text-slate-700 whitespace-pre-wrap">{{ $note->body }}</p>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="px-5 py-6 text-center text-sm text-slate-400">Henüz not eklenmemiş.</div>
+            @endif
+
+            @if(!auth()->user()->isSupplier())
+                <div class="px-5 py-4 border-t border-slate-100">
+                    <form method="POST" action="{{ route('orders.notes.store', $order) }}" class="flex gap-3">
+                        @csrf
+                        <div class="flex-1">
+                            <textarea name="body" rows="2"
+                                class="input resize-none"
+                                placeholder="Not ekle…">{{ old('body') }}</textarea>
+                            @error('body')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <button type="submit" class="btn btn-primary self-end">Ekle</button>
+                    </form>
+                </div>
+            @endif
         </div>
     </div>
 </div>

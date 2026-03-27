@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Order;
 
 use App\Http\Controllers\Controller;
+use App\Models\OrderNote;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Services\AuditLogService;
@@ -45,6 +46,7 @@ class OrderController extends Controller
             'createdBy',
             'lines.artwork.activeRevision.uploadedBy',
             'lines.artwork.revisions' => fn ($query) => $query->orderByDesc('revision_no'),
+            'orderNotes.user:id,name',
         ]);
 
         $this->audit->log('order.view', $order);
@@ -140,6 +142,20 @@ class OrderController extends Controller
         return redirect()
             ->route('orders.show', $order)
             ->with('success', 'Sipariş güncellendi.');
+    }
+
+    public function storeNote(Request $request, PurchaseOrder $order): RedirectResponse
+    {
+        $request->validate([
+            'body' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $order->orderNotes()->create([
+            'user_id' => auth()->id(),
+            'body'    => $request->string('body'),
+        ]);
+
+        return back()->with('success', 'Not eklendi.');
     }
 
     public function destroy(Request $request, PurchaseOrder $order): RedirectResponse

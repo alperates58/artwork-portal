@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker exec:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(find C:UsersAlperDesktopportalartwork-portalresourcesviews -path */artwork-gallery* -o -path */artwork_gallery*)",
+      "Bash(npm run:*)",
+      "Bash(grep -o '#f49a0b\\\\|#db7906\\\\|#b65909\\\\|#2563eb\\\\|#1d4ed8' public/build/assets/*.css)",
+      "Bash(find /c/Users/Alper/AppData/Local/Temp -name *.png -newer /c/Users/Alper/Desktop/portal/artwork-portal/public/brand/lider-logo.png)",
+      "Bash(find /c/Users/Alper/AppData/Roaming -name *.png -newer /c/Users/Alper/Desktop/portal/artwork-portal/public/brand/lider-logo.png)",
+      "Bash(find /c/Users/Alper -name logo-icon* -o -name lotus* -o -name icon*)",
+      "Bash(node -e \":*)",
+      "Bash(php artisan:*)",
+      "Bash(docker exec artwork_app php -r \":*)",
+      "Bash(grep -v \"^$\")",
+      "Bash(docker compose:*)"
+    ]
+  }
+}

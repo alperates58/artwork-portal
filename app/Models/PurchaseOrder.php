@@ -54,6 +54,11 @@ class PurchaseOrder extends Model
         return $this->hasMany(PurchaseOrderLine::class);
     }
 
+    public function orderNotes(): HasMany
+    {
+        return $this->hasMany(OrderNote::class)->orderBy('created_at');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'active');

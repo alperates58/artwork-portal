@@ -6,19 +6,23 @@
 <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
     <x-ui.card padding="p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Aktif Sipariş</p>
-        <p class="text-2xl font-semibold text-slate-900">{{ number_format($summary['active_orders']) }}</p>
+        <a href="{{ route('orders.index', ['status' => 'active']) }}" class="text-2xl font-semibold text-slate-900 hover:text-brand-700 transition-colors">{{ number_format($summary['active_orders']) }}</a>
+        <p class="text-xs text-slate-400 mt-1">Siparişlere git →</p>
     </x-ui.card>
     <x-ui.card padding="p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Bekleyen Artwork</p>
-        <p class="text-2xl font-semibold text-slate-900">{{ number_format($summary['pending_artwork']) }}</p>
+        <a href="{{ route('admin.reports.pending') }}" class="text-2xl font-semibold text-amber-600 hover:text-amber-700 transition-colors">{{ number_format($summary['pending_artwork']) }}</a>
+        <p class="text-xs text-slate-400 mt-1">Yaşlandırma raporu →</p>
     </x-ui.card>
     <x-ui.card padding="p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Bugün Yüklenen</p>
-        <p class="text-2xl font-semibold text-slate-900">{{ number_format($summary['uploaded_today']) }}</p>
+        <a href="{{ route('orders.index', ['artwork_status' => 'uploaded']) }}" class="text-2xl font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">{{ number_format($summary['uploaded_today']) }}</a>
+        <p class="text-xs text-slate-400 mt-1">Yüklenmiş siparişler →</p>
     </x-ui.card>
     <x-ui.card padding="p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">7 Gün İndirme</p>
-        <p class="text-2xl font-semibold text-slate-900">{{ number_format($summary['recent_downloads']) }}</p>
+        <a href="{{ route('admin.logs.index') }}" class="text-2xl font-semibold text-brand-600 hover:text-brand-700 transition-colors">{{ number_format($summary['recent_downloads']) }}</a>
+        <p class="text-xs text-slate-400 mt-1">Sistem logları →</p>
     </x-ui.card>
 </div>
 
@@ -32,7 +36,7 @@
                 @forelse($orderLeadTimes as $item)
                     <div class="px-5 py-4 flex items-center justify-between gap-4">
                         <div>
-                            <p class="text-sm font-medium text-slate-900">{{ $item->order_no }}</p>
+                            <a href="{{ route('orders.index', ['search' => $item->order_no]) }}" class="text-sm font-medium text-slate-900 hover:text-brand-700 hover:underline">{{ $item->order_no }}</a>
                             <p class="text-xs text-slate-500">{{ $item->supplier_name }} · {{ $item->order_date->format('d.m.Y') }}</p>
                         </div>
                         <div class="text-right">

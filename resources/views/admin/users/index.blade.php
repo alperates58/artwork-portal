@@ -51,16 +51,23 @@
                         <span class="badge badge-gray">Pasif</span>
                     @endif
                 </td>
-                <td class="px-4 py-3 text-right flex items-center justify-end gap-3">
-                    <a href="{{ route('admin.users.edit', $user) }}" class="text-brand-700 hover:underline text-xs">Düzenle</a>
-                    @if($user->id !== auth()->id())
-                        <form method="POST" action="{{ route('admin.users.toggle', $user) }}">
-                            @csrf @method('PATCH')
-                            <button type="submit" class="text-xs {{ $user->is_active ? 'text-red-500' : 'text-emerald-600' }} hover:underline">
-                                {{ $user->is_active ? 'Pasife Al' : 'Aktif Et' }}
-                            </button>
-                        </form>
-                    @endif
+                <td class="px-4 py-3 text-right">
+                    <div class="flex items-center justify-end gap-3">
+                        <a href="{{ route('admin.users.edit', $user) }}" class="text-brand-700 hover:underline text-xs">Düzenle</a>
+                        @if($user->id !== auth()->id())
+                            <form method="POST" action="{{ route('admin.users.toggle', $user) }}">
+                                @csrf @method('PATCH')
+                                <button type="submit" class="text-xs {{ $user->is_active ? 'text-amber-600' : 'text-emerald-600' }} hover:underline">
+                                    {{ $user->is_active ? 'Pasife Al' : 'Aktif Et' }}
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('admin.users.destroy', $user) }}"
+                                  onsubmit="return confirm('{{ $user->name }} kullanıcısını silmek istediğinize emin misiniz?')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="text-xs text-red-500 hover:underline">Sil</button>
+                            </form>
+                        @endif
+                    </div>
                 </td>
             </tr>
             @empty
