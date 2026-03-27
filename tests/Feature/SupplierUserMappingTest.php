@@ -38,4 +38,45 @@ class SupplierUserMappingTest extends TestCase
             'can_download' => true,
         ]);
     }
+
+    public function test_creating_supplier_user_directly_also_creates_primary_mapping(): void
+    {
+        $supplier = Supplier::factory()->create();
+
+        $user = User::factory()->create([
+            'role' => UserRole::SUPPLIER,
+            'supplier_id' => $supplier->id,
+        ]);
+
+        $this->assertDatabaseHas('supplier_users', [
+            'supplier_id' => $supplier->id,
+            'user_id' => $user->id,
+            'is_primary' => true,
+            'can_download' => true,
+        ]);
+    }
+
+    public function test_switching_user_away_from_supplier_role_removes_mapping(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $user = User::factory()->create([
+            'role' => UserRole::SUPPLIER,
+            'supplier_id' => $supplier->id,
+        ]);
+
+        $this->assertDatabaseHas('supplier_users', [
+            'supplier_id' => $supplier->id,
+            'user_id' => $user->id,
+        ]);
+
+        $user->update([
+            'role' => UserRole::PURCHASING,
+            'supplier_id' => null,
+        ]);
+
+        $this->assertDatabaseMissing('supplier_users', [
+            'supplier_id' => $supplier->id,
+            'user_id' => $user->id,
+        ]);
+    }
 }

@@ -2,6 +2,25 @@
 
 Tum anlamli surumler bu dosyada tutulur. Surum kaynagi olarak repo icindeki `releases/manifest.json` ile birlikte kullanilir.
 
+## [1.9.1] - 2026-03-27
+
+Ozet:
+Production parity pass ile supplier mapping drift'i guvenli sekilde onarildi ve dashboard bekleyen satir metrik cache'i status gecislerinde merkezi olarak invalid edilir hale getirildi.
+
+Temel degisiklikler:
+- Supplier portal erisimi mapping-tablosu merkezli korunarak, supplier role kullanicilarda eksik `supplier_users` kaydi runtime'da onarilir ve yeni kayit drift'i model seviyesinde engellenir hale getirildi.
+- Eksik supplier mapping kayitlarini idempotent olarak tamamlayan yeni repair migration eklendi; mevcut historical backfill migration'ina ek olarak parity onarimi guclendirildi.
+- Dashboard cache anahtarlari merkezi serviste toplandi; artwork upload, gallery reuse, approve, reject ve dashboard metriklerini etkileyen siparis degisikliklerinde ilgili cache dogrudan temizlenir hale geldi.
+- Yeni regression testleri ile eksik mappingten supplier gorunurlugu toparlanmasi ve cache isitilmis dashboard metriginde upload/approval/reject sonrasi tazelenme davranisi dogrulandi.
+
+Sema degisiklikleri:
+- `2026_03_27_201500_repair_missing_supplier_user_mappings`
+
+Operasyon notlari:
+- Production ortaminda yeni migration uygulanmissa, eski supplier kullanicilardaki eksik `supplier_users` satirlari otomatik olarak tamamlanir.
+- Test/local ortaminda `array` cache ve `sync` queue kullanildigi icin stale dashboard davranisi maskelenebilir; production parity dogrulamasinda Redis cache anahtarlarinin temizlendigini kontrol edin.
+- Queue worker yalniz bildirim yan etkileri icin gereklidir; dashboard metrik dogrulugu artik queue tamamlanmasina bagli degildir.
+
 ## [1.9.0] - 2026-03-26
 
 Ozet:

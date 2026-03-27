@@ -7,18 +7,22 @@ use App\Models\AuditLog;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\SupplierMikroAccount;
-use Illuminate\Support\Facades\Cache;
+use App\Services\DashboardCacheService;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private DashboardCacheService $dashboardCache
+    ) {}
+
     public function __invoke(): View|\Illuminate\Http\RedirectResponse
     {
         if (auth()->user()->isSupplier()) {
             return redirect()->route('portal.orders.index');
         }
 
-        $metrics = Cache::remember('dashboard.metrics', 300, function () {
+        $metrics = $this->dashboardCache->rememberMetrics(function () {
             return [
                 'pending_artwork' => PurchaseOrderLine::where('artwork_status', 'pending')->count(),
                 'uploaded_artwork' => PurchaseOrderLine::where('artwork_status', 'uploaded')->count(),
@@ -28,7 +32,7 @@ class DashboardController extends Controller
             ];
         });
 
-        $panels = Cache::remember('dashboard.panels', 60, function () {
+        $panels = $this->dashboardCache->rememberPanels(function () {
             return [
                 'recent_revisions' => ArtworkRevision::query()
                     ->with([

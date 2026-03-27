@@ -127,4 +127,30 @@ class PortalOrderWorkflowTest extends TestCase
             ->get(route('portal.orders.show', $blockedOrder))
             ->assertForbidden();
     }
+
+    public function test_supplier_created_outside_admin_flow_still_gets_primary_mapping_and_sees_only_own_orders(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $otherSupplier = Supplier::factory()->create();
+
+        $user = User::factory()->create([
+            'role' => UserRole::SUPPLIER,
+            'supplier_id' => $supplier->id,
+        ]);
+
+        $allowedOrder = PurchaseOrder::factory()->create(['supplier_id' => $supplier->id]);
+        $blockedOrder = PurchaseOrder::factory()->create(['supplier_id' => $otherSupplier->id]);
+
+        $this->assertDatabaseHas('supplier_users', [
+            'supplier_id' => $supplier->id,
+            'user_id' => $user->id,
+            'is_primary' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('portal.orders.index'))
+            ->assertOk()
+            ->assertSee($allowedOrder->order_no)
+            ->assertDontSee($blockedOrder->order_no);
+    }
 }

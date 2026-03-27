@@ -9,13 +9,18 @@ use App\Models\User;
 use App\Notifications\ArtworkApprovedNotification;
 use App\Notifications\ArtworkRejectedNotification;
 use App\Services\AuditLogService;
+use App\Services\DashboardCacheService;
+use Illuminate\Support\Facades\DB;
 
 class ArtworkApprovalService
 {
-    public function __construct(private AuditLogService $audit) {}
+    public function __construct(
+        private AuditLogService $audit,
+        private DashboardCacheService $dashboardCache,
+    ) {}
 
     /**
-     * Tedarikçi "Gördüm" aksiyonu
+     * TedarikÃ§i "GÃ¶rdÃ¼m" aksiyonu
      */
     public function markViewed(ArtworkRevision $revision, User $user): ArtworkApproval
     {
@@ -39,72 +44,80 @@ class ArtworkApprovalService
     }
 
     /**
-     * Tedarikçi "Onayladım" aksiyonu
+     * TedarikÃ§i "OnayladÄ±m" aksiyonu
      */
     public function approve(ArtworkRevision $revision, User $user, ?string $notes = null): ArtworkApproval
     {
-        $approval = ArtworkApproval::updateOrCreate(
-            [
-                'artwork_revision_id' => $revision->id,
-                'user_id'             => $user->id,
-            ],
-            [
+        $approval = DB::transaction(function () use ($revision, $user, $notes) {
+            $approval = ArtworkApproval::updateOrCreate(
+                [
+                    'artwork_revision_id' => $revision->id,
+                    'user_id'             => $user->id,
+                ],
+                [
+                    'supplier_id' => $user->supplier_id,
+                    'status'      => 'approved',
+                    'notes'       => $notes,
+                    'actioned_at' => now(),
+                ]
+            );
+
+            $revision->artwork->orderLine->update(['artwork_status' => 'approved']);
+
+            $this->audit->log('artwork.approved', $revision, [
                 'supplier_id' => $user->supplier_id,
-                'status'      => 'approved',
                 'notes'       => $notes,
-                'actioned_at' => now(),
-            ]
-        );
+            ]);
 
-        // Sipariş satırı durumunu güncelle
-        $revision->artwork->orderLine->update(['artwork_status' => 'approved']);
+            $this->dashboardCache->forgetMetricsAfterCommit();
 
-        // İç kullanıcılara bildirim gönder
+            return $approval;
+        });
+
         $this->notifyInternalUsers($revision, 'approved');
-
-        $this->audit->log('artwork.approved', $revision, [
-            'supplier_id' => $user->supplier_id,
-            'notes'       => $notes,
-        ]);
 
         return $approval;
     }
 
     /**
-     * Tedarikçi "Reddettim" aksiyonu
+     * TedarikÃ§i "Reddettim" aksiyonu
      */
     public function reject(ArtworkRevision $revision, User $user, string $notes): ArtworkApproval
     {
-        $approval = ArtworkApproval::updateOrCreate(
-            [
-                'artwork_revision_id' => $revision->id,
-                'user_id'             => $user->id,
-            ],
-            [
+        $approval = DB::transaction(function () use ($revision, $user, $notes) {
+            $approval = ArtworkApproval::updateOrCreate(
+                [
+                    'artwork_revision_id' => $revision->id,
+                    'user_id'             => $user->id,
+                ],
+                [
+                    'supplier_id' => $user->supplier_id,
+                    'status'      => 'rejected',
+                    'notes'       => $notes,
+                    'actioned_at' => now(),
+                ]
+            );
+
+            $revision->artwork->orderLine->update(['artwork_status' => 'revision']);
+
+            $this->audit->log('artwork.rejected', $revision, [
                 'supplier_id' => $user->supplier_id,
-                'status'      => 'rejected',
                 'notes'       => $notes,
-                'actioned_at' => now(),
-            ]
-        );
+            ]);
 
-        // Sipariş satırı durumunu revizyon gerekli olarak işaretle
-        $revision->artwork->orderLine->update(['artwork_status' => 'revision']);
+            $this->dashboardCache->forgetMetricsAfterCommit();
 
-        // İç kullanıcılara bildirim gönder
+            return $approval;
+        });
+
         $this->notifyInternalUsers($revision, 'rejected', $notes);
-
-        $this->audit->log('artwork.rejected', $revision, [
-            'supplier_id' => $user->supplier_id,
-            'notes'       => $notes,
-        ]);
 
         return $approval;
     }
 
     private function notifyInternalUsers(ArtworkRevision $revision, string $action, ?string $notes = null): void
     {
-        // Grafik departmanı kullanıcılarını bilgilendir
+        // Grafik departmanÄ± kullanÄ±cÄ±larÄ±nÄ± bilgilendir
         $users = \App\Models\User::whereIn('role', ['admin', 'graphic'])
             ->where('is_active', true)
             ->get();
@@ -117,7 +130,7 @@ class ArtworkApprovalService
                     $user->notify(new ArtworkRejectedNotification($revision, $notes));
                 }
             } catch (\Exception $e) {
-                // Bildirim hatası ana akışı bloklamamalı
+                // Bildirim hatasÄ± ana akÄ±ÅŸÄ± bloklamamalÄ±
                 \Illuminate\Support\Facades\Log::warning('Notification failed', ['error' => $e->getMessage()]);
             }
         }

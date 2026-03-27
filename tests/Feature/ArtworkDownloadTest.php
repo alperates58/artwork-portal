@@ -166,9 +166,10 @@ class ArtworkDownloadTest extends TestCase
 
     public function test_supplier_without_download_permission_cannot_download(): void
     {
-        SupplierUser::create([
+        SupplierUser::updateOrCreate([
             'supplier_id'   => $this->supplier1User->supplier_id,
             'user_id'       => $this->supplier1User->id,
+        ], [
             'is_primary'    => true,
             'can_download'  => false,
             'can_approve'   => false,

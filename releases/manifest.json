@@ -1,8 +1,47 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-03-26T23:59:59+03:00",
-  "latest": "1.9.0",
+  "generated_at": "2026-03-27T20:30:00+03:00",
+  "latest": "1.9.1",
   "releases": [
+    {
+      "version": "1.9.1",
+      "title": "Production parity supplier mapping ve dashboard cache fix",
+      "summary": "Supplier mapping drift'i guvenli onarim yolu ile kapatildi; dashboard bekleyen satir metrikleri artwork status gecislerinde merkezi cache invalidation ile production'da deterministik hale getirildi.",
+      "release_date": "2026-03-27",
+      "changes": [
+        "Supplier role kullanicilar icin eksik supplier_users kaydi runtime'da mapping-tablosu korunarak onarilir hale getirildi.",
+        "Yeni repair migration ile eksik supplier_users kayitlari idempotent olarak backfill edildi ve primary mapping tutarliligi guclendirildi.",
+        "Dashboard metrics/panels cache anahtarlari DashboardCacheService altinda merkezilestirildi.",
+        "Artwork upload ve gallery reuse sonrasi dashboard metrics ile recent revisions panel cache'i invalid edilir hale getirildi.",
+        "Approve, reject ve dashboard metriklerini etkileyen siparis durum degisikliklerinde ilgili dashboard cache'i temizlenir hale getirildi.",
+        "Regression testleri ile supplier portal gorunurlugu ve cache isitilmis dashboard metrigi senaryolari genisletildi."
+      ],
+      "changed_modules": [
+        "Supplier Portal",
+        "Authorization Data Parity",
+        "Dashboard",
+        "Artwork Workflow",
+        "Testler"
+      ],
+      "migrations_included": true,
+      "schema_changes": {
+        "new_tables": [],
+        "new_columns": []
+      },
+      "warnings": [
+        "Authorization modeli halen supplier_users mapping merkezlidir; users.supplier_id kalici yetki bypass'i olarak kullanilmaz.",
+        "Local/test ortaminda array cache stale davranisi maskeleyebilir; production parity icin Redis cache temizleme davranisini kontrol edin.",
+        "Queue worker bildirim yan etkileri icin gereklidir ancak dashboard metric dogrulugu queue tamamlanmasina bagli degildir."
+      ],
+      "post_update_notes": [
+        "docker compose exec app php artisan migrate --force",
+        "Supplier kullanicisi ile portal siparis gorunurlugunu ve yetkisiz supplier izolasyonunu manuel dogrulayin",
+        "Dashboard bekleyen satir metric'ini artwork upload ve approval status gecislerinden sonra tekrar kontrol edin"
+      ],
+      "applied_migrations": [
+        "2026_03_27_201500_repair_missing_supplier_user_mappings"
+      ]
+    },
     {
       "version": "1.9.0",
       "title": "Artwork galerisi grid, preview ve UTF-8 iyilestirmesi",

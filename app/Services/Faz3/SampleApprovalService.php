@@ -5,12 +5,17 @@ namespace App\Services\Faz3;
 use App\Models\PurchaseOrderLine;
 use App\Models\SampleApproval;
 use App\Models\User;
+use App\Services\DashboardCacheService;
 use Illuminate\Support\Facades\DB;
 
 class SampleApprovalService
 {
+    public function __construct(
+        private DashboardCacheService $dashboardCache
+    ) {}
+
     /**
-     * Tedarikçi numune gönderir
+     * TedarikÃ§i numune gÃ¶nderir
      */
     public function submit(
         PurchaseOrderLine $line,
@@ -37,23 +42,25 @@ class SampleApprovalService
     }
 
     /**
-     * İç kullanıcı numuneyi onaylar
+     * Ä°Ã§ kullanÄ±cÄ± numuneyi onaylar
      */
     public function approve(SampleApproval $sample, User $reviewer, ?string $notes = null): void
     {
-        $sample->update([
-            'status'      => 'approved',
-            'reviewed_by' => $reviewer->id,
-            'reviewed_at' => now(),
-            'notes'       => $notes,
-        ]);
+        DB::transaction(function () use ($sample, $reviewer, $notes) {
+            $sample->update([
+                'status'      => 'approved',
+                'reviewed_by' => $reviewer->id,
+                'reviewed_at' => now(),
+                'notes'       => $notes,
+            ]);
 
-        // Sipariş satırı artwork durumunu güncelle
-        $sample->orderLine->update(['artwork_status' => 'approved']);
+            $sample->orderLine->update(['artwork_status' => 'approved']);
+            $this->dashboardCache->forgetMetricsAfterCommit();
+        });
     }
 
     /**
-     * İç kullanıcı numuneyi reddeder
+     * Ä°Ã§ kullanÄ±cÄ± numuneyi reddeder
      */
     public function reject(SampleApproval $sample, User $reviewer, string $reason): void
     {

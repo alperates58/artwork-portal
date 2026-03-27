@@ -21,6 +21,7 @@ class ArtworkUploadService
         private MultipartUploadService $multipart,
         private AuditLogService $audit,
         private PortalSettings $settings,
+        private DashboardCacheService $dashboardCache,
     ) {}
 
     public function storeUploadedFile(PurchaseOrderLine $line, UploadedFile $file, array $meta, User $uploader): ArtworkRevision
@@ -207,6 +208,7 @@ class ArtworkUploadService
 
         $artwork->update(['active_revision_id' => $revision->id]);
         $line->update(['artwork_status' => 'uploaded']);
+        $this->dashboardCache->forgetAllAfterCommit();
 
         return $revision;
     }

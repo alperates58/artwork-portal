@@ -16,6 +16,13 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    protected static function booted(): void
+    {
+        static::saved(function (self $user) {
+            $user->syncPrimarySupplierMapping();
+        });
+    }
+
     protected $fillable = [
         'name',
         'email',
@@ -132,7 +139,7 @@ class User extends Authenticatable
             : $this->supplierMappings()->where('supplier_id', $supplierId)->first();
 
         if (! $mapping) {
-            return $this->supplier_id === $supplierId;
+            return false;
         }
 
         return (bool) $mapping->can_download;
@@ -140,6 +147,17 @@ class User extends Authenticatable
 
     public function accessibleSupplierIds(): Collection
     {
+        if ($this->isSupplier()) {
+            $mappedIds = $this->relationLoaded('supplierMappings')
+                ? $this->supplierMappings->pluck('supplier_id')
+                : $this->supplierMappings()->pluck('supplier_id');
+
+            return $mappedIds
+                ->filter()
+                ->unique()
+                ->values();
+        }
+
         $mappedIds = $this->relationLoaded('supplierMappings')
             ? $this->supplierMappings->pluck('supplier_id')
             : $this->supplierMappings()->pluck('supplier_id');
@@ -149,5 +167,55 @@ class User extends Authenticatable
             ->filter()
             ->unique()
             ->values();
+    }
+
+    public function syncPrimarySupplierMapping(): bool
+    {
+        $this->unsetRelation('supplierMappings');
+        $this->unsetRelation('mappedSuppliers');
+
+        if (! $this->isSupplier()) {
+            $deleted = $this->supplierMappings()->delete();
+
+            return $deleted > 0;
+        }
+
+        if (! $this->supplier_id) {
+            return false;
+        }
+
+        $mapping = $this->supplierMappings()
+            ->where('supplier_id', $this->supplier_id)
+            ->first();
+
+        $created = false;
+
+        if (! $mapping) {
+            $mapping = $this->supplierMappings()->create([
+                'supplier_id' => $this->supplier_id,
+                'title' => null,
+                'is_primary' => true,
+                'can_download' => true,
+                'can_approve' => false,
+            ]);
+            $created = true;
+        }
+
+        $updatedPrimary = 0;
+
+        if (! $mapping->is_primary) {
+            $mapping->update(['is_primary' => true]);
+            $updatedPrimary++;
+        }
+
+        $demoted = $this->supplierMappings()
+            ->where('supplier_id', '!=', $this->supplier_id)
+            ->where('is_primary', true)
+            ->update(['is_primary' => false]);
+
+        $this->unsetRelation('supplierMappings');
+        $this->unsetRelation('mappedSuppliers');
+
+        return $created || $updatedPrimary > 0 || $demoted > 0;
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Services\AuditLogService;
+use App\Services\DashboardCacheService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +15,10 @@ use Illuminate\View\View;
 
 class OrderController extends Controller
 {
-    public function __construct(private AuditLogService $audit) {}
+    public function __construct(
+        private AuditLogService $audit,
+        private DashboardCacheService $dashboardCache,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -96,6 +100,7 @@ class OrderController extends Controller
         }
 
         $this->audit->log('order.create', $order, ['order_no' => $order->order_no]);
+        $this->dashboardCache->forgetMetrics();
 
         return redirect()
             ->route('orders.show', $order)
@@ -129,6 +134,7 @@ class OrderController extends Controller
         $order->update($validated);
 
         $this->audit->log('order.update', $order);
+        $this->dashboardCache->forgetMetrics();
 
         return redirect()
             ->route('orders.show', $order)
@@ -152,6 +158,7 @@ class OrderController extends Controller
         DB::transaction(function () use ($order) {
             $this->audit->log('order.delete', $order, ['order_no' => $order->order_no]);
             $order->delete();
+            $this->dashboardCache->forgetMetricsAfterCommit();
         });
 
         return redirect()
