@@ -1,15 +1,29 @@
 @php
-    $viteManifestPath = public_path('build/manifest.json');
+    $viteManifestPath = public_path('build/.vite/manifest.json');
+    $viteManifestPathLegacy = public_path('build/manifest.json');
     $viteHotPath = public_path('hot');
-    $useViteAssets = file_exists($viteManifestPath) || file_exists($viteHotPath);
+    $manifestFile = file_exists($viteManifestPath) ? $viteManifestPath : (file_exists($viteManifestPathLegacy) ? $viteManifestPathLegacy : null);
+    $useViteAssets = $manifestFile !== null || file_exists($viteHotPath);
+    $viteAssets = [];
+    if ($manifestFile) {
+        $manifest = json_decode(file_get_contents($manifestFile), true);
+        $entry = $manifest['resources/js/app.js'] ?? null;
+        if ($entry) {
+            $viteAssets['js'] = asset('build/' . $entry['file']);
+            $viteAssets['css'] = isset($entry['css'][0]) ? asset('build/' . $entry['css'][0]) : null;
+        }
+    }
 @endphp
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-@if($useViteAssets)
-    @vite('resources/js/app.js')
+@if($useViteAssets && !empty($viteAssets))
+    @if($viteAssets['css'])
+        <link rel="stylesheet" href="{{ $viteAssets['css'] }}">
+    @endif
+    <script type="module" src="{{ $viteAssets['js'] }}"></script>
 @else
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
