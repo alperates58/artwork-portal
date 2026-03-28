@@ -16,13 +16,13 @@
 @section('content')
 <form method="GET" class="flex flex-wrap gap-3 mb-5">
     <x-ui.input type="text" name="search" value="{{ request('search') }}" placeholder="Sipariş no ara..." class="w-52" />
-    <select name="supplier_id" class="input w-52">
+    <select name="supplier_id" class="input w-52" onchange="this.form.submit()">
         <option value="">Tüm tedarikçiler</option>
         @foreach($suppliers as $id => $name)
             <option value="{{ $id }}" {{ request('supplier_id') == $id ? 'selected' : '' }}>{{ $name }}</option>
         @endforeach
     </select>
-    <select name="status" class="input w-40">
+    <select name="status" class="input w-40" onchange="this.form.submit()">
         <option value="">Tüm durumlar</option>
         <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Aktif</option>
         <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Taslak</option>
