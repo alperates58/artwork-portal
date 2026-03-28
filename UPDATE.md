@@ -9,8 +9,13 @@ GitHub'a yeni commit push ettikten sonra sunucuyu güncellemek için aşağıdak
 ```bash
 cd /var/www/artwork-portal
 git pull origin main
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan cache:clear
 docker compose exec app php artisan portal:update
 ```
+
+> **Önemli:** `portal:update` öncesi her zaman `config:clear` ve `cache:clear` çalıştırın.
+> Aksi halde config cache'de eski değerler kalır ve uygulama setup wizard'a yönlendirebilir.
 
 ---
 
@@ -22,17 +27,21 @@ cd /var/www/artwork-portal
 # 1. Kodu çek
 git pull origin main
 
-# 2. Yeni PHP paketi eklendiyse
+# 2. Cache'i temizle (her zaman zorunlu)
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan cache:clear
+
+# 3. Yeni PHP paketi eklendiyse
 docker compose exec app composer install --no-dev --optimize-autoloader
 
-# 3. Yeni frontend değişikliği varsa
+# 4. Yeni frontend değişikliği varsa
 docker compose run --rm node npm ci
 docker compose run --rm node npm run build
 
-# 4. Migration + cache + route + view güncelle
+# 5. Migration + cache + route + view güncelle
 docker compose exec app php artisan portal:update
 
-# 5. Container'ları yeniden başlat
+# 6. Container'ları yeniden başlat
 docker compose up -d --force-recreate app queue scheduler
 ```
 
@@ -42,11 +51,41 @@ docker compose up -d --force-recreate app queue scheduler
 
 | Değişiklik türü | Gereken ek adım |
 |---|---|
-| Sadece PHP/Blade değişikliği | `portal:update` yeterli |
-| Yeni migration eklendi | `portal:update` (migrate dahil) |
-| composer.json değişti | `composer install` + `portal:update` |
-| Tailwind/JS değişti | `npm ci` + `npm run build` + `portal:update` |
+| Sadece PHP/Blade değişikliği | `config:clear` + `cache:clear` + `portal:update` |
+| Yeni migration eklendi | `config:clear` + `cache:clear` + `portal:update` (migrate dahil) |
+| composer.json değişti | `composer install` + `config:clear` + `cache:clear` + `portal:update` |
+| Tailwind/JS değişti | `npm ci` + `npm run build` + `config:clear` + `cache:clear` + `portal:update` |
 | Dockerfile değişti | `docker compose build app` + `up -d --force-recreate` |
+
+---
+
+## Güncelleme Sonrası Setup Wizard'a Düşüyorsa
+
+`portal:update` sonrası config cache sıfırlanınca `APP_INSTALLED` değeri kaybolabilir. Aşağıdaki adımları sırayla uygulayın:
+
+```bash
+# 1. Cache'i tamamen temizle
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan cache:clear
+
+# 2. .setup_complete dosyasının varlığını kontrol et
+docker compose exec app ls storage/app/.setup_complete
+
+# Dosya yoksa oluştur
+docker compose exec app touch storage/app/.setup_complete
+
+# 3. .env dosyasını kontrol et
+grep APP_INSTALLED /var/www/artwork-portal/.env
+# APP_INSTALLED=true olmalı, değilse düzelt:
+sed -i 's/APP_INSTALLED=false/APP_INSTALLED=true/' .env
+
+# 4. Doğrula
+docker compose exec app php artisan tinker --execute="echo env('APP_INSTALLED');"
+# "1" veya "true" dönmeli
+
+# 5. App'i yeniden başlat
+docker compose restart app
+```
 
 ---
 
@@ -57,5 +96,19 @@ docker compose ps
 docker compose exec app php artisan about
 ```
 
-`artwork_app`, `artwork_queue`, `artwork_scheduler` → Up olmalı.
-`Cache`, `Queue`, `Session` → redis olmalı.
+Beklenen durum:
+- `artwork_app`, `artwork_queue`, `artwork_scheduler` → Up
+- `Cache`, `Queue`, `Session` → redis
+- `Config` → CACHED
+
+---
+
+## Sık Kullanılan Komutlar
+
+```bash
+docker compose ps                                    # Container durumu
+docker compose logs app --tail=50                   # App logu
+docker compose exec app php artisan about           # Uygulama durumu
+docker compose exec app php artisan portal:update   # Güncelle
+docker compose restart app nginx                    # Yeniden başlat
+```
