@@ -98,7 +98,18 @@
                     <div class="h-1.5 w-full rounded-full bg-slate-100">
                         <div id="progressBar" class="h-1.5 rounded-full bg-brand-600 transition-all duration-300" style="width:0%"></div>
                     </div>
-                    <p class="mt-1 text-xs text-slate-400" id="progressSize"></p>
+                    <div class="mt-1.5 flex items-center justify-between">
+                        <p class="text-xs text-slate-400" id="progressSize"></p>
+                        <button type="button" id="cancelUploadBtn"
+                                class="text-xs text-slate-400 hover:text-red-500 underline"
+                                onclick="if(activeXhr){activeXhr.abort();}">
+                            İptal
+                        </button>
+                    </div>
+                    <div id="upload-error-msg" class="hidden mt-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+                        Bağlantı hatası oluştu. Dosyanız kaybolmadı —
+                        <button type="submit" form="uploadForm" class="font-semibold underline">tekrar deneyin</button>.
+                    </div>
                 </div>
 
                 <button type="button"
@@ -216,16 +227,115 @@
         </div>
     </form>
 
-    {{-- Quick category/tag forms — OUTSIDE main form to avoid nesting --}}
+    {{-- Quick category/tag forms — AJAX, sayfa yenilenmez, dosya kaybolmaz --}}
     @if(auth()->user()->hasPermission('gallery', 'manage'))
-        <form id="qcat-form" method="POST" action="{{ route('admin.artwork-gallery.categories.store') }}" class="hidden">
-            @csrf
-            <input type="hidden" name="_redirect_back" value="1">
-        </form>
-        <form id="qtag-form" method="POST" action="{{ route('admin.artwork-gallery.tags.store') }}" class="hidden">
-            @csrf
-            <input type="hidden" name="_redirect_back" value="1">
-        </form>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        // ── Kategori AJAX ──────────────────────────────────────────────
+        const qcatInput  = document.querySelector('#quick-category-form input[type="text"]');
+        const qcatBtn    = document.querySelector('#quick-category-form button');
+        const categorySelect = document.getElementById('category_id');
+
+        if (qcatBtn && qcatInput && categorySelect) {
+            qcatBtn.addEventListener('click', async function () {
+                const name = qcatInput.value.trim();
+                if (!name) return;
+
+                qcatBtn.disabled = true;
+                qcatBtn.textContent = '…';
+
+                try {
+                    const res = await fetch('{{ route('admin.artwork-gallery.categories.store') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                        body: JSON.stringify({ name }),
+                    });
+
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        alert(err.errors?.name?.[0] ?? 'Kategori eklenemedi.');
+                        return;
+                    }
+
+                    const data = await res.json();
+                    const opt  = new Option(data.name, data.id, true, true);
+                    categorySelect.appendChild(opt);
+                    categorySelect.value = data.id;
+
+                    qcatInput.value = '';
+                    document.getElementById('quick-category-form').classList.add('hidden');
+                } finally {
+                    qcatBtn.disabled = false;
+                    qcatBtn.textContent = 'Ekle';
+                }
+            });
+        }
+
+        // ── Etiket AJAX ────────────────────────────────────────────────
+        const qtagInput    = document.querySelector('#quick-tag-form input[type="text"]');
+        const qtagBtn      = document.querySelector('#quick-tag-form button');
+        const tagsContainer = document.querySelector('#quick-tag-form')?.closest('.grid')?.querySelector('.flex.flex-wrap.gap-2');
+
+        if (qtagBtn && qtagInput && tagsContainer) {
+            qtagBtn.addEventListener('click', async function () {
+                const name = qtagInput.value.trim();
+                if (!name) return;
+
+                qtagBtn.disabled = true;
+                qtagBtn.textContent = '…';
+
+                try {
+                    const res = await fetch('{{ route('admin.artwork-gallery.tags.store') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                        body: JSON.stringify({ name }),
+                    });
+
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        alert(err.errors?.name?.[0] ?? 'Etiket eklenemedi.');
+                        return;
+                    }
+
+                    const data = await res.json();
+
+                    // Boş placeholder varsa kaldır
+                    const placeholder = tagsContainer.querySelector('p.text-slate-400');
+                    if (placeholder) placeholder.remove();
+
+                    // Yeni pill ekle (checked)
+                    const lbl = document.createElement('label');
+                    lbl.className = 'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition border-brand-500 bg-brand-50 text-brand-700';
+                    lbl.innerHTML = `<input type="checkbox" name="tag_ids[]" value="${data.id}" class="sr-only" checked
+                        onchange="this.closest('label').classList.toggle('border-brand-500',this.checked);
+                                  this.closest('label').classList.toggle('bg-brand-50',this.checked);
+                                  this.closest('label').classList.toggle('text-brand-700',this.checked);
+                                  this.closest('label').classList.toggle('border-slate-200',!this.checked);
+                                  this.closest('label').classList.toggle('bg-slate-50',!this.checked);
+                                  this.closest('label').classList.toggle('text-slate-600',!this.checked);">
+                        ${data.name}`;
+                    tagsContainer.appendChild(lbl);
+
+                    qtagInput.value = '';
+                    document.getElementById('quick-tag-form').classList.add('hidden');
+                } finally {
+                    qtagBtn.disabled = false;
+                    qtagBtn.textContent = 'Ekle';
+                }
+            });
+        }
+    });
+    </script>
     @endif
 
     {{-- Revision history --}}
@@ -438,43 +548,88 @@ function showFile(file) {
     if (progressSz) progressSz.textContent = `${mb} MB`;
 }
 
-// XHR upload with progress
-form.addEventListener('submit', function(e) {
-    const source = srcInput.value;
-    if (source !== 'upload' || !fileInput || !fileInput.files.length) return;
+// XHR upload with progress + retry + unload guard
+let uploadInProgress = false;
+let activeXhr = null;
 
-    e.preventDefault();
+window.addEventListener('beforeunload', function (e) {
+    if (uploadInProgress) {
+        e.preventDefault();
+        e.returnValue = 'Dosya yükleniyor. Sayfadan ayrılırsanız yükleme iptal olur.';
+    }
+});
+
+function resetUploadUI() {
+    uploadInProgress = false;
+    activeXhr = null;
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Kaydet';
+    if (progressW) progressW.classList.add('hidden');
+}
+
+function startUpload() {
+    const data = new FormData(form);
+    const xhr  = new XMLHttpRequest();
+    activeXhr  = xhr;
+
+    uploadInProgress = true;
     progressW.classList.remove('hidden');
     submitBtn.disabled = true;
     submitBtn.textContent = 'Yükleniyor…';
-
-    const xhr  = new XMLHttpRequest();
-    const data = new FormData(form);
+    progressBar.style.width = '0%';
+    progressPct.textContent = '0%';
 
     xhr.upload.addEventListener('progress', ev => {
         if (!ev.lengthComputable) return;
         const pct = Math.round(ev.loaded / ev.total * 100);
         progressBar.style.width = `${pct}%`;
         progressPct.textContent = `${pct}%`;
+        if (pct === 100) {
+            submitBtn.textContent = 'Kaydediliyor…';
+        }
     });
 
     xhr.addEventListener('load', () => {
-        if (xhr.status === 302 || xhr.responseURL) {
-            window.location.href = xhr.responseURL || "{{ route('orders.show', $line->purchaseOrder) }}";
-            return;
+        uploadInProgress = false;
+        if (xhr.responseURL && xhr.responseURL !== window.location.href) {
+            window.location.href = xhr.responseURL;
+        } else {
+            window.location.href = "{{ route('orders.show', $line->purchaseOrder) }}";
         }
-        form.submit();
     });
 
     xhr.addEventListener('error', () => {
+        uploadInProgress = false;
+        activeXhr = null;
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Kaydet';
-        alert('Yükleme başarısız. Lütfen tekrar deneyin.');
+        submitBtn.textContent = 'Tekrar dene';
+        progressBar.classList.add('bg-red-500');
+        progressBar.classList.remove('bg-brand-600');
+        progressPct.textContent = 'Hata';
+        // Show retry instructions
+        const errDiv = document.getElementById('upload-error-msg');
+        if (errDiv) errDiv.classList.remove('hidden');
+    });
+
+    xhr.addEventListener('abort', () => {
+        resetUploadUI();
     });
 
     xhr.open('POST', form.action);
     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
     xhr.send(data);
+}
+
+form.addEventListener('submit', function(e) {
+    const source = srcInput.value;
+    if (source !== 'upload' || !fileInput || !fileInput.files.length) return;
+    e.preventDefault();
+    // Reset error state
+    progressBar.classList.remove('bg-red-500');
+    progressBar.classList.add('bg-brand-600');
+    const errDiv = document.getElementById('upload-error-msg');
+    if (errDiv) errDiv.classList.add('hidden');
+    startUpload();
 });
 
 // Auto-open modal if redirected back after filtering

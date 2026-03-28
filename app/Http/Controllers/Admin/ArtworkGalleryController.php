@@ -9,6 +9,7 @@ use App\Models\ArtworkGallery;
 use App\Models\ArtworkTag;
 use App\Services\AuditLogService;
 use App\Services\PortalSettings;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -76,7 +77,7 @@ class ArtworkGalleryController extends Controller
         return view('admin.artwork-gallery.manage', compact('categories', 'tags'));
     }
 
-    public function storeCategory(): RedirectResponse
+    public function storeCategory(): JsonResponse|RedirectResponse
     {
         abort_if(
             ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('gallery', 'manage'),
@@ -87,7 +88,11 @@ class ArtworkGalleryController extends Controller
             'name' => ['required', 'string', 'max:120', 'unique:artwork_categories,name'],
         ]);
 
-        ArtworkCategory::create($validated);
+        $category = ArtworkCategory::create($validated);
+
+        if (request()->expectsJson()) {
+            return response()->json(['id' => $category->id, 'name' => $category->name]);
+        }
 
         if (request()->boolean('_redirect_back')) {
             return back()->with('success', 'Kategori eklendi.');
@@ -112,7 +117,7 @@ class ArtworkGalleryController extends Controller
             ->with('success', '"' . $category->name . '" kategorisi silindi.');
     }
 
-    public function storeTag(): RedirectResponse
+    public function storeTag(): JsonResponse|RedirectResponse
     {
         abort_if(
             ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('gallery', 'manage'),
@@ -123,7 +128,11 @@ class ArtworkGalleryController extends Controller
             'name' => ['required', 'string', 'max:120', 'unique:artwork_tags,name'],
         ]);
 
-        ArtworkTag::create($validated);
+        $tag = ArtworkTag::create($validated);
+
+        if (request()->expectsJson()) {
+            return response()->json(['id' => $tag->id, 'name' => $tag->name]);
+        }
 
         if (request()->boolean('_redirect_back')) {
             return back()->with('success', 'Etiket eklendi.');
