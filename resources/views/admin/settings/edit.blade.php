@@ -162,174 +162,71 @@
 
                 <div class="p-6">
                     <div class="{{ $activeTab === 'updates' ? '' : 'hidden' }}">
-                        <div class="space-y-6">
-                            <div class="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
-                                <div class="rounded-2xl border border-slate-200 p-4">
-                                    <p class="text-xs uppercase tracking-wide text-slate-400">Kurulu Surum</p>
-                                    <p class="mt-2 font-mono text-sm text-slate-900">{{ $updateStatus['current_version'] ?: 'Bilinmiyor' }}</p>
-                                    <p class="mt-1 text-xs text-slate-500">{{ $updateStatus['current_branch'] ? 'Branch: '.$updateStatus['current_branch'] : 'Git branch bilgisi okunamadi' }}</p>
-                                    <p class="mt-1 text-xs text-slate-500">{{ $updateStatus['current_commit'] ? 'Commit: '.$updateStatus['current_commit'] : 'Commit bilgisi okunamadi' }}</p>
+                        @php $localCommit = $updateStatus['current_commit']; @endphp
+                        <div class="space-y-5">
+
+                            {{-- Status bar --}}
+                            <div class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+                                <div class="flex flex-wrap gap-5 text-sm">
+                                    <div>
+                                        <span class="text-xs font-medium uppercase tracking-wide text-slate-400">Sunucu commit</span>
+                                        <p class="mt-0.5 font-mono font-semibold text-slate-800">{{ $localCommit ?: '—' }}</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-medium uppercase tracking-wide text-slate-400">Branch</span>
+                                        <p class="mt-0.5 font-mono font-semibold text-slate-800">{{ $updateStatus['current_branch'] ?: 'main' }}</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-medium uppercase tracking-wide text-slate-400">Son güncelleme</span>
+                                        <p class="mt-0.5 text-slate-700">
+                                            {{ $updateStatus['last_run_at']
+                                                ? \Illuminate\Support\Carbon::parse($updateStatus['last_run_at'])->timezone($displayTimezone)->format('d.m.Y H:i')
+                                                : 'Kayıt yok' }}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div class="rounded-2xl border border-slate-200 p-4">
-                                    <p class="text-xs uppercase tracking-wide text-slate-400">Hedef Release</p>
-                                    <p class="mt-2 font-mono text-sm text-slate-900">{{ data_get($remoteRelease, 'version') ?: 'Henuz kontrol edilmedi' }}</p>
-                                    <p class="mt-1 text-xs text-slate-500">{{ data_get($remoteRelease, 'title') ?: 'Release manifest bilgisi yok' }}</p>
-                                    <p class="mt-1 text-xs text-slate-500">{{ $updateStatus['last_checked_at'] ? \Illuminate\Support\Carbon::parse($updateStatus['last_checked_at'])->timezone($displayTimezone)->format('d.m.Y H:i') : 'Henuz GitHub kontrolu yok' }}</p>
-                                </div>
-                                <div class="rounded-2xl border border-slate-200 p-4">
-                                    <p class="text-xs uppercase tracking-wide text-slate-400">Son Bilinen Deploy</p>
-                                    <p class="mt-2 font-mono text-sm text-slate-900">{{ $updateStatus['last_deployed_version'] ?: 'Kayit yok' }}</p>
-                                    <p class="mt-1 text-xs text-slate-500">{{ $updateStatus['last_run_at'] ? \Illuminate\Support\Carbon::parse($updateStatus['last_run_at'])->timezone($displayTimezone)->format('d.m.Y H:i') : 'Henuz portal:update kaydi yok' }}</p>
-                                    <p class="mt-1 text-xs text-slate-500">{{ $updateStatus['last_message'] ?: 'Son run mesaji bulunmuyor.' }}</p>
-                                </div>
-                                <div class="rounded-2xl border border-slate-200 p-4">
-                                    <p class="text-xs uppercase tracking-wide text-slate-400">Update Durumu</p>
-                                    <p class="mt-2 text-sm text-slate-900">
-                                        @if($updateStatus['update_available'] === true)
-                                            Yeni bir surum uygulanmaya hazir gorunuyor.
-                                        @elseif($updateStatus['update_available'] === false)
-                                            Kurulu surum ile son kontrol edilen release eslesiyor.
-                                        @else
-                                            Henuz guvenilir bir update karsilastirmasi yapilmadi.
-                                        @endif
-                                    </p>
-                                    <p class="mt-1 text-xs text-slate-500">{{ $updateStatus['last_check_message'] ?: 'GitHub kontrol mesaji bulunmuyor.' }}</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" id="load-commits-btn" class="btn btn-secondary">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                        Commit Geçmişini Yükle
+                                    </button>
+                                    <button type="button" class="btn btn-primary" data-dialog-open="deploy-dialog"
+                                        style="background:linear-gradient(180deg,#059669,#047857);box-shadow:0 10px 22px rgba(5,150,105,.2);">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                        GitHub'dan Güncelle
+                                    </button>
                                 </div>
                             </div>
 
-                            <div class="grid gap-4 2xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,0.8fr)]">
-                                <div class="rounded-3xl border border-slate-200 p-5">
-                                    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                        <div>
-                                            <p class="text-xs uppercase tracking-wide text-slate-400">Admin Aksiyonlari</p>
-                                            <p class="mt-2 text-sm text-slate-900">GitHub'dan kodu çek, migration uygula, önbellek temizle ve sistemi güncelle.</p>
-                                        </div>
-                                        <div class="flex flex-wrap gap-2">
-                                            <form method="POST" action="{{ route('admin.settings.update-check', ['tab' => 'updates']) }}">
-                                                @csrf
-                                                <input type="hidden" name="tab" value="updates">
-                                                <button type="submit" class="btn btn-secondary">GitHub Kontrolu Yap</button>
-                                            </form>
-                                            <button type="button" class="btn btn-primary" data-dialog-open="update-confirmation" {{ $canPrepare ? '' : 'disabled' }}>
-                                                Guncellemeyi Incele
-                                            </button>
-                                            <button type="button" class="btn btn-primary" data-dialog-open="deploy-dialog"
-                                                style="background: linear-gradient(180deg,#059669,#047857); box-shadow: 0 10px 22px rgba(5,150,105,.2);">
-                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                                </svg>
-                                                GitHub'dan Güncelle
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div class="mt-5 grid gap-4 md:grid-cols-2">
-                                        <div class="rounded-2xl bg-slate-50 p-4">
-                                            <p class="text-xs uppercase tracking-wide text-slate-400">Kurulu Release Ozeti</p>
-                                            <p class="mt-2 text-sm font-semibold text-slate-900">{{ data_get($currentRelease, 'title') ?: 'Surum manifesti bulunamadi' }}</p>
-                                            <p class="mt-2 text-sm text-slate-600">{{ data_get($currentRelease, 'summary') ?: 'Mevcut surum icin aciklama yok.' }}</p>
-                                        </div>
-                                        <div class="rounded-2xl bg-slate-50 p-4">
-                                            <p class="text-xs uppercase tracking-wide text-slate-400">Hazir Hedef Release</p>
-                                            <p class="mt-2 text-sm font-semibold text-slate-900">{{ data_get($remoteRelease, 'title') ?: 'Henuz hedef release yok' }}</p>
-                                            <p class="mt-2 text-sm text-slate-600">{{ data_get($remoteRelease, 'summary') ?: 'GitHub kontrolu yapildiginda release ozeti burada gorunur.' }}</p>
-                                        </div>
-                                    </div>
-
-                                    <div class="mt-5">
-                                        <p class="text-xs uppercase tracking-wide text-slate-400">Gelen Degisiklikler</p>
-                                        <div class="mt-3 flex flex-wrap gap-2">
-                                            @forelse($remoteRelease['changed_modules'] ?? [] as $module)
-                                                <span class="badge badge-gray">{{ $module }}</span>
-                                            @empty
-                                                <span class="text-sm text-slate-500">Modul listesi yok.</span>
-                                            @endforelse
-                                        </div>
-                                        <ul class="mt-4 list-inside list-disc space-y-1 text-sm text-slate-700">
-                                            @forelse($remoteRelease['change_summary'] ?? [] as $item)
-                                                <li>{{ $item }}</li>
-                                            @empty
-                                                <li>Detayli release notu bulunmuyor.</li>
-                                            @endforelse
-                                        </ul>
-                                    </div>
+                            {{-- Commit list --}}
+                            <div class="card">
+                                <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+                                    <h3 class="text-sm font-semibold text-slate-700">GitHub Commit Geçmişi</h3>
+                                    <span id="commits-branch-badge" class="hidden rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-mono text-slate-600"></span>
                                 </div>
 
-                                <div class="space-y-4">
-                                    <div class="rounded-3xl border border-amber-200 bg-amber-50 p-4">
-                                        <p class="text-xs uppercase tracking-wide text-amber-700">Rollback Notu</p>
-                                        <p class="mt-2 text-sm text-amber-900">Rollback ancak release dizini, image tag veya snapshot stratejisi ile guvenli hale gelir. Bu panel rollback butonu sunmaz.</p>
-                                    </div>
-                                    <div class="rounded-3xl border border-slate-200 p-4">
-                                        <p class="text-xs uppercase tracking-wide text-slate-400">Bekleyen Hazirlik</p>
-                                        @if($pendingPreparation)
-                                            <p class="mt-2 text-sm font-semibold text-slate-900">{{ $pendingPreparation['from_version'] ?: '?' }} -> {{ $pendingPreparation['to_version'] ?: '?' }}</p>
-                                            <p class="mt-1 text-sm text-slate-600">{{ $pendingPreparation['release_title'] ?: 'Release basligi yok' }}</p>
-                                        @else
-                                            <p class="mt-2 text-sm text-slate-600">Bekleyen admin hazirligi yok.</p>
-                                        @endif
-                                    </div>
+                                <div id="commits-loading" class="hidden px-5 py-10 text-center">
+                                    <div class="mx-auto h-7 w-7 animate-spin rounded-full border-4 border-slate-200 border-t-brand-500"></div>
+                                    <p class="mt-3 text-xs text-slate-400">GitHub'dan yükleniyor…</p>
                                 </div>
+
+                                <div id="commits-error" class="hidden px-5 py-6 text-center text-sm text-red-600"></div>
+
+                                <div id="commits-empty" class="px-5 py-10 text-center text-sm text-slate-400">
+                                    <svg class="mx-auto mb-3 h-8 w-8 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M3 6h18M3 14h12M3 18h8"/>
+                                    </svg>
+                                    "Commit Geçmişini Yükle" butonuna basarak GitHub'daki son commit'leri görüntüleyin.
+                                </div>
+
+                                <ol id="commits-list" class="hidden divide-y divide-slate-100"></ol>
                             </div>
 
-                            <div class="rounded-3xl border border-slate-200 p-4">
-                                <p class="text-xs uppercase tracking-wide text-slate-400">Update Gecmisi</p>
-                                <div class="mt-4 overflow-x-auto">
-                                    <table class="min-w-full text-sm">
-                                        <thead>
-                                            <tr class="text-left text-slate-500">
-                                                <th class="pb-2 pr-4">Tip</th>
-                                                <th class="pb-2 pr-4">Durum</th>
-                                                <th class="pb-2 pr-4">Surum Gecisi</th>
-                                                <th class="pb-2">Release</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-slate-100">
-                                            @forelse($updateStatus['history'] as $event)
-                                                <tr class="align-top">
-                                                    <td class="py-3 pr-4">{{ match($event['type']) { 'run' => 'Update Run', 'prepare' => 'Hazirlik', default => 'GitHub Check' } }}</td>
-                                                    <td class="py-3 pr-4">{{ $event['status'] }}</td>
-                                                    <td class="py-3 pr-4 font-mono text-xs">{{ $event['from_version'] ?: ($event['local_version'] ?: '-') }} -> {{ $event['to_version'] ?: ($event['remote_version'] ?: '-') }}</td>
-                                                    <td class="py-3 text-sm text-slate-900">{{ $event['release_title'] ?: '-' }}</td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="4" class="py-4 text-sm text-slate-500">Henuz update gecmisi kaydi yok.</td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
                         </div>
-
-                        <dialog id="update-confirmation" class="update-modal w-full max-w-3xl rounded-3xl border border-slate-200 p-0 shadow-2xl">
-                            <form method="dialog" class="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4">
-                                <div>
-                                    <p class="text-xs uppercase tracking-wide text-slate-400">Update Onayi</p>
-                                    <h3 class="mt-1 text-lg font-semibold text-slate-900">{{ $updateStatus['current_version'] ?: '?' }} -> {{ data_get($remoteRelease, 'version') ?: '?' }}</h3>
-                                </div>
-                                <button type="button" class="text-slate-400 hover:text-slate-600" data-dialog-close>x</button>
-                            </form>
-                            <div class="space-y-4 px-6 py-5">
-                                <p class="text-sm font-semibold text-slate-900">{{ data_get($remoteRelease, 'summary') ?: 'Release ozeti bulunamadi.' }}</p>
-                                <ul class="list-inside list-disc space-y-1 text-sm text-slate-700">
-                                    @forelse($remoteRelease['change_summary'] ?? [] as $item)
-                                        <li>{{ $item }}</li>
-                                    @empty
-                                        <li>Detayli madde yok.</li>
-                                    @endforelse
-                                </ul>
-                            </div>
-                            <div class="flex items-center justify-between gap-3 border-t border-slate-200 px-6 py-4">
-                                <button type="button" class="btn btn-secondary" data-dialog-close>Iptal</button>
-                                <form method="POST" action="{{ route('admin.settings.update-prepare', ['tab' => 'updates']) }}">
-                                    @csrf
-                                    <input type="hidden" name="tab" value="updates">
-                                    <button type="submit" class="btn btn-primary">Hazirligi Onayla</button>
-                                </form>
-                            </div>
-                        </dialog>
                     </div>
 
                     <div class="{{ $activeTab === 'storage' ? '' : 'hidden' }}">
@@ -686,6 +583,103 @@
     </div>
 </div>
 @push('scripts')
+<script>
+/* ── Commit geçmişi ── */
+(function () {
+    var loadBtn    = document.getElementById('load-commits-btn');
+    var loadingEl  = document.getElementById('commits-loading');
+    var errorEl    = document.getElementById('commits-error');
+    var emptyEl    = document.getElementById('commits-empty');
+    var listEl     = document.getElementById('commits-list');
+    var branchBadge = document.getElementById('commits-branch-badge');
+    var localCommit = '{{ $localCommit }}';
+
+    if (!loadBtn) return;
+
+    loadBtn.addEventListener('click', function () {
+        loadBtn.disabled = true;
+        emptyEl.classList.add('hidden');
+        errorEl.classList.add('hidden');
+        listEl.classList.add('hidden');
+        loadingEl.classList.remove('hidden');
+
+        fetch('{{ route('admin.settings.commits') }}', {
+            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '' }
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            loadingEl.classList.add('hidden');
+            loadBtn.disabled = false;
+
+            if (data.error) {
+                errorEl.textContent = data.error;
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            var commits = data.commits || [];
+            var branch  = data.branch  || 'main';
+
+            branchBadge.textContent = branch;
+            branchBadge.classList.remove('hidden');
+
+            // Find index of local commit → everything before = new, at = current, after = applied
+            var localIdx = commits.findIndex(function (c) { return c.sha === localCommit; });
+
+            listEl.innerHTML = '';
+            commits.forEach(function (c, i) {
+                var isNew     = localIdx === -1 || i < localIdx;
+                var isCurrent = i === localIdx;
+                var date      = c.date ? new Date(c.date) : null;
+                var dateStr   = date ? date.toLocaleDateString('tr-TR', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+                var timeStr   = date ? date.toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit' }) : '';
+
+                var dotColor  = isCurrent ? 'bg-emerald-500 ring-4 ring-emerald-100'
+                              : isNew     ? 'bg-blue-500 ring-4 ring-blue-100'
+                              : 'bg-slate-300';
+                var shaColor  = isCurrent ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                              : isNew     ? 'text-blue-700 bg-blue-50 border-blue-200'
+                              : 'text-slate-500 bg-slate-50 border-slate-200';
+                var badge     = isCurrent ? '<span class="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Sunucuda kurulu</span>'
+                              : isNew     ? '<span class="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">Yeni</span>'
+                              : '';
+
+                var li = document.createElement('li');
+                li.className = 'flex items-start gap-4 px-5 py-3.5';
+                li.innerHTML =
+                    '<div class="mt-1.5 flex-shrink-0"><span class="inline-block h-2.5 w-2.5 rounded-full ' + dotColor + '"></span></div>' +
+                    '<div class="min-w-0 flex-1">' +
+                        '<p class="flex flex-wrap items-center gap-1 text-sm font-medium text-slate-800">' +
+                            escHtml(c.message) + badge +
+                        '</p>' +
+                        '<p class="mt-0.5 flex flex-wrap items-center gap-3 text-xs text-slate-400">' +
+                            '<span>' + escHtml(c.author) + '</span>' +
+                            '<span>' + dateStr + ' ' + timeStr + '</span>' +
+                        '</p>' +
+                    '</div>' +
+                    '<div class="flex-shrink-0">' +
+                        (c.url
+                            ? '<a href="' + c.url + '" target="_blank" class="rounded-lg border px-2 py-0.5 font-mono text-[11px] ' + shaColor + ' hover:opacity-80">' + escHtml(c.sha) + '</a>'
+                            : '<span class="rounded-lg border px-2 py-0.5 font-mono text-[11px] ' + shaColor + '">' + escHtml(c.sha) + '</span>') +
+                    '</div>';
+                listEl.appendChild(li);
+            });
+
+            listEl.classList.remove('hidden');
+        })
+        .catch(function (err) {
+            loadingEl.classList.add('hidden');
+            loadBtn.disabled = false;
+            errorEl.textContent = 'İstek başarısız: ' + err.message;
+            errorEl.classList.remove('hidden');
+        });
+    });
+
+    function escHtml(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+})();
+</script>
 <script>
 (function () {
     /* ── Grup satırları ── */

@@ -123,6 +123,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('/ayarlar/update-prepare', [SettingsController::class, 'prepareUpdate'])->name('settings.update-prepare');
             Route::post('/ayarlar/deploy', [SettingsController::class, 'deploy'])->name('settings.deploy');
             Route::post('/ayarlar/apply-only', [SettingsController::class, 'applyOnly'])->name('settings.apply-only');
+            Route::get('/ayarlar/commits', [SettingsController::class, 'commits'])->name('settings.commits');
             Route::get('/integrations/mikro/test', MikroTestController::class)->name('integrations.mikro.test');
 
             Route::get('/veri-aktarimi', [DataTransferController::class, 'index'])->name('data-transfer.index');

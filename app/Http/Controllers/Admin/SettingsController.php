@@ -167,6 +167,42 @@ class SettingsController extends Controller
         return response()->json($result, $result['ok'] ? 200 : 500);
     }
 
+    public function commits(Request $request): JsonResponse
+    {
+        abort_if(! $request->user()->isAdmin(), 403);
+
+        $repo   = config('services.github_updates.repository');
+        $branch = config('services.github_updates.branch', 'main');
+        $token  = config('services.github_updates.token');
+
+        if (blank($repo)) {
+            return response()->json(['error' => 'GitHub repository tanımlı değil.'], 422);
+        }
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::baseUrl('https://api.github.com')
+                ->acceptJson()
+                ->timeout(10)
+                ->withHeaders(['User-Agent' => config('app.name', 'Portal') . ' commit-list'])
+                ->when(filled($token), fn ($r) => $r->withToken($token))
+                ->get("/repos/{$repo}/commits", ['sha' => $branch, 'per_page' => 30])
+                ->throw();
+
+            $commits = collect($response->json())->map(fn ($c) => [
+                'sha'     => substr($c['sha'], 0, 7),
+                'full'    => $c['sha'],
+                'message' => strtok($c['commit']['message'], "\n"),
+                'author'  => $c['commit']['author']['name'] ?? '—',
+                'date'    => $c['commit']['author']['date'] ?? null,
+                'url'     => $c['html_url'] ?? null,
+            ])->values()->all();
+
+            return response()->json(['commits' => $commits, 'branch' => $branch]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'GitHub API hatası: ' . $e->getMessage()], 500);
+        }
+    }
+
     public function checkUpdates(Request $request): RedirectResponse
     {
         $activeTab = $this->resolveTab($request);
