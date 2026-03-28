@@ -72,6 +72,7 @@
                 left: 0;
                 top: 0;
                 height: 100vh;
+                height: 100dvh;
                 z-index: 50;
                 width: 272px !important;
                 transform: translateX(-100%);
@@ -83,6 +84,7 @@
             }
             #main-sidebar {
                 width: 272px !important;
+                height: 100% !important;
             }
             /* Backdrop */
             #sidebar-backdrop {
@@ -576,6 +578,18 @@
 
                         {{-- Theme selector --}}
                         @include('partials.theme-switcher')
+
+                        {{-- Mobile logout (always visible on small screens) --}}
+                        <form method="POST" action="{{ route('logout') }}" class="lg:hidden">
+                            @csrf
+                            <button type="submit"
+                                    class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                                    title="Çıkış Yap">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                </svg>
+                            </button>
+                        </form>
 
                         @if($hasPageAside)
                             <button type="button" class="btn btn-secondary"
