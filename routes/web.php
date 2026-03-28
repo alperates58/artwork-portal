@@ -142,6 +142,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::delete('/artwork-galerisi/etiketler/{tag}', [ArtworkGalleryController::class, 'destroyTag'])->name('artwork-gallery.tags.destroy');
             Route::get('/artwork-galerisi/{artworkGallery}/duzenle', [ArtworkGalleryController::class, 'edit'])->name('artwork-gallery.edit');
             Route::patch('/artwork-galerisi/{artworkGallery}', [ArtworkGalleryController::class, 'update'])->name('artwork-gallery.update');
+            Route::delete('/artwork-galerisi/{artworkGallery}', [ArtworkGalleryController::class, 'destroy'])->name('artwork-gallery.destroy');
         });
 
     Route::post('/admin/erp/sync', [\App\Http\Controllers\Admin\ErpSyncController::class, 'sync'])

@@ -5,6 +5,14 @@
 
 @section('header-actions')
     <a href="{{ route('admin.artwork-gallery.index') }}" class="btn btn-secondary">← Galeriye dön</a>
+    @if(auth()->user()->isAdmin() || auth()->user()->hasPermission('gallery', 'manage'))
+        <form method="POST" action="{{ route('admin.artwork-gallery.destroy', $artworkGallery) }}"
+              onsubmit="return confirm('{{ $artworkGallery->display_name }} galeriden kalıcı olarak silinsin mi? Bu işlem geri alınamaz.')">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-secondary text-red-600 hover:border-red-300 hover:bg-red-50">Sil</button>
+        </form>
+    @endif
 @endsection
 
 @section('content')

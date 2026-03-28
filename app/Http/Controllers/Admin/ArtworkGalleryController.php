@@ -10,6 +10,7 @@ use App\Models\ArtworkTag;
 use App\Services\AuditLogService;
 use App\Services\PortalSettings;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class ArtworkGalleryController extends Controller
@@ -167,6 +168,30 @@ class ArtworkGalleryController extends Controller
         $tags = ArtworkTag::query()->orderBy('name')->get(['id', 'name']);
 
         return view('admin.artwork-gallery.edit', compact('artworkGallery', 'categories', 'tags'));
+    }
+
+    public function destroy(ArtworkGallery $artworkGallery): RedirectResponse
+    {
+        abort_if(
+            ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('gallery', 'manage'),
+            403
+        );
+
+        $name = $artworkGallery->name;
+
+        if ($artworkGallery->file_path) {
+            Storage::disk($artworkGallery->file_disk ?? 'public')->delete($artworkGallery->file_path);
+        }
+
+        $this->audit->log('artwork.gallery.delete', $artworkGallery, [
+            'name' => $name,
+        ]);
+
+        $artworkGallery->delete();
+
+        return redirect()
+            ->route('admin.artwork-gallery.index')
+            ->with('success', '"' . $name . '" galeriden silindi.');
     }
 
     public function update(ArtworkGalleryUpdateRequest $request, ArtworkGallery $artworkGallery): RedirectResponse

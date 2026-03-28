@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class NotificationController extends Controller
 {
@@ -30,9 +32,14 @@ class NotificationController extends Controller
         ]);
     }
 
-    public function markRead(Request $request): JsonResponse
+    public function markRead(Request $request): JsonResponse|RedirectResponse
     {
         $this->notifications->markAllRead($request->user());
-        return response()->json(['ok' => true]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true]);
+        }
+
+        return back()->with('success', 'Tüm bildirimler okundu olarak işaretlendi.');
     }
 }
