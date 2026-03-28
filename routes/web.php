@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\MikroTestController;
 use App\Http\Controllers\Admin\PermissionsController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\ReportFactoryController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\UserController;
@@ -143,6 +144,14 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/raporlar/kategori', [ReportController::class, 'category'])->name('reports.category');
             Route::get('/raporlar/stok-kodu', [ReportController::class, 'stockCode'])->name('reports.stock-code');
             Route::get('/raporlar/aktivite', [ReportController::class, 'timeline'])->name('reports.timeline');
+            // Report Factory
+            Route::post('/raporlar/fabrika/onizleme', [ReportFactoryController::class, 'preview'])->name('reports.factory.preview');
+            Route::get('/raporlar/fabrika', [ReportFactoryController::class, 'index'])->name('reports.factory.index');
+            Route::get('/raporlar/fabrika/yeni', [ReportFactoryController::class, 'create'])->name('reports.factory.create');
+            Route::post('/raporlar/fabrika', [ReportFactoryController::class, 'store'])->name('reports.factory.store');
+            Route::get('/raporlar/fabrika/{customReport}', [ReportFactoryController::class, 'show'])->name('reports.factory.show');
+            Route::patch('/raporlar/fabrika/{customReport}', [ReportFactoryController::class, 'update'])->name('reports.factory.update');
+            Route::delete('/raporlar/fabrika/{customReport}', [ReportFactoryController::class, 'destroy'])->name('reports.factory.destroy');
             Route::get('/loglar', [AuditLogController::class, 'index'])->name('logs.index');
             Route::get('/artwork-galerisi', [ArtworkGalleryController::class, 'index'])->name('artwork-gallery.index');
             Route::get('/artwork-galerisi/yonetim', [ArtworkGalleryController::class, 'manage'])->name('artwork-gallery.manage');
