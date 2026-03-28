@@ -153,7 +153,7 @@
     $hasPageAside       = View::hasSection('page-aside');
     $pageAsideStorageKey = trim((string) $__env->yieldContent('page-aside-storage-key', request()->route()?->getName() ?: 'default'));
     $pageSubtitle        = trim((string) $__env->yieldContent('page-subtitle', config('portal.brand_tagline')));
-    $settingsOpen        = request()->routeIs('admin.settings.*') || request()->routeIs('admin.permissions.*') || request()->routeIs('admin.departments.*');
+    $settingsActive      = request()->routeIs('admin.settings.*') || request()->routeIs('admin.permissions.*') || request()->routeIs('admin.departments.*');
 @endphp
 
 <div class="min-h-screen" style="background: #f1f5f9;">
@@ -266,20 +266,20 @@
 
                                 @if($canViewSettings)
                                     {{-- Ayarlar nav group --}}
-                                    <div data-nav-group="settings" data-nav-group-open="{{ $settingsOpen ? 'true' : 'false' }}">
+                                    <div data-nav-group="settings" data-nav-group-open="false">
                                         <button type="button"
                                                 data-nav-group-toggle="settings"
                                                 title="Ayarlar"
-                                                class="sidebar-link w-full {{ $settingsOpen ? 'active' : '' }}">
+                                                class="sidebar-link w-full {{ $settingsActive ? 'active' : '' }}">
                                             <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317a1 1 0 011.35-.936l1.824.73a1 1 0 00.95-.08l1.52-1.014a1 1 0 011.475.616l.497 1.99a1 1 0 00.687.719l1.945.648a1 1 0 01.572 1.473l-.92 1.69a1 1 0 000 .956l.92 1.69a1 1 0 01-.572 1.473l-1.945.648a1 1 0 00-.687.719l-.497 1.99a1 1 0 01-1.475.616l-1.52-1.014a1 1 0 00-.95-.08l-1.824.73a1 1 0 01-1.35-.936l-.13-1.864a1 1 0 00-.53-.812l-1.63-.92a1 1 0 010-1.74l1.63-.92a1 1 0 00.53-.812l.13-1.864z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                                             <span class="sb-label flex-1 text-left">Ayarlar</span>
                                             <svg data-nav-group-chevron="settings"
-                                                 class="sb-chevron h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 {{ $settingsOpen ? 'rotate-180 text-brand-500' : 'text-slate-400' }}"
+                                                 class="sb-chevron h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 text-slate-400"
                                                  fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
                                             </svg>
                                         </button>
-                                        <div class="nav-group-items {{ $settingsOpen ? '' : 'closed' }}">
+                                        <div class="nav-group-items closed">
                                             <div>
                                                 <div class="ml-4 mt-1 mb-1 space-y-0.5 border-l border-slate-200 pl-3">
                                                     @php
@@ -288,6 +288,7 @@
                                                             'storage' => 'Depolama / Spaces',
                                                             'mikro'   => 'Mikro API',
                                                             'mail'    => 'Mail / Exchange',
+                                                            'formats' => 'Dosya Formatları',
                                                             'general' => 'Genel Sistem',
                                                         ];
                                                         $activeSettingsTab = request()->query('tab', 'updates');
@@ -329,21 +330,21 @@
 
                                 @if($canViewReports)
                                     {{-- Raporlar nav group --}}
-                                    @php $reportsOpen = request()->routeIs('admin.reports.*') || request()->routeIs('admin.reports.stock-code'); @endphp
-                                    <div data-nav-group="reports" data-nav-group-open="{{ $reportsOpen ? 'true' : 'false' }}">
+                                    @php $reportsActive = request()->routeIs('admin.reports.*'); @endphp
+                                    <div data-nav-group="reports" data-nav-group-open="false">
                                         <button type="button"
                                                 data-nav-group-toggle="reports"
                                                 title="Raporlar"
-                                                class="sidebar-link w-full {{ $reportsOpen ? 'active' : '' }}">
+                                                class="sidebar-link w-full {{ $reportsActive ? 'active' : '' }}">
                                             <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                                             <span class="sb-label flex-1 text-left">Raporlar</span>
                                             <svg data-nav-group-chevron="reports"
-                                                 class="sb-chevron h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 {{ $reportsOpen ? 'rotate-180 text-brand-500' : 'text-slate-400' }}"
+                                                 class="sb-chevron h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 text-slate-400"
                                                  fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
                                             </svg>
                                         </button>
-                                        <div class="nav-group-items {{ $reportsOpen ? '' : 'closed' }}">
+                                        <div class="nav-group-items closed">
                                             <div>
                                                 <div class="ml-4 mt-1 mb-1 space-y-0.5 border-l border-slate-200 pl-3">
                                                     <a href="{{ route('admin.reports.index') }}"
@@ -384,19 +385,19 @@
 
                                 @if($canViewGallery)
                                     {{-- Artwork Galerisi nav group --}}
-                                    @php $galleryOpen = request()->routeIs('admin.artwork-gallery.*'); @endphp
-                                    <div data-nav-group="gallery" data-nav-group-open="{{ $galleryOpen ? 'true' : 'false' }}">
+                                    @php $galleryActive = request()->routeIs('admin.artwork-gallery.*'); @endphp
+                                    <div data-nav-group="gallery" data-nav-group-open="false">
                                         <button type="button" data-nav-group-toggle="gallery" title="Artwork Galerisi"
-                                                class="sidebar-link w-full {{ $galleryOpen ? 'active' : '' }}">
+                                                class="sidebar-link w-full {{ $galleryActive ? 'active' : '' }}">
                                             <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-10h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                             <span class="sb-label flex-1 text-left">Artwork Galerisi</span>
                                             <svg data-nav-group-chevron="gallery"
-                                                 class="sb-chevron h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 {{ $galleryOpen ? 'rotate-180 text-brand-500' : 'text-slate-400' }}"
+                                                 class="sb-chevron h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 text-slate-400"
                                                  fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
                                             </svg>
                                         </button>
-                                        <div class="nav-group-items {{ $galleryOpen ? '' : 'closed' }}">
+                                        <div class="nav-group-items closed">
                                             <div>
                                                 <div class="ml-4 mt-1 mb-1 space-y-0.5 border-l border-slate-200 pl-3">
                                                     <a href="{{ route('admin.artwork-gallery.index') }}"
@@ -636,17 +637,14 @@
         var chevron   = group ? group.querySelector('[data-nav-group-chevron]') : null;
         if (!group || !items) return;
 
-        var forcedOpen = group.dataset.navGroupOpen === 'true';
-
-        if (!forcedOpen) {
-            var stored = localStorage.getItem(NAV_GROUP_KEY + groupName);
-            if (stored === 'closed') {
-                items.classList.add('closed');
-                if (chevron) { chevron.classList.remove('rotate-180','text-brand-500'); chevron.classList.add('text-slate-400'); }
-            } else if (stored === 'open') {
-                items.classList.remove('closed');
-                if (chevron) { chevron.classList.add('rotate-180','text-brand-500'); chevron.classList.remove('text-slate-400'); }
-            }
+        /* Always use localStorage — never auto-expand based on route */
+        var stored = localStorage.getItem(NAV_GROUP_KEY + groupName);
+        if (stored === 'open') {
+            items.classList.remove('closed');
+            if (chevron) { chevron.classList.add('rotate-180','text-brand-500'); chevron.classList.remove('text-slate-400'); }
+        } else {
+            items.classList.add('closed');
+            if (chevron) { chevron.classList.remove('rotate-180','text-brand-500'); chevron.classList.add('text-slate-400'); }
         }
 
         btn.addEventListener('click', function () {

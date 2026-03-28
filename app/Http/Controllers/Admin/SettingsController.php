@@ -24,7 +24,29 @@ class SettingsController extends Controller
         'storage',
         'mikro',
         'mail',
+        'formats',
         'general',
+    ];
+
+    private const DEFAULT_GROUPS = [
+        ['key' => 'pdf',    'label' => 'PDF'],
+        ['key' => 'image',  'label' => 'Görseller'],
+        ['key' => 'design', 'label' => 'Tasarım'],
+        ['key' => 'other',  'label' => 'Diğer'],
+    ];
+
+    private const DEFAULT_FORMATS = [
+        ['ext' => 'PDF',  'label' => 'Adobe PDF',       'group' => 'pdf'],
+        ['ext' => 'AI',   'label' => 'Adobe Illustrator','group' => 'design'],
+        ['ext' => 'EPS',  'label' => 'EPS Vektör',       'group' => 'design'],
+        ['ext' => 'PSD',  'label' => 'Adobe Photoshop',  'group' => 'design'],
+        ['ext' => 'INDD', 'label' => 'Adobe InDesign',   'group' => 'design'],
+        ['ext' => 'PNG',  'label' => 'PNG Görsel',        'group' => 'image'],
+        ['ext' => 'JPG',  'label' => 'JPEG Görsel',       'group' => 'image'],
+        ['ext' => 'JPEG', 'label' => 'JPEG Görsel',       'group' => 'image'],
+        ['ext' => 'SVG',  'label' => 'SVG Vektör',        'group' => 'image'],
+        ['ext' => 'WEBP', 'label' => 'WebP Görsel',       'group' => 'image'],
+        ['ext' => 'ZIP',  'label' => 'ZIP Arşiv',         'group' => 'other'],
     ];
 
     public function __construct(
@@ -46,12 +68,23 @@ class SettingsController extends Controller
             'mailNotifications' => $this->settings->mailNotificationFormConfig(),
             'updateStatus' => $this->updateStatus->snapshot(),
             'generalSystem' => $this->generalSystemConfig(),
+            'fileFormats' => $this->fileFormatsConfig(),
+            'fileGroups'  => $this->fileGroupsConfig(),
         ]);
     }
 
     public function update(Request $request): RedirectResponse
     {
         $activeTab = $this->resolveTab($request);
+
+        // Formats sekmesi için özel yetki kontrolü
+        if ($activeTab === 'formats') {
+            abort_if(
+                ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('formats', 'manage'),
+                403
+            );
+        }
+
         $validated = $this->validateSettingsUpdate($request, $activeTab);
 
         if (array_key_exists('spaces', $validated)) {
@@ -68,6 +101,10 @@ class SettingsController extends Controller
 
         if (array_key_exists('mail_notifications', $validated)) {
             $this->settings->syncMailNotificationSettings($validated['mail_notifications']);
+        }
+
+        if (array_key_exists('formats', $validated)) {
+            $this->syncFileFormats($validated['formats']);
         }
 
         return $this->redirectToTab($activeTab)->with('success', 'Sistem ayarlari guncellendi.');
@@ -211,6 +248,18 @@ class SettingsController extends Controller
             ];
         }
 
+        if ($section === 'formats' || $request->has('formats')) {
+            $rules += [
+                'formats.list'             => ['nullable', 'array'],
+                'formats.list.*.ext'       => ['required', 'string', 'max:20'],
+                'formats.list.*.label'     => ['required', 'string', 'max:100'],
+                'formats.list.*.group'     => ['required', 'string', 'max:50'],
+                'formats.groups'           => ['nullable', 'array'],
+                'formats.groups.*.key'     => ['required', 'string', 'max:50'],
+                'formats.groups.*.label'   => ['required', 'string', 'max:100'],
+            ];
+        }
+
         if ($section === 'mail' || $request->has('mail_notifications')) {
             $rules += [
                 'mail_notifications.enabled' => ['nullable', 'boolean'],
@@ -292,6 +341,60 @@ class SettingsController extends Controller
     private function settingsTabUrl(string $tab): string
     {
         return route('admin.settings.edit', ['tab' => $tab]);
+    }
+
+    private function fileFormatsConfig(): array
+    {
+        $stored = $this->settings->get('formats.list', null);
+        if ($stored) {
+            $decoded = is_string($stored) ? json_decode($stored, true) : $stored;
+            if (is_array($decoded) && count($decoded) > 0) {
+                return $decoded;
+            }
+        }
+        return self::DEFAULT_FORMATS;
+    }
+
+    private function syncFileFormats(array $data): void
+    {
+        // Grupları kaydet
+        $groups = collect($data['groups'] ?? [])
+            ->filter(fn ($row) => filled($row['key'] ?? null) && filled($row['label'] ?? null))
+            ->map(fn ($row) => [
+                'key'   => strtolower(preg_replace('/[^a-z0-9_]/i', '_', trim($row['key']))),
+                'label' => trim($row['label']),
+            ])
+            ->values()
+            ->all();
+
+        if (count($groups) > 0) {
+            $this->settings->set('formats', 'formats.groups', json_encode($groups));
+        }
+
+        // Format listesini kaydet
+        $list = collect($data['list'] ?? [])
+            ->filter(fn ($row) => filled($row['ext'] ?? null) && filled($row['label'] ?? null))
+            ->map(fn ($row) => [
+                'ext'   => strtoupper(trim($row['ext'])),
+                'label' => trim($row['label']),
+                'group' => $row['group'] ?? 'other',
+            ])
+            ->values()
+            ->all();
+
+        $this->settings->set('formats', 'formats.list', json_encode($list));
+    }
+
+    private function fileGroupsConfig(): array
+    {
+        $stored = $this->settings->get('formats.groups', null);
+        if ($stored) {
+            $decoded = is_string($stored) ? json_decode($stored, true) : $stored;
+            if (is_array($decoded) && count($decoded) > 0) {
+                return $decoded;
+            }
+        }
+        return self::DEFAULT_GROUPS;
     }
 
     private function generalSystemConfig(): array

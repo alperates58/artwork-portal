@@ -245,6 +245,25 @@ class PortalSettings
         $this->set('mail_notifications', 'mail_notifications.test_recipient', $settings['test_recipient'] ?? null);
     }
 
+    private const DEFAULT_FILE_GROUPS = [
+        ['key' => 'pdf',    'label' => 'PDF'],
+        ['key' => 'image',  'label' => 'Görseller'],
+        ['key' => 'design', 'label' => 'Tasarım'],
+        ['key' => 'other',  'label' => 'Diğer'],
+    ];
+
+    public function fileGroups(): array
+    {
+        $stored = $this->get('formats.groups', null);
+        if ($stored) {
+            $decoded = is_string($stored) ? json_decode($stored, true) : $stored;
+            if (is_array($decoded) && count($decoded) > 0) {
+                return $decoded;
+            }
+        }
+        return self::DEFAULT_FILE_GROUPS;
+    }
+
     public function hasSettingsTable(): bool
     {
         return Schema::hasTable('system_settings');

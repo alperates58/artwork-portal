@@ -66,6 +66,13 @@ class PermissionsController extends Controller
                 'edit' => 'Düzenle',
             ],
         ],
+        'formats' => [
+            'label'   => 'Dosya Formatları',
+            'actions' => [
+                'view'   => 'Görüntüle',
+                'manage' => 'Ekle / Düzenle / Sil',
+            ],
+        ],
     ];
 
     public function index(): View

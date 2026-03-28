@@ -5,12 +5,14 @@
 
 @php
 $typeFilter = request('type', '');
-$typeTabs = [
-    ''       => ['label' => 'Tümü',    'icon' => null],
-    'image'  => ['label' => 'Görseller', 'icon' => 'image'],
-    'pdf'    => ['label' => 'PDF',      'icon' => 'pdf'],
-    'design' => ['label' => 'Tasarım',  'icon' => 'design'],
-];
+// Dinamik gruplar: ayarlardan gelir, 'Tümü' her zaman başta
+$typeTabs = ['' => ['label' => 'Tümü', 'icon' => null]];
+foreach ($fileGroups as $grp) {
+    $typeTabs[$grp['key']] = ['label' => $grp['label'], 'icon' => $grp['key']];
+}
+@endphp
+
+@php
 $fileTypeColors = [
     'PDF'  => 'bg-red-50 text-red-700 border border-red-200',
     'AI'   => 'bg-orange-50 text-orange-700 border border-orange-200',
@@ -174,13 +176,27 @@ $fileTypeText = [
                 <tbody class="divide-y divide-slate-100">
                     @foreach($galleryItems as $item)
                         @php
-                            $ext = strtoupper(pathinfo($item->name, PATHINFO_EXTENSION));
+                            $ext = strtoupper(pathinfo($item->file_path ?: $item->name, PATHINFO_EXTENSION));
                             $badgeClass = $fileTypeColors[$ext] ?? 'bg-slate-100 text-slate-600 border border-slate-200';
+                            $formatLabels = [
+                                'PDF'  => 'Adobe PDF',
+                                'AI'   => 'Illustrator',
+                                'EPS'  => 'EPS',
+                                'PSD'  => 'Photoshop',
+                                'INDD' => 'InDesign',
+                                'PNG'  => 'PNG Görsel',
+                                'JPG'  => 'JPEG Görsel',
+                                'JPEG' => 'JPEG Görsel',
+                                'SVG'  => 'SVG Vektör',
+                                'WEBP' => 'WebP Görsel',
+                                'ZIP'  => 'ZIP Arşiv',
+                            ];
+                            $formatLabel = $formatLabels[$ext] ?? ($ext ?: '—');
                         @endphp
                         <tr class="hover:bg-slate-50/60 group">
                             <td class="px-4 py-3">
                                 <span class="inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-bold tracking-wide {{ $badgeClass }}">
-                                    {{ $ext ?: '—' }}
+                                    {{ $formatLabel }}
                                 </span>
                             </td>
                             <td class="px-4 py-3 max-w-xs">

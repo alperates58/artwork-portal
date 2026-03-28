@@ -61,7 +61,7 @@ class ReportController extends Controller
                     'order_date'     => Carbon::parse($row->order_date),
                     'status'         => $row->status,
                     'first_upload_at'=> $firstUploadAt,
-                    'lead_days'      => $firstUploadAt ? Carbon::parse($row->order_date)->diffInDays($firstUploadAt) : null,
+                    'lead_days'      => $firstUploadAt ? round(Carbon::parse($row->order_date)->floatDiffInDays($firstUploadAt), 1) : null,
                 ];
             });
 
@@ -73,6 +73,23 @@ class ReportController extends Controller
             ])
             ->orderByDesc('purchase_orders_count')
             ->limit(8)
+            ->get();
+
+        // Firma bazlı sipariş durumu dağılımı (grafik için)
+        $supplierOrderChart = Supplier::query()
+            ->select([
+                'suppliers.name',
+                DB::raw('SUM(CASE WHEN purchase_orders.status = "active" THEN 1 ELSE 0 END) as active_count'),
+                DB::raw('SUM(CASE WHEN purchase_orders.status = "completed" THEN 1 ELSE 0 END) as completed_count'),
+                DB::raw('SUM(CASE WHEN purchase_orders.status IN ("draft","cancelled") THEN 1 ELSE 0 END) as other_count'),
+                DB::raw('COUNT(CASE WHEN purchase_order_lines.artwork_status = "pending" THEN 1 END) as pending_lines'),
+                DB::raw('COUNT(CASE WHEN purchase_order_lines.artwork_status = "uploaded" THEN 1 END) as uploaded_lines'),
+                DB::raw('COUNT(CASE WHEN purchase_order_lines.artwork_status = "approved" THEN 1 END) as approved_lines'),
+            ])
+            ->leftJoin('purchase_orders', 'purchase_orders.supplier_id', '=', 'suppliers.id')
+            ->leftJoin('purchase_order_lines', 'purchase_order_lines.purchase_order_id', '=', 'purchase_orders.id')
+            ->groupBy('suppliers.id', 'suppliers.name')
+            ->orderByDesc('active_count')
             ->get();
 
         $recentTimeline = collect([
@@ -108,7 +125,7 @@ class ReportController extends Controller
                 ]),
         ])->sortByDesc('at')->take(15)->values();
 
-        return view('admin.reports.index', compact('summary', 'orderLeadTimes', 'supplierActivity', 'recentTimeline'));
+        return view('admin.reports.index', compact('summary', 'orderLeadTimes', 'supplierActivity', 'supplierOrderChart', 'recentTimeline'));
     }
 
     public function leadTime(): View

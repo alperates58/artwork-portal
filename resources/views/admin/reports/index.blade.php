@@ -91,10 +91,119 @@
             </div>
         </div>
 
+        {{-- Firma Bazlı Sipariş Raporu Grafiği --}}
         <div class="card p-5">
-            <h2 class="text-sm font-semibold text-slate-900">Mikro Sevk Notu</h2>
-            <p class="text-xs text-slate-500 mt-2">Gerçek sevk doğrulaması için Mikro API sevk endpoint detayları gerekir. Bu sürüm yalnızca sevk durumu alanlarını, admin ayarlarını ve görünür badge yapısını hazırlar.</p>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-semibold text-slate-900">Firma Bazlı Sipariş Dağılımı</h2>
+                <div class="flex items-center gap-3 text-[10px] text-slate-500">
+                    <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded-sm bg-brand-500"></span> Aktif</span>
+                    <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-400"></span> Tamamlandı</span>
+                    <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded-sm bg-slate-200"></span> Diğer</span>
+                </div>
+            </div>
+            <canvas id="supplierOrderChart" class="w-full" style="max-height:200px"></canvas>
+
+            <div class="mt-5 border-t border-slate-100 pt-4">
+                <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-3">Artwork Satır Durumu</p>
+                <canvas id="artworkStatusChart" class="w-full" style="max-height:160px"></canvas>
+            </div>
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+@php
+    $chartLabels   = $supplierOrderChart->pluck('name');
+    $activeData    = $supplierOrderChart->pluck('active_count');
+    $completedData = $supplierOrderChart->pluck('completed_count');
+    $otherData     = $supplierOrderChart->pluck('other_count');
+    $pendingLines  = $supplierOrderChart->pluck('pending_lines');
+    $uploadedLines = $supplierOrderChart->pluck('uploaded_lines');
+    $approvedLines = $supplierOrderChart->pluck('approved_lines');
+@endphp
+const supplierLabels = {!! json_encode($chartLabels) !!};
+
+// Grouped bar — sipariş durumu
+new Chart(document.getElementById('supplierOrderChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+        labels: supplierLabels,
+        datasets: [
+            {
+                label: 'Aktif',
+                data: {!! json_encode($activeData) !!},
+                backgroundColor: 'rgba(99,102,241,0.85)',
+                borderRadius: 4,
+            },
+            {
+                label: 'Tamamlandı',
+                data: {!! json_encode($completedData) !!},
+                backgroundColor: 'rgba(52,211,153,0.75)',
+                borderRadius: 4,
+            },
+            {
+                label: 'Diğer',
+                data: {!! json_encode($otherData) !!},
+                backgroundColor: 'rgba(226,232,240,0.9)',
+                borderRadius: 4,
+            },
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
+        }
+    }
+});
+
+// Stacked bar — artwork satır durumu
+new Chart(document.getElementById('artworkStatusChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+        labels: supplierLabels,
+        datasets: [
+            {
+                label: 'Bekleyen',
+                data: {!! json_encode($pendingLines) !!},
+                backgroundColor: 'rgba(251,191,36,0.85)',
+                borderRadius: 4,
+            },
+            {
+                label: 'Yüklendi',
+                data: {!! json_encode($uploadedLines) !!},
+                backgroundColor: 'rgba(99,102,241,0.7)',
+                borderRadius: 4,
+            },
+            {
+                label: 'Onaylı',
+                data: {!! json_encode($approvedLines) !!},
+                backgroundColor: 'rgba(52,211,153,0.8)',
+                borderRadius: 4,
+            },
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'bottom',
+                labels: { font: { size: 10 }, boxWidth: 10, padding: 10 }
+            }
+        },
+        scales: {
+            x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
+        }
+    }
+});
+</script>
+@endpush
 @endsection

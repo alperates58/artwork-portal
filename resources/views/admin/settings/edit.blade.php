@@ -25,6 +25,11 @@
             'description' => 'Mail sunucusu ve yeni siparis bildirim davranislari.',
             'eyebrow' => 'Bildirim altyapisi',
         ],
+        'formats' => [
+            'label' => 'Dosya Formatları',
+            'description' => 'İzin verilen dosya uzantıları ve format tanımlarını yönetin.',
+            'eyebrow' => 'Yükleme kuralları',
+        ],
         'general' => [
             'label' => 'Genel Sistem',
             'description' => 'Read-only uygulama ortami ve calisma zamani ozeti.',
@@ -97,6 +102,19 @@
             'meta' => [
                 ['label' => 'Mailer', 'value' => $generalSystem['mail_mailer'] ?? 'smtp'],
                 ['label' => 'Test alicisi', 'value' => $mailNotifications['test_recipient'] ?? 'Tanimsiz'],
+            ],
+        ],
+        'formats' => [
+            'title' => 'Dosya format kuralları',
+            'summary' => 'Sisteme yüklenebilecek dosya uzantıları burada tanımlanır; her format için kısa açıklama ve tip grubu belirlenir.',
+            'points' => [
+                'Mevcut formatları silebilir veya düzenleyebilirsiniz.',
+                'Yeni satır ekleyerek özel uzantı tanımlayabilirsiniz.',
+                'Grup seçimi galeri filtrelerini (PDF, Görsel, Tasarım) etkiler.',
+            ],
+            'meta' => [
+                ['label' => 'Tanımlı format', 'value' => count($fileFormats) . ' adet'],
+                ['label' => 'Grup seçenekleri', 'value' => 'PDF, Görsel, Tasarım, Diğer'],
             ],
         ],
         'general' => [
@@ -498,6 +516,127 @@
                         </div>
                     </div>
 
+                    {{-- ═══ FORMATS TAB ═══ --}}
+                    <div class="{{ $activeTab === 'formats' ? '' : 'hidden' }}">
+                        <form method="POST" action="{{ route('admin.settings.update', ['tab' => 'formats']) }}" id="formats-form">
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="settings_section" value="formats">
+                            <input type="hidden" name="tab" value="formats">
+
+                            {{-- GRUP YÖNETİMİ --}}
+                            <div class="rounded-3xl border border-slate-200 p-6 space-y-4 mb-5">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h3 class="text-base font-semibold text-slate-900">Dosya Grupları</h3>
+                                        <p class="mt-1 text-sm text-slate-500">Galeri filtreleri ve format seçeneklerinde kullanılan gruplar.</p>
+                                    </div>
+                                    <button type="button" id="add-group-row"
+                                            class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-colors">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                        Yeni Grup Ekle
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-[1fr_1fr_40px] gap-2 px-1">
+                                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Anahtar (key)</p>
+                                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Görünen Ad</p>
+                                    <p></p>
+                                </div>
+                                <div id="group-rows" class="space-y-2">
+                                    @foreach($fileGroups as $gi => $grp)
+                                        <div class="group-row grid grid-cols-[1fr_1fr_40px] gap-2 items-center rounded-2xl border border-slate-100 bg-slate-50/60 px-3 py-2.5">
+                                            <input type="text" name="formats[groups][{{ $gi }}][key]"
+                                                   value="{{ $grp['key'] }}"
+                                                   placeholder="image"
+                                                   class="input input-sm font-mono w-full"/>
+                                            <input type="text" name="formats[groups][{{ $gi }}][label]"
+                                                   value="{{ $grp['label'] }}"
+                                                   placeholder="Görseller"
+                                                   class="input input-sm w-full"/>
+                                            <div class="flex justify-center">
+                                                <button type="button" class="remove-group-row rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Sil">
+                                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                                <p class="text-[11px] text-slate-400">Anahtar küçük harf, boşluksuz olmalı (örn: <code>image</code>, <code>design</code>). Galeri tab'ları ve format grup seçenekleri buradan beslenir.</p>
+                            </div>
+
+                            {{-- FORMAT LİSTESİ --}}
+                            <div class="rounded-3xl border border-slate-200 p-6 space-y-5">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h3 class="text-base font-semibold text-slate-900">İzin Verilen Dosya Formatları</h3>
+                                        <p class="mt-1 text-sm text-slate-500">Sisteme yüklenebilecek uzantıları ve tanımlarını yönetin.</p>
+                                    </div>
+                                    <button type="button" id="add-format-row"
+                                            class="inline-flex items-center gap-1.5 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-100 transition-colors">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                        Yeni Format Ekle
+                                    </button>
+                                </div>
+
+                                {{-- Header --}}
+                                <div class="grid grid-cols-[80px_1fr_160px_40px] gap-3 px-1">
+                                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Uzantı</p>
+                                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Tanım</p>
+                                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Grup</p>
+                                    <p></p>
+                                </div>
+
+                                {{-- Format satırları --}}
+                                <div id="format-rows" class="space-y-2">
+                                    @foreach($fileFormats as $i => $fmt)
+                                        @php
+                                            $groupColors = [
+                                                'pdf'    => 'bg-red-50 text-red-700 border-red-200',
+                                                'image'  => 'bg-sky-50 text-sky-700 border-sky-200',
+                                                'design' => 'bg-orange-50 text-orange-700 border-orange-200',
+                                                'other'  => 'bg-slate-100 text-slate-600 border-slate-200',
+                                            ];
+                                            $badge = $groupColors[$fmt['group']] ?? $groupColors['other'];
+                                        @endphp
+                                        <div class="format-row grid grid-cols-[80px_1fr_160px_40px] gap-3 items-center rounded-2xl border border-slate-100 bg-slate-50/60 px-3 py-2.5">
+                                            <div>
+                                                <input type="text"
+                                                       name="formats[list][{{ $i }}][ext]"
+                                                       value="{{ $fmt['ext'] }}"
+                                                       placeholder="PDF"
+                                                       maxlength="10"
+                                                       class="input input-sm font-mono uppercase w-full text-center"/>
+                                            </div>
+                                            <div>
+                                                <input type="text"
+                                                       name="formats[list][{{ $i }}][label]"
+                                                       value="{{ $fmt['label'] }}"
+                                                       placeholder="Format açıklaması"
+                                                       class="input input-sm w-full"/>
+                                            </div>
+                                            <div>
+                                                <select name="formats[list][{{ $i }}][group]" class="input input-sm w-full">
+                                                    @foreach($fileGroups as $grp)
+                                                        <option value="{{ $grp['key'] }}" {{ ($fmt['group'] ?? '') === $grp['key'] ? 'selected' : '' }}>{{ $grp['label'] }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="flex justify-center">
+                                                <button type="button" class="remove-format-row rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Sil">
+                                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+
+                                <div class="flex justify-end pt-2 border-t border-slate-100">
+                                    <button type="submit" class="btn btn-primary px-8">Formatları Kaydet</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
                     <div class="{{ $activeTab === 'general' ? '' : 'hidden' }}">
                         <div class="grid gap-6 2xl:grid-cols-2">
                             <div class="rounded-3xl border border-slate-200 p-6 space-y-4">
@@ -536,4 +675,87 @@
         </div>
     </div>
 </div>
+@push('scripts')
+<script>
+(function () {
+    /* ── Grup satırları ── */
+    const groupContainer = document.getElementById('group-rows');
+    const addGroupBtn    = document.getElementById('add-group-row');
+
+    function reindexRows(container, rowClass) {
+        container.querySelectorAll('.' + rowClass).forEach(function (row, i) {
+            row.querySelectorAll('[name]').forEach(function (el) {
+                el.name = el.name.replace(/\[\d+\]/, '[' + i + ']');
+            });
+        });
+    }
+
+    function currentGroupOptions() {
+        if (!groupContainer) return '<option value="other">Diğer</option>';
+        return Array.from(groupContainer.querySelectorAll('.group-row')).map(function (row) {
+            const keyIn   = row.querySelector('input[name*="[key]"]');
+            const labelIn = row.querySelector('input[name*="[label]"]');
+            const k = (keyIn?.value || '').trim();
+            const l = (labelIn?.value || k || 'Diğer').trim();
+            if (!k) return '';
+            return `<option value="${k}">${l}</option>`;
+        }).join('');
+    }
+
+    if (addGroupBtn && groupContainer) {
+        addGroupBtn.addEventListener('click', function () {
+            const idx = groupContainer.querySelectorAll('.group-row').length;
+            const row = document.createElement('div');
+            row.className = 'group-row grid grid-cols-[1fr_1fr_40px] gap-2 items-center rounded-2xl border border-emerald-100 bg-emerald-50/40 px-3 py-2.5';
+            row.innerHTML = `
+                <input type="text" name="formats[groups][${idx}][key]" placeholder="my_group" class="input input-sm font-mono w-full"/>
+                <input type="text" name="formats[groups][${idx}][label]" placeholder="Grup Adı" class="input input-sm w-full"/>
+                <div class="flex justify-center">
+                    <button type="button" class="remove-group-row rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Sil">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>`;
+            groupContainer.appendChild(row);
+            row.querySelector('input').focus();
+        });
+
+        groupContainer.addEventListener('click', function (e) {
+            const btn = e.target.closest('.remove-group-row');
+            if (!btn) return;
+            btn.closest('.group-row').remove();
+            reindexRows(groupContainer, 'group-row');
+        });
+    }
+
+    /* ── Format satırları ── */
+    const container = document.getElementById('format-rows');
+    const addBtn    = document.getElementById('add-format-row');
+    if (!container || !addBtn) return;
+
+    addBtn.addEventListener('click', function () {
+        const idx  = container.querySelectorAll('.format-row').length;
+        const row  = document.createElement('div');
+        row.className = 'format-row grid grid-cols-[80px_1fr_160px_40px] gap-3 items-center rounded-2xl border border-brand-100 bg-brand-50/40 px-3 py-2.5';
+        row.innerHTML = `
+            <div><input type="text" name="formats[list][${idx}][ext]" placeholder="EXT" maxlength="10" class="input input-sm font-mono uppercase w-full text-center"/></div>
+            <div><input type="text" name="formats[list][${idx}][label]" placeholder="Format açıklaması" class="input input-sm w-full"/></div>
+            <div><select name="formats[list][${idx}][group]" class="input input-sm w-full">${currentGroupOptions()}</select></div>
+            <div class="flex justify-center">
+                <button type="button" class="remove-format-row rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Sil">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>`;
+        container.appendChild(row);
+        row.querySelector('input').focus();
+    });
+
+    container.addEventListener('click', function (e) {
+        const btn = e.target.closest('.remove-format-row');
+        if (!btn) return;
+        btn.closest('.format-row').remove();
+        reindexRows(container, 'format-row');
+    });
+})();
+</script>
+@endpush
 @endsection

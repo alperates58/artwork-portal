@@ -8,12 +8,16 @@ use App\Models\ArtworkCategory;
 use App\Models\ArtworkGallery;
 use App\Models\ArtworkTag;
 use App\Services\AuditLogService;
+use App\Services\PortalSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class ArtworkGalleryController extends Controller
 {
-    public function __construct(private AuditLogService $audit) {}
+    public function __construct(
+        private AuditLogService $audit,
+        private PortalSettings $settings,
+    ) {}
 
     public function index(): View
     {
@@ -46,8 +50,9 @@ class ArtworkGalleryController extends Controller
 
         $categories = ArtworkCategory::query()->orderBy('name')->get(['id', 'name']);
         $tags       = ArtworkTag::query()->orderBy('name')->get(['id', 'name']);
+        $fileGroups = $this->settings->fileGroups();
 
-        return view('admin.artwork-gallery.index', compact('galleryItems', 'categories', 'tags', 'totalCount'));
+        return view('admin.artwork-gallery.index', compact('galleryItems', 'categories', 'tags', 'totalCount', 'fileGroups'));
     }
 
     public function manage(): View

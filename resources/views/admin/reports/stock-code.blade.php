@@ -11,12 +11,18 @@
 <div class="space-y-6">
 
     {{-- Filter --}}
-    <form method="GET" action="{{ route('admin.reports.stock-code') }}" class="card p-4">
+    <form method="GET" action="{{ route('admin.reports.stock-code') }}" id="stock-code-form" class="card p-4">
         <div class="flex flex-wrap items-end gap-3">
-            <div class="flex-1 min-w-[200px]">
+            <div class="flex-1 min-w-[200px] relative">
                 <label class="label" for="stock_code_search">Stok Kodu Ara</label>
-                <input id="stock_code_search" name="stock_code" value="{{ $searchCode }}"
-                       class="input font-mono" placeholder="Stok kodu ile filtrele…" autocomplete="off">
+                <div class="relative">
+                    <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+                    <input id="stock_code_search" name="stock_code" value="{{ $searchCode }}"
+                           class="input font-mono pl-9" placeholder="Yazmaya başlayın…" autocomplete="off">
+                    <span id="stock-search-spinner" class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 hidden">
+                        <svg class="h-4 w-4 animate-spin text-brand-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                    </span>
+                </div>
             </div>
             <button type="submit" class="btn btn-primary">Filtrele</button>
             @if($searchCode)
@@ -141,6 +147,23 @@
 
 </div>
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    const input   = document.getElementById('stock_code_search');
+    const spinner = document.getElementById('stock-search-spinner');
+    const form    = document.getElementById('stock-code-form');
+    if (!input || !form) return;
+    let timer;
+    input.addEventListener('input', function () {
+        clearTimeout(timer);
+        spinner && spinner.classList.remove('hidden');
+        timer = setTimeout(function () { form.submit(); }, 400);
+    });
+})();
+</script>
+@endpush
 
 @if($items->isNotEmpty())
 @push('scripts')
