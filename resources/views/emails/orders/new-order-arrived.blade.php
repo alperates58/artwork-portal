@@ -1,17 +1,17 @@
 <p>Merhaba,</p>
 
-<p>Lider Portal'a yeni bir siparis geldi.</p>
+<p>Lider Portal'a yeni bir sipariş geldi.</p>
 
 <ul>
-    <li><strong>Siparis No:</strong> {{ $order->order_no }}</li>
-    <li><strong>Tedarikci:</strong> {{ $supplier?->name ?? '-' }}</li>
-    <li><strong>Siparis Tarihi:</strong> {{ optional($order->order_date)->format('d.m.Y') ?? '-' }}</li>
-    <li><strong>Satir Sayisi:</strong> {{ $lineCount }}</li>
+    <li><strong>Sipariş No:</strong> {{ $order->order_no }}</li>
+    <li><strong>Tedarikçi:</strong> {{ $supplier?->name ?? '-' }}</li>
+    <li><strong>Sipariş Tarihi:</strong> {{ optional($order->order_date)->format('d.m.Y') ?? '-' }}</li>
+    <li><strong>Satır Sayısı:</strong> {{ $lineCount }}</li>
 </ul>
 
 <p>
-    Siparis detayi:
+    Sipariş detayı:
     <a href="{{ $orderUrl }}">{{ $orderUrl }}</a>
 </p>
 
-<p>Bu bildirim Lider Portal tarafindan otomatik olusturulmustur.</p>
+<p>Bu bildirim Lider Portal tarafından otomatik oluşturulmuştur.</p>

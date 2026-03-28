@@ -1,29 +1,29 @@
 @extends('layouts.app')
 @section('title', 'Ayarlar')
-@section('page-title', 'Sistem Ayarlari')
-@section('page-subtitle', 'Guncelleme, entegrasyon ve altyapi ayarlarini daha net bir alt navigasyon ile yonetin.')
+@section('page-title', 'Sistem Ayarları')
+@section('page-subtitle', 'Güncelleme, entegrasyon ve altyapı ayarlarını daha net bir alt navigasyon ile yönetin.')
 
 @php
     $tabs = [
         'updates' => [
-            'label' => 'Guncellemeler',
-            'description' => 'Surum durumu, release notlari ve kontrollu update hazirligi.',
-            'eyebrow' => 'Surum ve yayin',
+            'label' => 'Güncellemeler',
+            'description' => 'Sürüm durumu, release notları ve kontrollü update hazırlığı.',
+            'eyebrow' => 'Sürüm ve yayın',
         ],
         'storage' => [
             'label' => 'Depolama / Spaces',
-            'description' => 'Aktif disk secimi ve runtime depolama baglantisi.',
+            'description' => 'Aktif disk seçimi ve runtime depolama bağlantısı.',
             'eyebrow' => 'Dosya depolama',
         ],
         'mikro' => [
             'label' => 'Mikro API',
-            'description' => 'ERP baglantisi, zamanlama ve guvenli endpoint ayarlari.',
+            'description' => 'ERP bağlantısı, zamanlama ve güvenli endpoint ayarları.',
             'eyebrow' => 'ERP entegrasyonu',
         ],
         'mail' => [
             'label' => 'Mail / Exchange',
-            'description' => 'Mail sunucusu ve yeni siparis bildirim davranislari.',
-            'eyebrow' => 'Bildirim altyapisi',
+            'description' => 'Mail sunucusu ve yeni sipariş bildirim davranışları.',
+            'eyebrow' => 'Bildirim altyapısı',
         ],
         'formats' => [
             'label' => 'Dosya Formatları',
@@ -32,8 +32,8 @@
         ],
         'general' => [
             'label' => 'Genel Sistem',
-            'description' => 'Read-only uygulama ortami ve calisma zamani ozeti.',
-            'eyebrow' => 'Sistem ozeti',
+            'description' => 'Read-only uygulama ortamı ve çalışma zamanı özeti.',
+            'eyebrow' => 'Sistem özeti',
         ],
     ];
     $statusVariant = match($updateStatus['last_status']) {
@@ -53,55 +53,55 @@
 
     $sectionHighlights = [
         'updates' => [
-            'title' => 'Kontrollu surum akisi',
-            'summary' => 'Web tarafinda sadece gorunurluk ve hazirlik aksiyonlari sunulur; deploy yine kontrollu CLI akisinda tamamlanir.',
+            'title' => 'Kontrollü sürüm akışı',
+            'summary' => 'Web tarafında sadece görünürlük ve hazırlık aksiyonları sunulur; deploy yine kontrollü CLI akışında tamamlanır.',
             'points' => [
-                'GitHub kontrolu, release notlari ve update gecmisi ayni yerde gorunur.',
-                'Hazirlik aksiyonu oncesi hedef release detaylari net sekilde incelenebilir.',
-                'Rollback butonu yok; guvenli release disiplini korunur.',
+                'GitHub kontrolü, release notları ve update geçmişi aynı yerde görünür.',
+                'Hazırlık aksiyonu öncesi hedef release detayları net şekilde incelenebilir.',
+                'Rollback butonu yok; güvenli release disiplini korunur.',
             ],
             'meta' => [
-                ['label' => 'Kurulu surum', 'value' => $updateStatus['current_version'] ?: 'Bilinmiyor'],
+                ['label' => 'Kurulu sürüm', 'value' => $updateStatus['current_version'] ?: 'Bilinmiyor'],
                 ['label' => 'Hedef release', 'value' => data_get($remoteRelease, 'version') ?: 'Bekleniyor'],
             ],
         ],
         'storage' => [
-            'title' => 'Depolama baglam notu',
-            'summary' => 'Bu bolum local disk ve Spaces gecisini merkezi ve okunur hale getirir; bootstrap `.env` bilgileri yine baslangic noktasi olarak kalir.',
+            'title' => 'Depolama bağlam notu',
+            'summary' => 'Bu bölüm local disk ve Spaces geçişini merkezi ve okunur hale getirir; bootstrap `.env` bilgileri yine başlangıç noktası olarak kalır.',
             'points' => [
-                'Secret alanlar yalniz degistirilirse yazilir.',
-                'Aktif disk secimi mevcut storage mimarisini degistirmez.',
-                'Production ve local davranisi ayni ayar anahtarlari uzerinden surer.',
+                'Secret alanlar yalnız değiştirilirse yazılır.',
+                'Aktif disk seçimi mevcut storage mimarisini değiştirmez.',
+                'Production ve local davranışı aynı ayar anahtarları üzerinden sürer.',
             ],
             'meta' => [
                 ['label' => 'Aktif disk', 'value' => $spaces['disk'] ?? 'local'],
-                ['label' => 'Bucket', 'value' => $spaces['bucket'] ?? 'Tanimli degil'],
+                ['label' => 'Bucket', 'value' => $spaces['bucket'] ?? 'Tanımlı değil'],
             ],
         ],
         'mikro' => [
-            'title' => 'ERP baglanti notu',
-            'summary' => 'Mikro erisimi backend tarafinda kalir; bu panel yalniz runtime-safe entegrasyon alanlarini yonetir.',
+            'title' => 'ERP bağlantı notu',
+            'summary' => 'Mikro erişimi backend tarafında kalır; bu panel yalnız runtime-safe entegrasyon alanlarını yönetir.',
             'points' => [
-                'Kayitli secret alanlar plaintext olarak tekrar gosterilmez.',
-                'Zamanlama ve timeout ayarlari mevcut queue tabanli sync akisiyla uyumludur.',
-                'Supplier bazli sync ve mevcut integration davranisi korunur.',
+                'Kayıtlı secret alanlar plaintext olarak tekrar gösterilmez.',
+                'Zamanlama ve timeout ayarları mevcut queue tabanlı sync akışıyla uyumludur.',
+                'Supplier bazlı sync ve mevcut integration davranışı korunur.',
             ],
             'meta' => [
                 ['label' => 'Durum', 'value' => !empty($mikro['enabled']) ? 'Etkin' : 'Pasif'],
-                ['label' => 'Senkron araligi', 'value' => ($mikro['sync_interval_minutes'] ?? 60) . ' dk'],
+                ['label' => 'Senkron aralığı', 'value' => ($mikro['sync_interval_minutes'] ?? 60) . ' dk'],
             ],
         ],
         'mail' => [
             'title' => 'Mail operasyon rehberi',
-            'summary' => 'Baglanti testi, test mail ve bildirim ayarlari ayni operasyon yuzeyinde toplandi; kuyruk mantigi korunur.',
+            'summary' => 'Bağlantı testi, test mail ve bildirim ayarları aynı operasyon yüzeyinde toplandı; kuyruk mantığı korunur.',
             'points' => [
-                'Baglanti testi kimlik dogrulama ve SMTP/Exchange erisimini kontrol eder.',
-                'Test mail mevcut bildirim hattiyla uyumlu sekilde kuyruga yazilir.',
-                'Bos secret input mevcut kayitli degeri korur.',
+                'Bağlantı testi kimlik doğrulama ve SMTP/Exchange erişimini kontrol eder.',
+                'Test mail mevcut bildirim hattıyla uyumlu şekilde kuyruğa yazılır.',
+                'Boş secret input mevcut kayıtlı değeri korur.',
             ],
             'meta' => [
                 ['label' => 'Mailer', 'value' => $generalSystem['mail_mailer'] ?? 'smtp'],
-                ['label' => 'Test alicisi', 'value' => $mailNotifications['test_recipient'] ?? 'Tanimsiz'],
+                ['label' => 'Test alıcısı', 'value' => $mailNotifications['test_recipient'] ?? 'Tanımsız'],
             ],
         ],
         'formats' => [
@@ -118,12 +118,12 @@
             ],
         ],
         'general' => [
-            'title' => 'Read-only sistem ozeti',
-            'summary' => 'Bu alan uygulama davranisini degistirmez; mevcut environment, queue ve storage secimini hizli kontrol icin gosterir.',
+            'title' => 'Read-only sistem özeti',
+            'summary' => 'Bu alan uygulama davranışını değiştirmez; mevcut environment, queue ve storage seçimini hızlı kontrol için gösterir.',
             'points' => [
-                'Bootstrap env detaylari bu ekranda duzenlenmez.',
-                'Surum, cache ve session durumu tek yerde gorulur.',
-                'Operasyon oncesi kisa sistem kontrolu icin kullanilabilir.',
+                'Bootstrap env detayları bu ekranda düzenlenmez.',
+                'Sürüm, cache ve session durumu tek yerde görülür.',
+                'Operasyon öncesi kısa sistem kontrolü için kullanılabilir.',
             ],
             'meta' => [
                 ['label' => 'Environment', 'value' => $generalSystem['app_env']],
@@ -151,9 +151,9 @@
                         @if($activeTab === 'updates')
                             <x-ui.badge :variant="$statusVariant">
                                 {{ match($updateStatus['last_status']) {
-                                    'success' => 'Son durum: Basarili',
-                                    'failed' => 'Son durum: Hatali',
-                                    default => 'Son durum: Kayit yok',
+                                    'success' => 'Son durum: Başarılı',
+                                    'failed' => 'Son durum: Hatalı',
+                                    default => 'Son durum: Kayıt yok',
                                 } }}
                             </x-ui.badge>
                         @endif
@@ -238,7 +238,7 @@
                             <div class="rounded-3xl border border-slate-200 p-6">
                                 <div>
                                     <h3 class="text-lg font-semibold text-slate-900">DigitalOcean Spaces</h3>
-                                    <p class="mt-1 text-sm text-slate-500">Bootstrap icin `.env` kullanilmaya devam eder. Buradaki alanlar calisma zamaninda uzerine yazabilir.</p>
+                                    <p class="mt-1 text-sm text-slate-500">Bootstrap için `.env` kullanılmaya devam eder. Buradaki alanlar çalışma zamanında üzerine yazabilir.</p>
                                 </div>
                                 <div class="mt-5 space-y-5">
                                     <div>
@@ -261,7 +261,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex justify-end"><button type="submit" class="btn btn-primary">Depolama Ayarlarini Kaydet</button></div>
+                            <div class="flex justify-end"><button type="submit" class="btn btn-primary">Depolama Ayarlarını Kaydet</button></div>
                         </form>
                     </div>
 
@@ -274,7 +274,7 @@
                             <div class="rounded-3xl border border-slate-200 p-6">
                                 <div>
                                     <h3 class="text-lg font-semibold text-slate-900">Mikro API</h3>
-                                    <p class="mt-1 text-sm text-slate-500">Mikro erisimi yalniz backend tarafinda kullanilir. Gizli alanlar tekrar ekrana basilmaz.</p>
+                                    <p class="mt-1 text-sm text-slate-500">Mikro erişimi yalnız backend tarafında kullanılır. Gizli alanlar tekrar ekrana basılmaz.</p>
                                 </div>
                                 <div class="mt-5 space-y-5">
                                     <div class="flex items-center gap-2">
@@ -283,30 +283,30 @@
                                         <label class="text-sm text-slate-700">Mikro entegrasyonu etkin</label>
                                     </div>
                                     <div><label class="label">Base URL</label><input class="input" type="url" name="mikro[base_url]" value="{{ old('mikro.base_url', $mikro['base_url'] ?? '') }}"></div>
-                                    <div><label class="label">API Key</label><input class="input" type="password" name="mikro[api_key]" value="" placeholder="{{ !empty($mikro['has_api_key']) ? 'Kayitli anahtar var, degistirmek icin yeniden girin' : 'Opsiyonel' }}"></div>
+                                    <div><label class="label">API Key</label><input class="input" type="password" name="mikro[api_key]" value="" placeholder="{{ !empty($mikro['has_api_key']) ? 'Kayıtlı anahtar var, değiştirmek için yeniden girin' : 'Opsiyonel' }}"></div>
                                     <div class="grid gap-4 md:grid-cols-2">
-                                        <div><label class="label">Kullanici Adi</label><input class="input" type="text" name="mikro[username]" value="" placeholder="{{ !empty($mikro['has_username']) ? 'Kayitli kullanici var, degistirmek icin yeniden girin' : 'Opsiyonel' }}"></div>
-                                        <div><label class="label">Sifre</label><input class="input" type="password" name="mikro[password]" value="" placeholder="{{ !empty($mikro['has_password']) ? 'Kayitli sifre var, degistirmek icin yeniden girin' : 'Opsiyonel' }}"></div>
+                                        <div><label class="label">Kullanıcı Adı</label><input class="input" type="text" name="mikro[username]" value="" placeholder="{{ !empty($mikro['has_username']) ? 'Kayıtlı kullanıcı var, değiştirmek için yeniden girin' : 'Opsiyonel' }}"></div>
+                                        <div><label class="label">Şifre</label><input class="input" type="password" name="mikro[password]" value="" placeholder="{{ !empty($mikro['has_password']) ? 'Kayıtlı şifre var, değiştirmek için yeniden girin' : 'Opsiyonel' }}"></div>
                                     </div>
                                     <div class="grid gap-4 md:grid-cols-2">
-                                        <div><label class="label">Sirket Kodu</label><input class="input" type="text" name="mikro[company_code]" value="{{ old('mikro.company_code', $mikro['company_code'] ?? '') }}"></div>
-                                        <div><label class="label">Calisma Yili</label><input class="input" type="text" name="mikro[work_year]" value="{{ old('mikro.work_year', $mikro['work_year'] ?? '') }}"></div>
+                                        <div><label class="label">Şirket Kodu</label><input class="input" type="text" name="mikro[company_code]" value="{{ old('mikro.company_code', $mikro['company_code'] ?? '') }}"></div>
+                                        <div><label class="label">Çalışma Yılı</label><input class="input" type="text" name="mikro[work_year]" value="{{ old('mikro.work_year', $mikro['work_year'] ?? '') }}"></div>
                                     </div>
                                     <div><label class="label">Sevk Endpoint Yolu</label><input class="input" type="text" name="mikro[shipment_endpoint]" value="{{ old('mikro.shipment_endpoint', $mikro['shipment_endpoint'] ?? '') }}" placeholder="/api/dispatch-status"></div>
                                     <div class="grid gap-4 md:grid-cols-2">
-                                        <div><label class="label">Senkron Araligi (dk)</label><input class="input" type="number" min="5" max="1440" name="mikro[sync_interval_minutes]" value="{{ old('mikro.sync_interval_minutes', $mikro['sync_interval_minutes'] ?? 60) }}"></div>
+                                        <div><label class="label">Senkron Aralığı (dk)</label><input class="input" type="number" min="5" max="1440" name="mikro[sync_interval_minutes]" value="{{ old('mikro.sync_interval_minutes', $mikro['sync_interval_minutes'] ?? 60) }}"></div>
                                         <div><label class="label">HTTP Timeout (sn)</label><input class="input" type="number" min="1" max="300" name="mikro[timeout]" value="{{ old('mikro.timeout', $mikro['timeout'] ?? 30) }}"></div>
                                     </div>
                                     <div class="flex items-end">
                                         <label class="flex items-center gap-2 text-sm text-slate-700">
                                             <input type="hidden" name="mikro[verify_ssl]" value="0">
                                             <input type="checkbox" name="mikro[verify_ssl]" value="1" class="rounded border-slate-300 text-brand-600" {{ old('mikro.verify_ssl', !empty($mikro['verify_ssl']) ? '1' : '0') === '1' ? 'checked' : '' }}>
-                                            SSL dogrulamasi aktif
+                                            SSL doğrulaması aktif
                                         </label>
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex justify-end"><button type="submit" class="btn btn-primary">Mikro Ayarlarini Kaydet</button></div>
+                            <div class="flex justify-end"><button type="submit" class="btn btn-primary">Mikro Ayarlarını Kaydet</button></div>
                         </form>
                     </div>
 
@@ -320,15 +320,15 @@
                                 <div class="rounded-3xl border border-slate-200 p-6 space-y-6">
                                     <div>
                                         <h3 class="text-lg font-semibold text-slate-900">Mail Sunucusu</h3>
-                                        <p class="mt-1 text-sm text-slate-500">Yalniz runtime-safe mail sunucusu alanlari burada yonetilir. Ilgisiz altyapi env degerleri bu passtte tasinmaz.</p>
+                                        <p class="mt-1 text-sm text-slate-500">Yalnız runtime-safe mail sunucusu alanları burada yönetilir. İlgisiz altyapı env değerleri bu passta taşınmaz.</p>
                                     </div>
                                     <div class="grid gap-4 md:grid-cols-2">
                                         <div><label class="label">MAIL_HOST</label><input class="input" type="text" name="mail_server[host]" value="{{ old('mail_server.host', $mailServer['host'] ?? '') }}"></div>
                                         <div><label class="label">MAIL_PORT</label><input class="input" type="number" min="1" max="65535" name="mail_server[port]" value="{{ old('mail_server.port', $mailServer['port'] ?? 587) }}"></div>
                                     </div>
                                     <div class="grid gap-4 md:grid-cols-2">
-                                        <div><label class="label">MAIL_USERNAME</label><input class="input" type="text" name="mail_server[username]" value="" placeholder="{{ !empty($mailServer['has_username']) ? 'Kayitli kullanici var, degistirmek icin yeniden girin' : 'Opsiyonel' }}"></div>
-                                        <div><label class="label">MAIL_PASSWORD</label><input class="input" type="password" name="mail_server[password]" value="" placeholder="{{ !empty($mailServer['has_password']) ? 'Kayitli sifre var, bos birakilirsa korunur' : 'Opsiyonel' }}"></div>
+                                        <div><label class="label">MAIL_USERNAME</label><input class="input" type="text" name="mail_server[username]" value="" placeholder="{{ !empty($mailServer['has_username']) ? 'Kayıtlı kullanıcı var, değiştirmek için yeniden girin' : 'Opsiyonel' }}"></div>
+                                        <div><label class="label">MAIL_PASSWORD</label><input class="input" type="password" name="mail_server[password]" value="" placeholder="{{ !empty($mailServer['has_password']) ? 'Kayıtlı şifre var, boş bırakılırsa korunur' : 'Opsiyonel' }}"></div>
                                     </div>
                                     <div class="grid gap-4 md:grid-cols-3">
                                         <div>
@@ -345,11 +345,11 @@
                                     <div class="rounded-2xl border border-slate-200 p-4">
                                         <div class="flex flex-wrap items-center justify-between gap-3">
                                             <div>
-                                                <p class="text-sm font-semibold text-slate-900">Mail Sunucusu Aksiyonlari</p>
-                                                <p class="mt-1 text-xs text-slate-500">Kayit ettikten sonra baglanti testi ile SMTP/Exchange baglantisini dogrulayabilirsiniz.</p>
+                                                <p class="text-sm font-semibold text-slate-900">Mail Sunucusu Aksiyonları</p>
+                                                <p class="mt-1 text-xs text-slate-500">Kayıt ettikten sonra bağlantı testi ile SMTP/Exchange bağlantısını doğrulayabilirsiniz.</p>
                                             </div>
                                             <div class="flex flex-wrap gap-2">
-                                                <button type="submit" class="btn btn-primary">Mail Ayarlarini Kaydet</button>
+                                                <button type="submit" class="btn btn-primary">Mail Ayarlarını Kaydet</button>
                                             </div>
                                         </div>
                                     </div>
@@ -357,26 +357,26 @@
                                         <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                             <div>
                                                 <h3 class="text-lg font-semibold text-slate-900">Mail Bildirimleri</h3>
-                                                <p class="mt-1 text-sm text-slate-500">Yeni siparis bildirim davranisi mevcut sistemle uyumlu sekilde burada yonetilir.</p>
+                                                <p class="mt-1 text-sm text-slate-500">Yeni sipariş bildirim davranışı mevcut sistemle uyumlu şekilde burada yönetilir.</p>
                                             </div>
                                             <div class="rounded-2xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                                                Otomatik yeni siparis bildirimi yalniz Mikro ile ilk kez gelen siparislerde calisir.
+                                                Otomatik yeni sipariş bildirimi yalnız Mikro ile ilk kez gelen siparişlerde çalışır.
                                             </div>
                                         </div>
                                         <div class="mt-5 flex items-center gap-2">
                                             <input type="hidden" name="mail_notifications[enabled]" value="0">
                                             <input type="checkbox" name="mail_notifications[enabled]" value="1" class="rounded border-slate-300 text-brand-600" {{ old('mail_notifications.enabled', !empty($mailNotifications['enabled']) ? '1' : '0') === '1' ? 'checked' : '' }}>
-                                            <label class="text-sm text-slate-700">Yeni siparis mail bildirimleri etkin</label>
+                                            <label class="text-sm text-slate-700">Yeni sipariş mail bildirimleri etkin</label>
                                         </div>
                                         <div class="mt-5 grid gap-4 md:grid-cols-2">
                                             <div>
                                                 <label class="label">Grafik Departmani Alicilar</label>
                                                 <textarea name="mail_notifications[graphics_to]" class="input min-h-24">{{ old('mail_notifications.graphics_to', $mailNotifications['graphics_to'] ?? '') }}</textarea>
-                                                <p class="mt-1 text-xs text-slate-500">Virgul veya bosluk ile birden fazla e-posta girilebilir.</p>
+                                                <p class="mt-1 text-xs text-slate-500">Virgül veya boşluk ile birden fazla e-posta girilebilir.</p>
                                             </div>
                                             <div>
-                                                <label class="label">Yeni Siparis Konu Sablonu</label>
-                                                <input class="input" type="text" name="mail_notifications[new_order_subject]" value="{{ old('mail_notifications.new_order_subject', $mailNotifications['new_order_subject'] ?? 'Yeni siparis geldi: {order_no}') }}">
+                                                <label class="label">Yeni Sipariş Konu Şablonu</label>
+                                                <input class="input" type="text" name="mail_notifications[new_order_subject]" value="{{ old('mail_notifications.new_order_subject', $mailNotifications['new_order_subject'] ?? 'Yeni sipariş geldi: {order_no}') }}">
                                                 <p class="mt-1 text-xs text-slate-500">Desteklenen alanlar: {order_no}, {supplier}, {order_date}, {line_count}</p>
                                             </div>
                                         </div>
@@ -385,9 +385,9 @@
                                             <div><label class="label">BCC Listesi</label><textarea name="mail_notifications[graphics_bcc]" class="input min-h-20">{{ old('mail_notifications.graphics_bcc', $mailNotifications['graphics_bcc'] ?? '') }}</textarea></div>
                                         </div>
                                         <div class="mt-4 grid gap-4 md:grid-cols-3">
-                                            <div><label class="label">Override From Name</label><input class="input" type="text" name="mail_notifications[override_from_name]" value="{{ old('mail_notifications.override_from_name', $mailNotifications['override_from_name'] ?? '') }}" placeholder="Bos birakilirsa fallback kullanilir"></div>
+                                            <div><label class="label">Override From Name</label><input class="input" type="text" name="mail_notifications[override_from_name]" value="{{ old('mail_notifications.override_from_name', $mailNotifications['override_from_name'] ?? '') }}" placeholder="Boş bırakılırsa fallback kullanılır"></div>
                                             <div><label class="label">Override From Address</label><input class="input" type="email" name="mail_notifications[override_from_address]" value="{{ old('mail_notifications.override_from_address', $mailNotifications['override_from_address'] ?? '') }}" placeholder="portal@sirketiniz.com"></div>
-                                            <div><label class="label">Kayitli Test Alicisi</label><input class="input" type="email" name="mail_notifications[test_recipient]" value="{{ old('mail_notifications.test_recipient', $mailNotifications['test_recipient'] ?? '') }}" placeholder="grafik@sirketiniz.com"></div>
+                                            <div><label class="label">Kayıtlı Test Alıcısı</label><input class="input" type="email" name="mail_notifications[test_recipient]" value="{{ old('mail_notifications.test_recipient', $mailNotifications['test_recipient'] ?? '') }}" placeholder="grafik@sirketiniz.com"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -398,10 +398,10 @@
                                 <input type="hidden" name="tab" value="mail">
                                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                     <div>
-                                        <p class="text-sm font-semibold text-slate-900">Baglantiyi Test Et</p>
-                                        <p class="mt-1 text-xs text-slate-500">Kayitli mail sunucusu ayarlari ile baglanti ve kimlik dogrulama testi yapar. Mail gondermez.</p>
+                                        <p class="text-sm font-semibold text-slate-900">Bağlantıyı Test Et</p>
+                                        <p class="mt-1 text-xs text-slate-500">Kayıtlı mail sunucusu ayarları ile bağlantı ve kimlik doğrulama testi yapar. Mail göndermez.</p>
                                     </div>
-                                    <button type="submit" class="btn btn-secondary">Baglantiyi Test Et</button>
+                                    <button type="submit" class="btn btn-secondary">Bağlantıyı Test Et</button>
                                 </div>
                             </form>
 
@@ -410,13 +410,13 @@
                                 <input type="hidden" name="tab" value="mail">
                                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                     <div>
-                                        <p class="text-sm font-semibold text-slate-900">Test Mail Gonder</p>
-                                        <p class="mt-1 text-xs text-slate-500">Kayitli test alicisi varsa o kullanilir. Yoksa asagidaki adrese tek seferlik test gonderebilirsiniz.</p>
+                                        <p class="text-sm font-semibold text-slate-900">Test Mail Gönder</p>
+                                        <p class="mt-1 text-xs text-slate-500">Kayıtlı test alıcısı varsa o kullanılır. Yoksa aşağıdaki adrese tek seferlik test gönderebilirsiniz.</p>
                                     </div>
-                                    <button type="submit" class="btn btn-secondary">Test Mail Gonder</button>
+                                    <button type="submit" class="btn btn-secondary">Test Mail Gönder</button>
                                 </div>
                                 <div>
-                                    <label class="label">Tek Seferlik Test Alicisi</label>
+                                    <label class="label">Tek Seferlik Test Alıcısı</label>
                                     <input class="input" type="email" name="test_mail_recipient" value="{{ old('test_mail_recipient', $mailNotifications['test_recipient'] ?? '') }}" placeholder="test@sirketiniz.com">
                                 </div>
                             </form>
@@ -549,11 +549,11 @@
                             <div class="rounded-3xl border border-slate-200 p-6 space-y-4">
                                 <div>
                                     <h3 class="text-lg font-semibold text-slate-900">Genel Sistem Bilgileri</h3>
-                                    <p class="mt-1 text-sm text-slate-500">Bu sekme read-only bilgi sunar. Altyapi ve bootstrap env degerleri bu passtte admin paneline tasinmamistir.</p>
+                                    <p class="mt-1 text-sm text-slate-500">Bu sekme read-only bilgi sunar. Altyapı ve bootstrap env değerleri bu passta admin paneline taşınmamıştır.</p>
                                 </div>
                                 <dl class="grid gap-4 md:grid-cols-2">
                                     <div><dt class="text-xs uppercase tracking-wide text-slate-400">Uygulama Adi</dt><dd class="mt-1 text-sm text-slate-900">{{ $generalSystem['app_name'] }}</dd></div>
-                                    <div><dt class="text-xs uppercase tracking-wide text-slate-400">Surum</dt><dd class="mt-1 font-mono text-sm text-slate-900">{{ $generalSystem['app_version'] }}</dd></div>
+                                    <div><dt class="text-xs uppercase tracking-wide text-slate-400">Sürüm</dt><dd class="mt-1 font-mono text-sm text-slate-900">{{ $generalSystem['app_version'] }}</dd></div>
                                     <div><dt class="text-xs uppercase tracking-wide text-slate-400">Environment</dt><dd class="mt-1 text-sm text-slate-900">{{ $generalSystem['app_env'] }}</dd></div>
                                     <div><dt class="text-xs uppercase tracking-wide text-slate-400">Timezone</dt><dd class="mt-1 text-sm text-slate-900">{{ $generalSystem['app_timezone'] }}</dd></div>
                                     <div><dt class="text-xs uppercase tracking-wide text-slate-400">Queue</dt><dd class="mt-1 text-sm text-slate-900">{{ $generalSystem['queue_connection'] }}</dd></div>
@@ -566,11 +566,11 @@
                             <div class="rounded-3xl border border-slate-200 p-6 space-y-4">
                                 <div>
                                     <h3 class="text-lg font-semibold text-slate-900">Kapsam Notu</h3>
-                                    <p class="mt-1 text-sm text-slate-500">Bu pass yalniz admin icin uygun ve runtime-safe ayarlari panel yuzeyine tasir.</p>
+                                    <p class="mt-1 text-sm text-slate-500">Bu pass yalnız admin için uygun ve runtime-safe ayarları panel yüzeyine taşır.</p>
                                 </div>
                                 <ul class="list-inside list-disc space-y-2 text-sm text-slate-700">
-                                    <li>MAIL_MAILER, MAIL_URL, MAIL_SCHEME gibi bootstrap detaylari burada yonetilmez.</li>
-                                    <li>Mail disi altyapi env degerleri admin ayarlarina tasinmamistir.</li>
+                                    <li>MAIL_MAILER, MAIL_URL, MAIL_SCHEME gibi bootstrap detayları burada yönetilmez.</li>
+                                    <li>Mail dışı altyapı env değerleri admin ayarlarına taşınmamıştır.</li>
                                     <li>Mevcut update, Spaces, Mikro ve mail notification persistence anahtarlari korunur.</li>
                                     <li>Secret alanlar plaintext olarak tekrar render edilmez.</li>
                                 </ul>

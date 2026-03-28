@@ -12,15 +12,15 @@
     <div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
         <dl class="grid gap-4 md:grid-cols-2">
             <div>
-                <dt class="text-sm text-slate-500">Siparis</dt>
+                <dt class="text-sm text-slate-500">Sipariş</dt>
                 <dd class="font-medium">{{ $revision->artwork->orderLine->purchaseOrder->order_no }}</dd>
             </div>
             <div>
-                <dt class="text-sm text-slate-500">Tedarikci</dt>
+                <dt class="text-sm text-slate-500">Tedarikçi</dt>
                 <dd class="font-medium">{{ $revision->artwork->orderLine->purchaseOrder->supplier->name }}</dd>
             </div>
             <div>
-                <dt class="text-sm text-slate-500">Yukleyen</dt>
+                <dt class="text-sm text-slate-500">Yükleyen</dt>
                 <dd class="font-medium">{{ $revision->uploadedBy?->name ?? '-' }}</dd>
             </div>
             <div>
