@@ -422,20 +422,20 @@ class ReportController extends Controller
             $revisions = ArtworkRevision::query()
                 ->with([
                     'uploadedBy:id,name',
-                    'artwork.line.order.supplier:id,name',
-                    'artwork.line.order:id,order_no,supplier_id',
-                    'artwork.line:id,purchase_order_id,product_code,description',
+                    'artwork.orderLine.purchaseOrder.supplier:id,name',
+                    'artwork.orderLine.purchaseOrder:id,order_no,supplier_id',
+                    'artwork.orderLine:id,purchase_order_id,product_code,description',
                 ])
                 ->when($selectedSupplier, fn ($q) => $q->whereHas(
-                    'artwork.line.order',
+                    'artwork.orderLine.purchaseOrder',
                     fn ($oq) => $oq->where('supplier_id', $selectedSupplier)
                 ))
                 ->whereBetween('artwork_revisions.created_at', [$from, $to])
                 ->get();
 
             foreach ($revisions as $rev) {
-                $order = $rev->artwork?->line?->order;
-                $line  = $rev->artwork?->line;
+                $order = $rev->artwork?->orderLine?->purchaseOrder;
+                $line  = $rev->artwork?->orderLine;
                 $timeline->push([
                     'at'    => $rev->created_at,
                     'type'  => 'artwork',
