@@ -3,8 +3,7 @@
 @section('page-title', 'Profilim')
 
 @section('content')
-<div class="mx-auto max-w-4xl">
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
         {{-- LEFT: Profile card --}}
         <div class="space-y-5">

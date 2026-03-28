@@ -339,19 +339,22 @@
                                 <div class="mt-5 space-y-5">
                                     <div>
                                         <label class="label">Aktif Disk</label>
-                                        <select name="spaces[disk]" class="input">
+                                        <select name="spaces[disk]" class="input" id="disk-select"
+                                                onchange="document.getElementById('spaces-fields').style.display = this.value === 'spaces' ? '' : 'none'">
                                             <option value="local" {{ old('spaces.disk', $spaces['disk'] ?? 'local') === 'local' ? 'selected' : '' }}>Local</option>
                                             <option value="spaces" {{ old('spaces.disk', $spaces['disk'] ?? 'local') === 'spaces' ? 'selected' : '' }}>Spaces</option>
                                         </select>
                                     </div>
-                                    <div><label class="label">Access Key</label><input class="input" type="text" name="spaces[key]" value="{{ old('spaces.key', $spaces['key'] ?? '') }}"></div>
-                                    <div><label class="label">Secret Key</label><input class="input" type="password" name="spaces[secret]" value="{{ old('spaces.secret', $spaces['secret'] ?? '') }}"></div>
-                                    <div><label class="label">Endpoint</label><input class="input" type="url" name="spaces[endpoint]" value="{{ old('spaces.endpoint', $spaces['endpoint'] ?? '') }}"></div>
-                                    <div class="grid gap-4 md:grid-cols-2">
-                                        <div><label class="label">Region</label><input class="input" type="text" name="spaces[region]" value="{{ old('spaces.region', $spaces['region'] ?? '') }}"></div>
-                                        <div><label class="label">Bucket</label><input class="input" type="text" name="spaces[bucket]" value="{{ old('spaces.bucket', $spaces['bucket'] ?? '') }}"></div>
+                                    <div id="spaces-fields" class="space-y-5" style="{{ ($spaces['disk'] ?? 'local') === 'local' ? 'display:none' : '' }}">
+                                        <div><label class="label">Access Key</label><input class="input" type="text" name="spaces[key]" value="{{ old('spaces.key', $spaces['key'] ?? '') }}"></div>
+                                        <div><label class="label">Secret Key</label><input class="input" type="password" name="spaces[secret]" value="{{ old('spaces.secret', $spaces['secret'] ?? '') }}"></div>
+                                        <div><label class="label">Endpoint</label><input class="input" type="url" name="spaces[endpoint]" value="{{ old('spaces.endpoint', $spaces['endpoint'] ?? '') }}"></div>
+                                        <div class="grid gap-4 md:grid-cols-2">
+                                            <div><label class="label">Region</label><input class="input" type="text" name="spaces[region]" value="{{ old('spaces.region', $spaces['region'] ?? '') }}"></div>
+                                            <div><label class="label">Bucket</label><input class="input" type="text" name="spaces[bucket]" value="{{ old('spaces.bucket', $spaces['bucket'] ?? '') }}"></div>
+                                        </div>
+                                        <div><label class="label">CDN / URL</label><input class="input" type="url" name="spaces[url]" value="{{ old('spaces.url', $spaces['url'] ?? '') }}"></div>
                                     </div>
-                                    <div><label class="label">CDN / URL</label><input class="input" type="url" name="spaces[url]" value="{{ old('spaces.url', $spaces['url'] ?? '') }}"></div>
                                 </div>
                             </div>
                             <div class="flex justify-end"><button type="submit" class="btn btn-primary">Depolama Ayarlarini Kaydet</button></div>
