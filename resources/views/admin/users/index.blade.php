@@ -9,8 +9,8 @@
 @endsection
 @section('content')
 <form method="GET" class="flex flex-wrap gap-3 mb-5">
-    <input type="text" name="search" value="{{ request('search') }}" placeholder="İsim veya e-posta ara..." class="input w-64">
-    <select name="role" class="input w-44">
+    <input type="text" name="search" value="{{ request('search') }}" placeholder="İsim veya e-posta ara..." class="input w-full sm:w-64">
+    <select name="role" class="input w-full sm:w-44">
         <option value="">Tüm roller</option>
         @foreach(App\Enums\UserRole::cases() as $role)
             <option value="{{ $role->value }}" {{ request('role') === $role->value ? 'selected' : '' }}>{{ $role->label() }}</option>
@@ -19,8 +19,8 @@
     <button type="submit" class="btn btn-secondary">Filtrele</button>
 </form>
 
-<div class="card">
-    <table class="w-full text-sm">
+<div class="card overflow-x-auto">
+    <table class="w-full min-w-[560px] text-sm">
         <thead>
             <tr class="border-b border-slate-200 bg-slate-50">
                 <th class="text-left px-4 py-3 font-medium text-slate-600">Kullanıcı</th>

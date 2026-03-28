@@ -60,7 +60,7 @@ $fileTypeText = [
         <form method="GET" action="{{ route('admin.artwork-gallery.index') }}" id="gallery-filter-form">
             <div class="flex flex-wrap items-end gap-3">
                 {{-- Arama --}}
-                <div class="min-w-[180px] flex-1">
+                <div class="w-full sm:min-w-[180px] flex-1">
                     <div class="relative">
                         <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -74,7 +74,7 @@ $fileTypeText = [
                 </div>
 
                 {{-- Stok kodu --}}
-                <div class="w-44">
+                <div class="w-full sm:w-44">
                     <div class="relative">
                         <input name="stock_code" value="{{ request('stock_code') }}"
                                placeholder="Stok kodu ara…"
@@ -85,7 +85,7 @@ $fileTypeText = [
                 </div>
 
                 {{-- Kategori --}}
-                <div class="w-44">
+                <div class="w-full sm:w-44">
                     <select name="category_id" class="input">
                         <option value="">Tüm kategoriler</option>
                         @foreach($categories as $cat)
@@ -95,7 +95,7 @@ $fileTypeText = [
                 </div>
 
                 {{-- Etiket --}}
-                <div class="w-44">
+                <div class="w-full sm:w-44">
                     <select name="tag_id" class="input" id="gallery-tag-select">
                         <option value="">Tüm etiketler</option>
                         @foreach($tags as $tag)
@@ -157,8 +157,8 @@ $fileTypeText = [
             <a href="{{ route('admin.artwork-gallery.index') }}" class="mt-3 text-xs text-brand-600 hover:underline">Filtreleri temizle</a>
         </div>
     @else
-        <div class="card overflow-hidden">
-            <table class="w-full text-sm">
+        <div class="card overflow-x-auto">
+            <table class="w-full min-w-[900px] text-sm">
                 <thead>
                     <tr class="border-b border-slate-200 bg-slate-50 text-left">
                         <th class="px-4 py-3 font-medium text-slate-600 w-16">Format</th>

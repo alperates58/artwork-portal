@@ -13,7 +13,7 @@
     {{-- Filters --}}
     <form method="GET" action="{{ route('admin.reports.pending') }}" class="card p-4" id="pending-filter-form">
         <div class="flex flex-wrap items-end gap-3">
-            <div class="w-56">
+            <div class="w-full sm:w-56">
                 <label class="label" for="pend_supplier">Tedarikçi</label>
                 <select id="pend_supplier" name="supplier_id" class="input">
                     <option value="">Tüm tedarikçiler</option>
@@ -22,7 +22,7 @@
                     @endforeach
                 </select>
             </div>
-            <div class="w-44">
+            <div class="w-full sm:w-44">
                 <label class="label" for="pend_product">Ürün Kodu</label>
                 <input id="pend_product" name="product_code" value="{{ $searchProduct }}" class="input font-mono" placeholder="Ürün kodu ara…" autocomplete="off">
             </div>

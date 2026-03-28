@@ -4,7 +4,7 @@
 
 @section('content')
 <form method="GET" class="flex flex-wrap gap-3 mb-5">
-    <select name="action" class="input w-52">
+    <select name="action" class="input w-full sm:w-52">
         <option value="">Tüm işlemler</option>
         <option value="user.login" {{ request('action') === 'user.login' ? 'selected' : '' }}>Giriş</option>
         <option value="artwork.download" {{ request('action') === 'artwork.download' ? 'selected' : '' }}>İndirme</option>
@@ -12,16 +12,16 @@
         <option value="artwork.view" {{ request('action') === 'artwork.view' ? 'selected' : '' }}>Görüntüleme</option>
         <option value="portal.order.view" {{ request('action') === 'portal.order.view' ? 'selected' : '' }}>Portal sipariş görüntüleme</option>
     </select>
-    <input type="date" name="date_from" value="{{ request('date_from') }}" class="input w-40">
-    <input type="date" name="date_to" value="{{ request('date_to') }}" class="input w-40">
+    <input type="date" name="date_from" value="{{ request('date_from') }}" class="input w-full sm:w-40">
+    <input type="date" name="date_to" value="{{ request('date_to') }}" class="input w-full sm:w-40">
     <button type="submit" class="btn btn-secondary">Filtrele</button>
     @if(request()->hasAny(['action','date_from','date_to']))
         <a href="{{ route('admin.logs.index') }}" class="btn btn-secondary text-slate-500">Temizle</a>
     @endif
 </form>
 
-<div class="card">
-    <table class="w-full text-sm">
+<div class="card overflow-x-auto">
+    <table class="w-full min-w-[600px] text-sm">
         <thead>
             <tr class="border-b border-slate-200 bg-slate-50">
                 <th class="text-left px-4 py-3 font-medium text-slate-600">Zaman</th>

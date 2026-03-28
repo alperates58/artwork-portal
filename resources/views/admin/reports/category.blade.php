@@ -13,7 +13,7 @@
     {{-- Filters --}}
     <form method="GET" action="{{ route('admin.reports.category') }}" class="card p-4" id="cat-filter-form">
         <div class="flex flex-wrap items-end gap-3">
-            <div class="w-56">
+            <div class="w-full sm:w-56">
                 <label class="label" for="cat_supplier">Tedarikçi</label>
                 <select id="cat_supplier" name="supplier_id" class="input">
                     <option value="">Tüm tedarikçiler</option>
@@ -22,11 +22,11 @@
                     @endforeach
                 </select>
             </div>
-            <div class="w-40">
+            <div class="w-full sm:w-40">
                 <label class="label" for="cat_date_from">Başlangıç</label>
                 <input id="cat_date_from" name="date_from" type="date" value="{{ $dateFrom }}" class="input">
             </div>
-            <div class="w-40">
+            <div class="w-full sm:w-40">
                 <label class="label" for="cat_date_to">Bitiş</label>
                 <input id="cat_date_to" name="date_to" type="date" value="{{ $dateTo }}" class="input">
             </div>
@@ -63,11 +63,11 @@
     </div>
 
     {{-- Category detail --}}
-    <div class="card overflow-hidden">
+    <div class="card overflow-x-auto">
         <div class="px-5 py-4 border-b border-slate-100">
             <h2 class="text-sm font-semibold text-slate-900">Kategori Detayı</h2>
         </div>
-        <table class="w-full text-sm">
+        <table class="w-full min-w-[400px] text-sm">
             <thead>
                 <tr class="border-b border-slate-200 bg-slate-50 text-left">
                     <th class="px-4 py-3 font-medium text-slate-600">Kategori</th>
@@ -96,11 +96,11 @@
     </div>
 
     {{-- Tag detail --}}
-    <div class="card overflow-hidden">
+    <div class="card overflow-x-auto">
         <div class="px-5 py-4 border-b border-slate-100">
             <h2 class="text-sm font-semibold text-slate-900">Etiket Detayı</h2>
         </div>
-        <table class="w-full text-sm">
+        <table class="w-full min-w-[400px] text-sm">
             <thead>
                 <tr class="border-b border-slate-200 bg-slate-50 text-left">
                     <th class="px-4 py-3 font-medium text-slate-600">Etiket</th>
@@ -138,11 +138,11 @@
 
     {{-- Pending by category --}}
     @if($pendingByCategory->isNotEmpty())
-    <div class="card overflow-hidden">
+    <div class="card overflow-x-auto">
         <div class="px-5 py-4 border-b border-slate-100">
             <h2 class="text-sm font-semibold text-slate-900">Kategori Bazında Bekleyen Artwork Süreleri</h2>
         </div>
-        <table class="w-full text-sm">
+        <table class="w-full min-w-[400px] text-sm">
             <thead>
                 <tr class="border-b border-slate-200 bg-slate-50 text-left">
                     <th class="px-4 py-3 font-medium text-slate-600">Kategori</th>

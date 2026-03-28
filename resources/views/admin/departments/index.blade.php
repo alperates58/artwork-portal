@@ -16,12 +16,12 @@
         </div>
     @endif
 
-    <div class="card overflow-hidden">
+    <div class="card overflow-x-auto">
         <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <h2 class="text-sm font-semibold text-slate-900">Tüm Departmanlar</h2>
             <span class="text-xs text-slate-400">{{ $departments->count() }} departman</span>
         </div>
-        <table class="w-full text-sm">
+        <table class="w-full min-w-[480px] text-sm">
             <thead>
                 <tr class="border-b border-slate-200 bg-slate-50 text-left">
                     <th class="px-4 py-3 font-medium text-slate-600">Departman Adı</th>

@@ -13,7 +13,7 @@
     {{-- Supplier filter --}}
     <form method="GET" action="{{ route('admin.reports.lead-time') }}" class="card p-4" id="lead-time-filter-form">
         <div class="flex flex-wrap items-end gap-3">
-            <div class="w-64">
+            <div class="w-full sm:w-64">
                 <label class="label" for="lt_supplier">Tedarikçi</label>
                 <select id="lt_supplier" name="supplier_id" class="input">
                     <option value="">Tüm tedarikçiler</option>
