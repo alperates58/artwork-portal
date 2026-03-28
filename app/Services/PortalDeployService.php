@@ -94,15 +94,22 @@ class PortalDeployService
     {
         $ok = true;
 
+        // Önce temizle
         $steps[] = $this->runArtisan('config:clear');
         $steps[] = $this->runArtisan('cache:clear');
 
-        $step = $this->runArtisan('portal:update', ['--skip-cache' => true]);
+        // portal:update: migrate, storage:link, optimize:clear, queue:restart
+        // Production'da config:cache/route:cache/view:cache de rebuild eder
+        $step = $this->runArtisan('portal:update');
         $steps[] = $step;
 
         if (! $step['ok']) {
             $ok = false;
         }
+
+        // portal:update production'da cache rebuild eder; stale cache'i önlemek için tekrar temizle
+        $steps[] = $this->runArtisan('config:clear');
+        $steps[] = $this->runArtisan('cache:clear');
 
         return ['ok' => $ok, 'steps' => $steps];
     }
