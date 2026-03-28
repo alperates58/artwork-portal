@@ -13,7 +13,7 @@
             width: 272px;
             transition: width .25s cubic-bezier(.4,0,.2,1);
             overflow: hidden;
-            background: #ffffff;
+            background: #1a2035;
         }
 
         /* ── Collapsed: icon strip (88px) ── */
@@ -113,33 +113,44 @@
         }
         .nav-group-items > div { overflow: hidden; }
 
-        /* ── Corporate color overrides (force blue, override any cached styles) ── */
+        /* ── Brand: orange overrides ── */
         .btn-primary, button.btn-primary, a.btn-primary {
-            background: linear-gradient(180deg, #2563eb, #1d4ed8) !important;
+            background: linear-gradient(170deg, #f97316, #c2410c) !important;
             color: #fff !important;
+            box-shadow: 0 2px 8px rgba(234,88,12,0.32) !important;
         }
         .btn-primary:hover, button.btn-primary:hover, a.btn-primary:hover {
-            background: linear-gradient(180deg, #3b82f6, #1d4ed8) !important;
+            background: linear-gradient(170deg, #fb923c, #ea580c) !important;
+            box-shadow: 0 4px 12px rgba(234,88,12,0.40) !important;
         }
-        .sidebar-link.active {
-            background-color: rgba(239,246,255,0.9) !important;
-            color: #1d4ed8 !important;
+
+        /* ── Dark sidebar overrides ── */
+        #main-sidebar { background: #1a2035; }
+        #main-sidebar .sidebar-link { color: rgba(148,163,184,0.9); }
+        #main-sidebar .sidebar-link:hover { background: rgba(255,255,255,0.07); color: #f8fafc; }
+        #main-sidebar .sidebar-link.active {
+            background: rgba(249,115,22,0.15) !important;
+            color: #fff !important;
+            box-shadow: inset 3px 0 0 #f97316 !important;
         }
-        .sidebar-link.active svg { color: #2563eb !important; }
-        .text-brand-700 { color: #1d4ed8; }
-        .text-brand-900 { color: #1e3a8a; }
-        .text-brand-500 { color: #3b82f6; }
-        .hover\:text-brand-700:hover { color: #1d4ed8; }
-        .bg-brand-50 { background-color: #eff6ff; }
-        .bg-brand-100 { background-color: #dbeafe; }
-        .bg-brand-600 { background-color: #2563eb; }
-        .bg-brand-100 { background-color: #dbeafe; }
-        .border-brand-200 { border-color: #bfdbfe; }
-        .text-brand-800 { color: #1e40af; }
-        .bg-brand-500 { background-color: #3b82f6; }
+        #main-sidebar .sidebar-link.active svg { color: #f97316 !important; }
+        #main-sidebar [data-nav-group-chevron] { color: rgba(148,163,184,0.55) !important; }
+        #main-sidebar [data-nav-group-chevron].rotate-180 { color: #f97316 !important; }
+
+        /* ── Brand utilities ── */
+        .text-brand-500 { color: #f97316; }
+        .text-brand-600 { color: #ea580c; }
+        .text-brand-700 { color: #c2410c; }
+        .text-brand-800 { color: #9a3412; }
+        .text-brand-900 { color: #7c2d12; }
+        .hover\:text-brand-700:hover { color: #c2410c; }
+        .bg-brand-50  { background-color: #fff7ed; }
+        .bg-brand-50\/70 { background-color: rgba(255,247,237,0.7); }
+        .bg-brand-100 { background-color: #ffedd5; }
+        .bg-brand-500 { background-color: #f97316; }
+        .bg-brand-600 { background-color: #ea580c; }
+        .border-brand-200 { border-color: #fed7aa; }
         .rotate-180 { transform: rotate(180deg); }
-        .text-brand-600 { color: #2563eb; }
-        .bg-brand-50\/70 { background-color: rgba(239,246,255,0.7); }
     </style>
 </head>
 <body class="font-sans antialiased text-slate-900" style="background: #f1f5f9;">
@@ -161,15 +172,15 @@
 
         {{-- ── Sidebar ── --}}
         <div id="sidebar-wrap">
-            <aside id="main-sidebar" class="h-screen sticky top-0 flex flex-col border-r border-slate-200 bg-white">
+            <aside id="main-sidebar" class="h-screen sticky top-0 flex flex-col" style="border-right: 1px solid rgba(255,255,255,0.06);">
 
                 {{-- Logo --}}
                 @php
                     $iconLogoUrl = asset('brand/logo2.png');
                 @endphp
-                <div class="border-b border-slate-200/80 px-4 py-4">
+                <div class="px-4 py-4" style="border-bottom: 1px solid rgba(255,255,255,0.06);">
                     <a href="{{ route('dashboard') }}"
-                       class="sb-logo-wrap group flex flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-sm transition hover:border-blue-100 hover:shadow-md">
+                       class="sb-logo-wrap group flex flex-col items-center gap-2 rounded-2xl px-4 py-4 transition" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);">
                         {{-- Expanded: full logo + brand name --}}
                         <div class="sb-logo-expanded flex flex-col items-center gap-2">
                             @if($logoUrl)
@@ -180,7 +191,7 @@
                                 </div>
                             @endif
                             <div class="sb-logo-text text-center">
-                                <span class="block text-sm font-semibold text-slate-800">{{ config('portal.brand_name') }}</span>
+                                <span class="block text-sm font-semibold text-white/90">{{ config('portal.brand_name') }}</span>
                             </div>
                         </div>
                         {{-- Collapsed: icon only --}}
@@ -243,7 +254,7 @@
                     @if($showMgmtSection)
                         <div class="space-y-2">
                             <div class="px-3 sb-section-title">
-                                <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">Yönetim</p>
+                                <p class="text-[11px] font-semibold uppercase tracking-[0.24em]" style="color: rgba(148,163,184,0.45);">Yönetim</p>
                             </div>
                             <div class="space-y-1">
                                 @if($canViewSuppliers)
@@ -281,7 +292,7 @@
                                         </button>
                                         <div class="nav-group-items closed">
                                             <div>
-                                                <div class="ml-4 mt-1 mb-1 space-y-0.5 border-l border-slate-200 pl-3">
+                                                <div class="ml-4 mt-1 mb-1 space-y-0.5 pl-3" style="border-left: 1px solid rgba(255,255,255,0.1);">
                                                     @php
                                                         $settingsTabs = [
                                                             'updates' => 'Güncellemeler',
@@ -300,7 +311,7 @@
                                                                       ? 'bg-brand-50 text-brand-700'
                                                                       : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
                                                             <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full
-                                                                {{ request()->routeIs('admin.settings.*') && $activeSettingsTab === $tabKey ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                                {{ request()->routeIs('admin.settings.*') && $activeSettingsTab === $tabKey ? 'bg-brand-500' : 'bg-white/20' }}"></span>
                                                             {{ $tabLabel }}
                                                         </a>
                                                     @endforeach
@@ -310,7 +321,7 @@
                                                                   ? 'bg-brand-50 text-brand-700'
                                                                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
                                                         <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full
-                                                            {{ request()->routeIs('admin.permissions.*') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                            {{ request()->routeIs('admin.permissions.*') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
                                                         Yetkiler
                                                     </a>
                                                     <a href="{{ route('admin.departments.index') }}"
@@ -319,7 +330,7 @@
                                                                   ? 'bg-brand-50 text-brand-700'
                                                                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
                                                         <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full
-                                                            {{ request()->routeIs('admin.departments.*') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                            {{ request()->routeIs('admin.departments.*') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
                                                         Departmanlar
                                                     </a>
                                                 </div>
@@ -346,35 +357,35 @@
                                         </button>
                                         <div class="nav-group-items closed">
                                             <div>
-                                                <div class="ml-4 mt-1 mb-1 space-y-0.5 border-l border-slate-200 pl-3">
+                                                <div class="ml-4 mt-1 mb-1 space-y-0.5 pl-3" style="border-left: 1px solid rgba(255,255,255,0.1);">
                                                     <a href="{{ route('admin.reports.index') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
-                                                              {{ request()->routeIs('admin.reports.index') ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
-                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.index') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                              {{ request()->routeIs('admin.reports.index') ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
+                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.index') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
                                                         Genel Bakış
                                                     </a>
                                                     <a href="{{ route('admin.reports.lead-time') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
-                                                              {{ request()->routeIs('admin.reports.lead-time') ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
-                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.lead-time') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                              {{ request()->routeIs('admin.reports.lead-time') ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
+                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.lead-time') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
                                                         Lead Time
                                                     </a>
                                                     <a href="{{ route('admin.reports.pending') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
-                                                              {{ request()->routeIs('admin.reports.pending') ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
-                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.pending') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                              {{ request()->routeIs('admin.reports.pending') ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
+                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.pending') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
                                                         Bekleyen Artwork
                                                     </a>
                                                     <a href="{{ route('admin.reports.category') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
-                                                              {{ request()->routeIs('admin.reports.category') ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
-                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.category') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                              {{ request()->routeIs('admin.reports.category') ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
+                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.category') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
                                                         Kategori & Etiket
                                                     </a>
                                                     <a href="{{ route('admin.reports.stock-code') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
-                                                              {{ request()->routeIs('admin.reports.stock-code') ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
-                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.stock-code') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                              {{ request()->routeIs('admin.reports.stock-code') ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
+                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.stock-code') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
                                                         Stok Kodu
                                                     </a>
                                                 </div>
@@ -399,20 +410,20 @@
                                         </button>
                                         <div class="nav-group-items closed">
                                             <div>
-                                                <div class="ml-4 mt-1 mb-1 space-y-0.5 border-l border-slate-200 pl-3">
+                                                <div class="ml-4 mt-1 mb-1 space-y-0.5 pl-3" style="border-left: 1px solid rgba(255,255,255,0.1);">
                                                     <a href="{{ route('admin.artwork-gallery.index') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
                                                               {{ request()->routeIs('admin.artwork-gallery.index') || (request()->routeIs('admin.artwork-gallery.*') && !request()->routeIs('admin.artwork-gallery.manage'))
-                                                                  ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
-                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.artwork-gallery.index') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                                  ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
+                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.artwork-gallery.index') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
                                                         Galeri
                                                     </a>
                                                     @if($user?->hasPermission('gallery', 'manage'))
                                                     <a href="{{ route('admin.artwork-gallery.manage') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
                                                               {{ request()->routeIs('admin.artwork-gallery.manage')
-                                                                  ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
-                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.artwork-gallery.manage') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                                  ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
+                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.artwork-gallery.manage') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
                                                         Yönetim
                                                     </a>
                                                     @endif
@@ -436,20 +447,23 @@
                 </nav>
 
                 {{-- User footer --}}
-                <div class="border-t border-slate-200/80 p-3 sb-footer-expanded">
-                    <div class="rounded-3xl border border-slate-200/80 bg-slate-50/80 p-3 shadow-[0_10px_25px_rgba(15,23,42,0.04)]">
+                <div class="p-3 sb-footer-expanded" style="border-top: 1px solid rgba(255,255,255,0.06);">
+                    <div class="rounded-2xl p-3" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);">
                         <div class="flex items-center gap-3">
-                            <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-brand-100 text-sm font-semibold text-brand-800 shadow-inner">
+                            <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-sm font-semibold text-white" style="background: linear-gradient(135deg, #f97316, #c2410c);">
                                 {{ $userInitials }}
                             </div>
                             <div class="sb-user-info min-w-0 flex-1">
-                                <p class="truncate text-sm font-semibold text-slate-900">{{ $user?->name }}</p>
-                                <p class="text-xs text-slate-500">{{ $user?->role?->label() }}</p>
+                                <p class="truncate text-sm font-semibold text-white/90">{{ $user?->name }}</p>
+                                <p class="text-xs text-white/45">{{ $user?->role?->label() }}</p>
                             </div>
                             <form method="POST" action="{{ route('logout') }}" class="sb-logout flex-shrink-0">
                                 @csrf
                                 <button type="submit"
-                                        class="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-transparent text-slate-400 transition hover:border-slate-200 hover:bg-white hover:text-slate-700"
+                                        class="inline-flex h-9 w-9 items-center justify-center rounded-xl transition"
+                                        style="color: rgba(148,163,184,0.7);"
+                                        onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.color='#fff'"
+                                        onmouseout="this.style.background='transparent';this.style.color='rgba(148,163,184,0.7)'"
                                         title="Çıkış">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                                 </button>
@@ -458,15 +472,16 @@
                     </div>
                 </div>
                 {{-- Collapsed footer: just avatar + logout --}}
-                <div class="sb-footer-collapsed hidden border-t border-slate-200/80 p-2">
+                <div class="sb-footer-collapsed hidden p-2" style="border-top: 1px solid rgba(255,255,255,0.06);">
                     <div class="flex flex-col items-center gap-2 py-1">
-                        <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-100 text-sm font-semibold text-brand-800" title="{{ $user?->name }}">
+                        <div class="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-semibold text-white" style="background: linear-gradient(135deg, #f97316, #c2410c);" title="{{ $user?->name }}">
                             {{ $userInitials }}
                         </div>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit"
-                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg transition"
+                                    style="color: rgba(148,163,184,0.6);"
                                     title="Çıkış">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                             </button>
