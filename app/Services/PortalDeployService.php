@@ -20,7 +20,9 @@ class PortalDeployService
         $exitCode = 0;
 
         exec(
-            'git -C ' . escapeshellarg(base_path()) . ' pull origin main 2>&1',
+            'git -c safe.directory=' . escapeshellarg(base_path())
+                . ' -C ' . escapeshellarg(base_path())
+                . ' pull origin main 2>&1',
             $lines,
             $exitCode
         );
