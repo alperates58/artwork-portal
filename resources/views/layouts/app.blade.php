@@ -182,7 +182,7 @@
                     <a href="{{ route('dashboard') }}" class="sb-logo-wrap group flex flex-col items-center gap-3">
                         {{-- Expanded: lotus + brand text --}}
                         <div class="sb-logo-expanded flex flex-col items-center gap-2">
-                            <img src="{{ asset('brand/logo2.png') }}" alt="Logo" class="h-14 w-14 object-contain drop-shadow-lg">
+                            <img src="{{ asset('brand/logo2.png') }}" alt="Logo" class="h-20 w-20 object-contain drop-shadow-lg">
                             <div class="sb-logo-text text-center space-y-0.5">
                                 <span class="block text-[11px] font-bold uppercase tracking-[0.20em] text-white/90">Lider Kozmetik</span>
                                 <span class="block text-[10px] font-semibold uppercase tracking-[0.18em]" style="color: rgba(167,139,250,0.8);">Portal</span>
@@ -190,7 +190,7 @@
                         </div>
                         {{-- Collapsed: lotus only --}}
                         <div class="sb-logo-collapsed hidden items-center justify-center">
-                            <img src="{{ asset('brand/logo2.png') }}" alt="Logo" class="h-10 w-10 object-contain">
+                            <img src="{{ asset('brand/logo2.png') }}" alt="Logo" class="h-12 w-12 object-contain">
                         </div>
                     </a>
                 </div>
@@ -432,6 +432,18 @@
                             </div>
                         </div>
                     @endif
+
+                    {{-- Profil linki --}}
+                    <div class="space-y-1">
+                        <a href="{{ route('profile.edit') }}"
+                           title="Profilim"
+                           class="sidebar-link {{ request()->routeIs('profile.*') ? 'active' : '' }}">
+                            <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                            <span class="sb-label">Profilim</span>
+                        </a>
+                    </div>
                 </nav>
 
                 {{-- User footer --}}
@@ -519,25 +531,29 @@
                     </div>
 
                     <div class="flex flex-wrap items-center gap-3">
+                        {{-- Global search trigger --}}
+                        @if(auth()->user()?->role?->value !== 'supplier')
+                        <button type="button"
+                                id="search-trigger-btn"
+                                onclick="window.dispatchEvent(new CustomEvent('search-open'))"
+                                class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-400 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-600 sm:min-w-[200px] xl:min-w-[260px]"
+                                title="Ara (Alt+S)">
+                            <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+                            </svg>
+                            <span class="flex-1 text-left hidden sm:block">Ara…</span>
+                            <kbd class="hidden rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium sm:inline">Alt S</kbd>
+                        </button>
+                        @endif
+
                         {{-- Notification bell --}}
                         @if(auth()->user()?->role?->value !== 'supplier')
                             @include('partials.notification-bell')
                         @endif
 
-                        {{-- Global search trigger --}}
-                        @if(auth()->user()?->role?->value !== 'supplier')
-                        <button type="button"
-                                onclick="window.dispatchEvent(new CustomEvent('search-open'))"
-                                class="hidden sm:inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600"
-                                title="Global Arama (Ctrl+K)">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
-                            </svg>
-                            <span>Ara</span>
-                            <kbd class="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium">Ctrl K</kbd>
-                        </button>
-                        @endif
+                        {{-- Theme selector --}}
+                        @include('partials.theme-switcher')
 
                         @if($hasPageAside)
                             <button type="button" class="btn btn-secondary"

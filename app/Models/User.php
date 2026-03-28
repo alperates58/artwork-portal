@@ -34,6 +34,10 @@ class User extends Authenticatable
         'permissions',
         'department_id',
         'profile_photo_path',
+        'phone',
+        'linkedin_url',
+        'contact_email',
+        'bio',
     ];
 
     protected $hidden = [

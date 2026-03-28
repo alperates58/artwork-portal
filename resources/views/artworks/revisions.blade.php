@@ -50,20 +50,31 @@
                             <p class="text-sm text-slate-700 truncate">{{ $rev->original_filename }}</p>
                             <p class="text-xs text-slate-400 mt-0.5">
                                 {{ $rev->file_size_formatted }} ·
-                                {{ $rev->uploadedBy->name }} ·
-                                {{ $rev->created_at->format('d.m.Y H:i') }}
+                                @if(!auth()->user()->isSupplier())
+                                    <a href="{{ route('profile.edit') }}" class="hover:text-violet-600 hover:underline">{{ $rev->uploadedBy->name }}</a>
+                                @else
+                                    {{ $rev->uploadedBy->name }}
+                                @endif
+                                · {{ $rev->created_at->format('d.m.Y H:i') }}
                             </p>
                             @if($rev->notes)
                                 <p class="text-xs text-slate-500 mt-1 italic">{{ $rev->notes }}</p>
                             @endif
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
-                            <a href="{{ route('artwork.download', $rev) }}" class="btn-secondary text-xs py-1.5">İndir</a>
+                            <a href="{{ route('artwork.download', $rev) }}" class="btn btn-secondary text-xs py-1.5">İndir</a>
                             @if(!$rev->is_active && auth()->user()->canUploadArtwork())
                                 <form method="POST" action="{{ route('artworks.activate', $rev) }}">
                                     @csrf @method('PATCH')
-                                    <button type="submit" class="btn-secondary text-xs py-1.5 text-emerald-600">
+                                    <button type="submit" class="btn btn-secondary text-xs py-1.5 text-emerald-600">
                                         Aktif Yap
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ route('artworks.destroy', $rev) }}"
+                                      onsubmit="return confirm('Rev.{{ $rev->revision_no }} silinsin mi? Bu işlem geri alınamaz.')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-secondary text-xs py-1.5 text-red-600 hover:border-red-300 hover:bg-red-50">
+                                        Sil
                                     </button>
                                 </form>
                             @endif

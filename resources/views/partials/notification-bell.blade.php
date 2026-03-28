@@ -18,6 +18,7 @@
         <span
             x-show="unread > 0"
             x-text="unread > 9 ? '9+' : unread"
+            x-cloak
             class="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[10px] font-bold leading-none text-white"
         ></span>
     </button>
@@ -113,7 +114,7 @@ function notificationBell() {
 
         async toggle() {
             this.open = !this.open;
-            if (this.open && this.items.length === 0) {
+            if (this.open) {
                 await this.fetchNotifications();
             }
         },

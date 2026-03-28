@@ -43,7 +43,13 @@
                 <div class="flex-1">
                     <p class="text-sm font-medium text-slate-900">{{ $rev->original_filename }}</p>
                     <p class="text-xs text-slate-500">
-                        {{ $rev->file_size_formatted }} · {{ $rev->uploadedBy->name }} · {{ $rev->created_at->format('d.m.Y H:i') }}
+                        {{ $rev->file_size_formatted }} ·
+                        @if(!auth()->user()->isSupplier())
+                            <a href="{{ route('profile.edit') }}" class="hover:text-violet-600 hover:underline">{{ $rev->uploadedBy->name }}</a>
+                        @else
+                            {{ $rev->uploadedBy->name }}
+                        @endif
+                        · {{ $rev->created_at->format('d.m.Y H:i') }}
                     </p>
                     @if($rev->notes)<p class="text-xs text-slate-400 mt-0.5 italic">{{ $rev->notes }}</p>@endif
                 </div>

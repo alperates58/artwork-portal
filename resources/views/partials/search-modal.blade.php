@@ -1,7 +1,7 @@
-{{-- Global Search Modal (Ctrl+K) --}}
+{{-- Global Search Modal (Alt+S) --}}
 <div
     id="search-modal"
-    class="fixed inset-0 z-[200] hidden"
+    class="fixed inset-0 z-[200]"
     role="dialog"
     aria-modal="true"
     aria-label="Global Arama"
@@ -169,7 +169,8 @@ function searchModal() {
 
         init() {
             document.addEventListener('keydown', (e) => {
-                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                // Alt+S to open (avoids Chrome Ctrl+K conflict)
+                if (e.altKey && e.key === 's') {
                     e.preventDefault();
                     this.openModal();
                 }

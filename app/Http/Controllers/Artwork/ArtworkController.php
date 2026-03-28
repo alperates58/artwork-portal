@@ -111,6 +111,44 @@ class ArtworkController extends Controller
         return back()->with('success', "Rev.{$revision->revision_no} aktif revizyon olarak isaretlendi.");
     }
 
+    public function destroy(ArtworkRevision $revision): RedirectResponse
+    {
+        $this->authorize('manageRevisions', $revision->artwork);
+
+        $revision->load('artwork.orderLine');
+        $line = $revision->artwork->orderLine;
+        $revNo = $revision->revision_no;
+
+        // Cannot delete the only active revision if it's the only one
+        if ($revision->is_active && $revision->artwork->revisions()->count() === 1) {
+            return back()->with('error', 'Tek aktif revizyonu silemezsiniz. Önce yeni revizyon yükleyin.');
+        }
+
+        // If deleting the active revision, activate the previous one
+        if ($revision->is_active) {
+            $prev = $revision->artwork->revisions()
+                ->where('id', '!=', $revision->id)
+                ->orderByDesc('revision_no')
+                ->first();
+            if ($prev) {
+                $this->uploadService->activate($prev, auth()->user());
+            }
+        }
+
+        $this->audit->log('artwork.delete', $revision, [
+            'revision_no'    => $revNo,
+            'original_filename' => $revision->original_filename,
+            'line_id'        => $line?->id,
+            'order_no'       => $line?->purchaseOrder?->order_no,
+        ]);
+
+        $revision->delete();
+
+        return redirect()
+            ->route('order-lines.show', $line)
+            ->with('success', "Rev.{$revNo} silindi.");
+    }
+
     public function revisions(PurchaseOrderLine $line): View
     {
         $this->authorize('view', $line);

@@ -70,6 +70,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/satir/{line}/artwork', [ArtworkController::class, 'store'])->name('artworks.store');
         Route::get('/revizyon/{revision}', [ArtworkController::class, 'show'])->name('artworks.show');
         Route::patch('/revizyon/{revision}/aktif', [ArtworkController::class, 'activate'])->name('artworks.activate');
+        Route::delete('/revizyon/{revision}', [ArtworkController::class, 'destroy'])->name('artworks.destroy');
         Route::get('/satir/{line}/revizyonlar', [ArtworkController::class, 'revisions'])->name('artworks.revisions');
         Route::get('/indir/{revision}', [DownloadController::class, 'download'])->name('artwork.download');
         Route::get('/galeri/{artworkGallery}/onizleme', ArtworkGalleryPreviewController::class)->name('artworks.gallery.preview');
