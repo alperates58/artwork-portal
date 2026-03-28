@@ -164,7 +164,8 @@
     $hasPageAside       = View::hasSection('page-aside');
     $pageAsideStorageKey = trim((string) $__env->yieldContent('page-aside-storage-key', request()->route()?->getName() ?: 'default'));
     $pageSubtitle        = trim((string) $__env->yieldContent('page-subtitle', config('portal.brand_tagline')));
-    $settingsActive      = request()->routeIs('admin.settings.*') || request()->routeIs('admin.permissions.*') || request()->routeIs('admin.departments.*');
+    $settingsActive      = request()->routeIs('admin.settings.*') || request()->routeIs('admin.permissions.*') || request()->routeIs('admin.departments.*') || request()->routeIs('admin.data-transfer.*');
+    $settingsOpen        = $settingsActive;
 @endphp
 
 <div class="min-h-screen" style="background: #f1f5f9;">
@@ -320,6 +321,15 @@
                                                         <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full
                                                             {{ request()->routeIs('admin.departments.*') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
                                                         Departmanlar
+                                                    </a>
+                                                    <a href="{{ route('admin.data-transfer.index') }}"
+                                                       class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
+                                                              {{ request()->routeIs('admin.data-transfer.*')
+                                                                  ? 'bg-brand-50 text-brand-700'
+                                                                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
+                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full
+                                                            {{ request()->routeIs('admin.data-transfer.*') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
+                                                        Veri Aktarımı
                                                     </a>
                                                 </div>
                                             </div>
