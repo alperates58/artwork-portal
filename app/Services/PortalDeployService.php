@@ -7,46 +7,96 @@ use Illuminate\Support\Facades\Artisan;
 class PortalDeployService
 {
     /**
-     * GitHub'dan kodu çek ve gerekli post-deploy adımlarını uygula.
-     * Çalıştırılan komutlar ve çıktıları adım adım döner.
+     * GitHub'dan kodu çek ve artisan adımlarını uygula.
      */
     public function deploy(): array
     {
         $steps = [];
-        $ok    = true;
 
         // ── 1. git pull ──────────────────────────────────────────────
-        $lines    = [];
-        $exitCode = 0;
+        $gitStep = $this->runGitPull();
+        $steps[] = $gitStep;
 
-        exec(
-            'git -c safe.directory=' . escapeshellarg(base_path())
-                . ' -C ' . escapeshellarg(base_path())
-                . ' pull origin main 2>&1',
-            $lines,
-            $exitCode
-        );
-
-        $gitOutput = implode("\n", $lines);
-        $gitOk     = $exitCode === 0;
-
-        $steps[] = [
-            'cmd'    => 'git pull origin main',
-            'output' => $gitOutput ?: '(çıktı yok)',
-            'ok'     => $gitOk,
-        ];
-
-        if (! $gitOk) {
-            return ['ok' => false, 'steps' => $steps];
+        if (! $gitStep['ok']) {
+            return ['ok' => false, 'steps' => $steps, 'git_failed' => true];
         }
 
-        // ── 2. config:clear ─────────────────────────────────────────
-        $steps[] = $this->runArtisan('config:clear');
+        return array_merge($this->applyArtisan($steps), ['git_failed' => false]);
+    }
 
-        // ── 3. cache:clear ──────────────────────────────────────────
+    /**
+     * Sadece artisan adımlarını uygula (git pull el ile yapıldıysa).
+     */
+    public function applyOnly(): array
+    {
+        return array_merge($this->applyArtisan([]), ['git_failed' => false]);
+    }
+
+    // ── Private ──────────────────────────────────────────────────────
+
+    private function runGitPull(): array
+    {
+        $base = base_path();
+        $gitFlag = '-c safe.directory=' . escapeshellarg($base) . ' -C ' . escapeshellarg($base);
+
+        // Önce normal dene
+        $lines = [];
+        $exitCode = 0;
+        exec('git ' . $gitFlag . ' pull origin main 2>&1', $lines, $exitCode);
+
+        if ($exitCode === 0) {
+            return [
+                'cmd'    => 'git pull origin main',
+                'output' => implode("\n", $lines) ?: '(çıktı yok)',
+                'ok'     => true,
+            ];
+        }
+
+        $firstOutput = implode("\n", $lines);
+
+        // Permission hatası varsa sudo ile dene
+        if (str_contains($firstOutput, 'Permission denied') || str_contains($firstOutput, 'permission denied')) {
+            $lines2    = [];
+            $exitCode2 = 0;
+            exec('sudo -n git ' . $gitFlag . ' pull origin main 2>&1', $lines2, $exitCode2);
+
+            if ($exitCode2 === 0) {
+                return [
+                    'cmd'    => 'git pull origin main (sudo)',
+                    'output' => implode("\n", $lines2) ?: '(çıktı yok)',
+                    'ok'     => true,
+                ];
+            }
+
+            // sudo da başarısız — izin hatası açıklaması ekle
+            $hint = "\n\n──────────────────────────────────────\n"
+                . "İzin hatası: PHP konteyneri .git/ dizinine yazamıyor.\n"
+                . "Sunucuda şu komutu çalıştırın:\n\n"
+                . "  sudo chown -R www-data:www-data /var/www/artwork-portal\n\n"
+                . "Veya git pull'u host'tan manuel çalıştırın,\n"
+                . "ardından \"Artisan Adımlarını Uygula\" butonunu kullanın.";
+
+            return [
+                'cmd'    => 'git pull origin main',
+                'output' => $firstOutput . $hint,
+                'ok'     => false,
+            ];
+        }
+
+        return [
+            'cmd'    => 'git pull origin main',
+            'output' => $firstOutput ?: '(çıktı yok)',
+            'ok'     => false,
+        ];
+    }
+
+    private function applyArtisan(array $steps): array
+    {
+        $ok = true;
+
+        $steps[] = $this->runArtisan('config:clear');
         $steps[] = $this->runArtisan('cache:clear');
 
-        // ── 4. portal:update (migrate + optimize + queue:restart) ───
         $step = $this->runArtisan('portal:update', ['--skip-cache' => true]);
         $steps[] = $step;
 

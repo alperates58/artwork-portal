@@ -809,8 +809,8 @@
 
     <div id="deploy-result" class="hidden px-6 py-5 space-y-4">
         <div id="deploy-result-badge" class="rounded-2xl px-4 py-3 text-sm font-semibold"></div>
-        <div id="deploy-steps" class="space-y-3"></div>
-        <div class="flex justify-end pt-1">
+        <div id="deploy-steps" class="space-y-3 max-h-80 overflow-y-auto"></div>
+        <div id="deploy-result-actions" class="flex flex-wrap justify-end gap-3 pt-1">
             <button type="button" onclick="location.reload()" class="btn btn-secondary">Sayfayı Yenile</button>
         </div>
     </div>
@@ -818,49 +818,66 @@
 
 <script>
 (function () {
+    const CSRF   = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
+    const DEPLOY_URL    = '{{ route('admin.settings.deploy') }}';
+    const APPLY_URL     = '{{ route('admin.settings.apply-only') }}';
+
     const confirmBtn = document.getElementById('deploy-confirm-btn');
     if (!confirmBtn) return;
 
-    confirmBtn.addEventListener('click', async function () {
+    confirmBtn.addEventListener('click', () => runDeploy(DEPLOY_URL));
+
+    async function runDeploy(url) {
         const idleEl    = document.getElementById('deploy-idle');
         const runningEl = document.getElementById('deploy-running');
         const resultEl  = document.getElementById('deploy-result');
         const badgeEl   = document.getElementById('deploy-result-badge');
         const stepsEl   = document.getElementById('deploy-steps');
+        const actionsEl = document.getElementById('deploy-result-actions');
 
         idleEl.classList.add('hidden');
+        resultEl.classList.add('hidden');
         runningEl.classList.remove('hidden');
 
         try {
-            const res = await fetch('{{ route('admin.settings.deploy') }}', {
+            const res  = await fetch(url, {
                 method:  'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept':       'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-                                    || '{{ csrf_token() }}',
-                },
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
             });
-
             const data = await res.json();
 
             runningEl.classList.add('hidden');
             resultEl.classList.remove('hidden');
+            stepsEl.innerHTML  = '';
+            actionsEl.innerHTML = '<button type="button" onclick="location.reload()" class="btn btn-secondary">Sayfayı Yenile</button>';
 
             if (data.ok) {
-                badgeEl.className = 'rounded-2xl px-4 py-3 text-sm font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800';
+                badgeEl.className   = 'rounded-2xl px-4 py-3 text-sm font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800';
                 badgeEl.textContent = 'Güncelleme başarıyla tamamlandı.';
             } else {
-                badgeEl.className = 'rounded-2xl px-4 py-3 text-sm font-semibold bg-red-50 border border-red-200 text-red-800';
+                badgeEl.className   = 'rounded-2xl px-4 py-3 text-sm font-semibold bg-red-50 border border-red-200 text-red-800';
                 badgeEl.textContent = 'Güncelleme sırasında bir hata oluştu.';
+
+                // git izin hatası → Artisan Uygula butonu göster
+                if (data.git_failed) {
+                    const applyBtn = document.createElement('button');
+                    applyBtn.type = 'button';
+                    applyBtn.className = 'btn btn-primary';
+                    applyBtn.style = 'background:linear-gradient(180deg,#2563eb,#1d4ed8)';
+                    applyBtn.innerHTML = '<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Artisan Adımlarını Uygula';
+                    applyBtn.addEventListener('click', () => runDeploy(APPLY_URL));
+                    actionsEl.prepend(applyBtn);
+
+                    const hint = document.createElement('p');
+                    hint.className = 'text-xs text-slate-500';
+                    hint.textContent = 'Git pull\'u sunucuda manuel çalıştırdıysanız sadece artisan adımlarını uygulayabilirsiniz.';
+                    actionsEl.after(hint);
+                }
             }
 
-            stepsEl.innerHTML = '';
             (data.steps || []).forEach(function (step) {
                 const div = document.createElement('div');
-                div.className = 'rounded-xl border px-4 py-3 ' + (step.ok
-                    ? 'border-emerald-100 bg-emerald-50'
-                    : 'border-red-100 bg-red-50');
+                div.className = 'rounded-xl border px-4 py-3 ' + (step.ok ? 'border-emerald-100 bg-emerald-50' : 'border-red-100 bg-red-50');
                 div.innerHTML =
                     '<p class="flex items-center gap-2 text-xs font-semibold ' + (step.ok ? 'text-emerald-700' : 'text-red-700') + '">' +
                     (step.ok
@@ -873,10 +890,10 @@
         } catch (err) {
             runningEl.classList.add('hidden');
             resultEl.classList.remove('hidden');
-            badgeEl.className = 'rounded-2xl px-4 py-3 text-sm font-semibold bg-red-50 border border-red-200 text-red-800';
+            badgeEl.className   = 'rounded-2xl px-4 py-3 text-sm font-semibold bg-red-50 border border-red-200 text-red-800';
             badgeEl.textContent = 'İstek başarısız oldu: ' + err.message;
         }
-    });
+    }
 
     function escHtml(str) {
         return String(str)

@@ -158,6 +158,15 @@ class SettingsController extends Controller
         return response()->json($result, $result['ok'] ? 200 : 500);
     }
 
+    public function applyOnly(Request $request): JsonResponse
+    {
+        abort_if(! $request->user()->isAdmin(), 403);
+
+        $result = $this->deployService->applyOnly();
+
+        return response()->json($result, $result['ok'] ? 200 : 500);
+    }
+
     public function checkUpdates(Request $request): RedirectResponse
     {
         $activeTab = $this->resolveTab($request);
