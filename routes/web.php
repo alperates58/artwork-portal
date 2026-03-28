@@ -133,6 +133,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/raporlar/bekleyen', [ReportController::class, 'pending'])->name('reports.pending');
             Route::get('/raporlar/kategori', [ReportController::class, 'category'])->name('reports.category');
             Route::get('/raporlar/stok-kodu', [ReportController::class, 'stockCode'])->name('reports.stock-code');
+            Route::get('/raporlar/aktivite', [ReportController::class, 'timeline'])->name('reports.timeline');
             Route::get('/loglar', [AuditLogController::class, 'index'])->name('logs.index');
             Route::get('/artwork-galerisi', [ArtworkGalleryController::class, 'index'])->name('artwork-gallery.index');
             Route::get('/artwork-galerisi/yonetim', [ArtworkGalleryController::class, 'manage'])->name('artwork-gallery.manage');

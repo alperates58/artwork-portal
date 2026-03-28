@@ -8,10 +8,12 @@ use App\Models\ArtworkDownloadLog;
 use App\Models\ArtworkRevision;
 use App\Models\ArtworkTag;
 use App\Models\ArtworkViewLog;
+use App\Models\OrderNote;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -373,5 +375,143 @@ class ReportController extends Controller
             ->get();
 
         return view('admin.reports.category', compact('categories', 'tags', 'pendingByCategory', 'suppliers', 'selectedSupplierId', 'dateFrom', 'dateTo'));
+    }
+
+    public function timeline(Request $request): View
+    {
+        $this->checkAccess();
+
+        $suppliers         = Supplier::orderBy('name')->get(['id', 'name']);
+        $selectedSupplier  = $request->input('supplier_id');
+        $dateFrom          = $request->input('date_from', now()->subDays(30)->format('Y-m-d'));
+        $dateTo            = $request->input('date_to', now()->format('Y-m-d'));
+        $types             = $request->input('types', ['order', 'artwork', 'note']);
+        if (is_string($types)) {
+            $types = [$types];
+        }
+
+        $from = Carbon::parse($dateFrom)->startOfDay();
+        $to   = Carbon::parse($dateTo)->endOfDay();
+
+        $timeline = collect();
+
+        // Orders created
+        if (in_array('order', $types)) {
+            $orders = PurchaseOrder::query()
+                ->with(['supplier:id,name', 'createdBy:id,name'])
+                ->when($selectedSupplier, fn ($q) => $q->where('supplier_id', $selectedSupplier))
+                ->whereBetween('created_at', [$from, $to])
+                ->get(['id', 'order_no', 'supplier_id', 'created_by', 'created_at']);
+
+            foreach ($orders as $order) {
+                $timeline->push([
+                    'at'      => $order->created_at,
+                    'type'    => 'order',
+                    'icon'    => 'plus',
+                    'color'   => 'violet',
+                    'title'   => 'Sipariş oluşturuldu',
+                    'sub'     => $order->order_no . ' · ' . ($order->supplier?->name ?? '—'),
+                    'user'    => $order->createdBy?->name ?? '—',
+                    'link'    => route('orders.show', $order->id),
+                ]);
+            }
+        }
+
+        // Artwork revisions uploaded
+        if (in_array('artwork', $types)) {
+            $revisions = ArtworkRevision::query()
+                ->with([
+                    'uploadedBy:id,name',
+                    'artwork.line.order.supplier:id,name',
+                    'artwork.line.order:id,order_no,supplier_id',
+                    'artwork.line:id,purchase_order_id,product_code,description',
+                ])
+                ->when($selectedSupplier, fn ($q) => $q->whereHas(
+                    'artwork.line.order',
+                    fn ($oq) => $oq->where('supplier_id', $selectedSupplier)
+                ))
+                ->whereBetween('artwork_revisions.created_at', [$from, $to])
+                ->get();
+
+            foreach ($revisions as $rev) {
+                $order = $rev->artwork?->line?->order;
+                $line  = $rev->artwork?->line;
+                $timeline->push([
+                    'at'    => $rev->created_at,
+                    'type'  => 'artwork',
+                    'icon'  => 'upload',
+                    'color' => 'blue',
+                    'title' => "Revizyon #{$rev->revision_no} yüklendi",
+                    'sub'   => ($order?->order_no ?? '—') . ' · ' . ($line?->description ?? $line?->product_code ?? "Satır"),
+                    'user'  => $rev->uploadedBy?->name ?? '—',
+                    'link'  => $order ? route('orders.show', $order->id) : null,
+                ]);
+            }
+        }
+
+        // Order notes
+        if (in_array('note', $types)) {
+            $notes = OrderNote::query()
+                ->with([
+                    'user:id,name',
+                    'order:id,order_no,supplier_id',
+                    'order.supplier:id,name',
+                ])
+                ->when($selectedSupplier, fn ($q) => $q->whereHas(
+                    'order',
+                    fn ($oq) => $oq->where('supplier_id', $selectedSupplier)
+                ))
+                ->whereBetween('created_at', [$from, $to])
+                ->get();
+
+            foreach ($notes as $note) {
+                $timeline->push([
+                    'at'    => $note->created_at,
+                    'type'  => 'note',
+                    'icon'  => 'note',
+                    'color' => 'amber',
+                    'title' => 'Not eklendi',
+                    'sub'   => $note->order?->order_no . ' · ' . ($note->order?->supplier?->name ?? '—'),
+                    'user'  => $note->user?->name ?? '—',
+                    'body'  => mb_strimwidth($note->body, 0, 160, '…'),
+                    'link'  => $note->order ? route('orders.show', $note->order->id) : null,
+                ]);
+            }
+        }
+
+        $timeline = $timeline->sortByDesc('at')->values();
+
+        // Chart: events per day for the date range
+        $chartDays = [];
+        $current = $from->copy();
+        while ($current->lte($to)) {
+            $dayKey = $current->format('Y-m-d');
+            $chartDays[$dayKey] = [
+                'label'   => $current->format('d.m'),
+                'order'   => 0,
+                'artwork' => 0,
+                'note'    => 0,
+            ];
+            $current->addDay();
+        }
+        foreach ($timeline as $event) {
+            $key = $event['at']->format('Y-m-d');
+            if (isset($chartDays[$key])) {
+                $chartDays[$key][$event['type']]++;
+            }
+        }
+        $chartDays = array_values($chartDays);
+
+        $stats = [
+            'total'   => $timeline->count(),
+            'order'   => $timeline->where('type', 'order')->count(),
+            'artwork' => $timeline->where('type', 'artwork')->count(),
+            'note'    => $timeline->where('type', 'note')->count(),
+        ];
+
+        return view('admin.reports.timeline', compact(
+            'timeline', 'stats', 'chartDays',
+            'suppliers', 'selectedSupplier', 'dateFrom', 'dateTo', 'types'
+        ));
     }
 }

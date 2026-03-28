@@ -376,6 +376,12 @@
                                                         <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.stock-code') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
                                                         Stok Kodu
                                                     </a>
+                                                    <a href="{{ route('admin.reports.timeline') }}"
+                                                       class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
+                                                              {{ request()->routeIs('admin.reports.timeline') ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
+                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.timeline') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
+                                                        Aktivite Zaman Çizelgesi
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>
