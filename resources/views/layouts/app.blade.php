@@ -782,6 +782,7 @@
 </script>
 
 @stack('scripts')
+@stack('modals')
 
 @include('partials.search-modal')
 </body>

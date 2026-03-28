@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Services\GithubUpdateChecker;
 use App\Services\MailNotificationDispatcher;
 use App\Services\MailServerConnectionTester;
+use App\Services\PortalDeployService;
 use App\Services\PortalSettings;
 use App\Services\PortalUpdatePreparationService;
 use App\Services\PortalUpdateStatus;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -56,6 +58,7 @@ class SettingsController extends Controller
         private PortalUpdatePreparationService $updatePreparationService,
         private MailNotificationDispatcher $mailDispatcher,
         private MailServerConnectionTester $mailConnectionTester,
+        private PortalDeployService $deployService,
     ) {}
 
     public function edit(Request $request): View
@@ -144,6 +147,15 @@ class SettingsController extends Controller
                 ? 'Test mail bildirimi kuyruga alindi.'
                 : 'Test mail icin gecerli bir alici adresi bulunamadi.'
         );
+    }
+
+    public function deploy(Request $request): JsonResponse
+    {
+        abort_if(! $request->user()->isAdmin(), 403);
+
+        $result = $this->deployService->deploy();
+
+        return response()->json($result, $result['ok'] ? 200 : 500);
     }
 
     public function checkUpdates(Request $request): RedirectResponse

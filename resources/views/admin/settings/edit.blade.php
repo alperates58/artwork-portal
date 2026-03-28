@@ -201,8 +201,8 @@
                                 <div class="rounded-3xl border border-slate-200 p-5">
                                     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                         <div>
-                                            <p class="text-xs uppercase tracking-wide text-slate-400">Guvenli Admin Aksiyonlari</p>
-                                            <p class="mt-2 text-sm text-slate-900">Web istegi icinden tehlikeli deploy komutlari calistirilmaz. Yalnizca guvenli kontrol ve hazirlik aksiyonlari sunulur.</p>
+                                            <p class="text-xs uppercase tracking-wide text-slate-400">Admin Aksiyonlari</p>
+                                            <p class="mt-2 text-sm text-slate-900">GitHub'dan kodu çek, migration uygula, önbellek temizle ve sistemi güncelle.</p>
                                         </div>
                                         <div class="flex flex-wrap gap-2">
                                             <form method="POST" action="{{ route('admin.settings.update-check', ['tab' => 'updates']) }}">
@@ -212,6 +212,13 @@
                                             </form>
                                             <button type="button" class="btn btn-primary" data-dialog-open="update-confirmation" {{ $canPrepare ? '' : 'disabled' }}>
                                                 Guncellemeyi Incele
+                                            </button>
+                                            <button type="button" class="btn btn-primary" data-dialog-open="deploy-dialog"
+                                                style="background: linear-gradient(180deg,#059669,#047857); box-shadow: 0 10px 22px rgba(5,150,105,.2);">
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                                </svg>
+                                                GitHub'dan Güncelle
                                             </button>
                                         </div>
                                     </div>
@@ -761,4 +768,125 @@
 })();
 </script>
 @endpush
+
+@push('modals')
+{{-- Deploy Dialog --}}
+<dialog id="deploy-dialog" class="update-modal w-full max-w-xl rounded-3xl border border-slate-200 p-0 shadow-2xl">
+    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+        <h3 class="text-sm font-semibold text-slate-800">GitHub'dan Güncelle</h3>
+        <button type="button" data-dialog-close class="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <div id="deploy-idle" class="px-6 py-5 space-y-4">
+        <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <p class="font-semibold mb-1">Bu işlem sırayla şunları yapacak:</p>
+            <ol class="list-decimal list-inside space-y-1 text-amber-800">
+                <li><code class="font-mono text-xs">git pull origin main</code> — GitHub'dan son kodu çeker</li>
+                <li><code class="font-mono text-xs">config:clear</code> + <code class="font-mono text-xs">cache:clear</code> — eski önbelleği temizler</li>
+                <li><code class="font-mono text-xs">portal:update</code> — migration, storage:link, optimize, queue:restart</li>
+            </ol>
+        </div>
+        <p class="text-sm text-slate-600">Sunucu üzerinde doğrudan çalışır. Devam etmek istiyor musunuz?</p>
+        <div class="flex justify-end gap-3 pt-1">
+            <button type="button" data-dialog-close class="btn btn-secondary">İptal</button>
+            <button type="button" id="deploy-confirm-btn"
+                class="btn btn-primary"
+                style="background: linear-gradient(180deg,#059669,#047857); box-shadow: 0 10px 22px rgba(5,150,105,.2);">
+                Evet, Güncelle
+            </button>
+        </div>
+    </div>
+
+    <div id="deploy-running" class="hidden px-6 py-8 text-center">
+        <div class="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-500"></div>
+        <p class="text-sm font-medium text-slate-700">Güncelleme çalışıyor…</p>
+        <p class="mt-1 text-xs text-slate-400">Bu işlem birkaç saniye sürebilir. Sayfayı kapatmayın.</p>
+    </div>
+
+    <div id="deploy-result" class="hidden px-6 py-5 space-y-4">
+        <div id="deploy-result-badge" class="rounded-2xl px-4 py-3 text-sm font-semibold"></div>
+        <div id="deploy-steps" class="space-y-3"></div>
+        <div class="flex justify-end pt-1">
+            <button type="button" onclick="location.reload()" class="btn btn-secondary">Sayfayı Yenile</button>
+        </div>
+    </div>
+</dialog>
+
+<script>
+(function () {
+    const confirmBtn = document.getElementById('deploy-confirm-btn');
+    if (!confirmBtn) return;
+
+    confirmBtn.addEventListener('click', async function () {
+        const idleEl    = document.getElementById('deploy-idle');
+        const runningEl = document.getElementById('deploy-running');
+        const resultEl  = document.getElementById('deploy-result');
+        const badgeEl   = document.getElementById('deploy-result-badge');
+        const stepsEl   = document.getElementById('deploy-steps');
+
+        idleEl.classList.add('hidden');
+        runningEl.classList.remove('hidden');
+
+        try {
+            const res = await fetch('{{ route('admin.settings.deploy') }}', {
+                method:  'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept':       'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                                    || '{{ csrf_token() }}',
+                },
+            });
+
+            const data = await res.json();
+
+            runningEl.classList.add('hidden');
+            resultEl.classList.remove('hidden');
+
+            if (data.ok) {
+                badgeEl.className = 'rounded-2xl px-4 py-3 text-sm font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800';
+                badgeEl.textContent = 'Güncelleme başarıyla tamamlandı.';
+            } else {
+                badgeEl.className = 'rounded-2xl px-4 py-3 text-sm font-semibold bg-red-50 border border-red-200 text-red-800';
+                badgeEl.textContent = 'Güncelleme sırasında bir hata oluştu.';
+            }
+
+            stepsEl.innerHTML = '';
+            (data.steps || []).forEach(function (step) {
+                const div = document.createElement('div');
+                div.className = 'rounded-xl border px-4 py-3 ' + (step.ok
+                    ? 'border-emerald-100 bg-emerald-50'
+                    : 'border-red-100 bg-red-50');
+                div.innerHTML =
+                    '<p class="flex items-center gap-2 text-xs font-semibold ' + (step.ok ? 'text-emerald-700' : 'text-red-700') + '">' +
+                    (step.ok
+                        ? '<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>'
+                        : '<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>') +
+                    '<code class="font-mono">' + escHtml(step.cmd) + '</code></p>' +
+                    '<pre class="mt-2 whitespace-pre-wrap text-[11px] text-slate-600 leading-relaxed">' + escHtml(step.output) + '</pre>';
+                stepsEl.appendChild(div);
+            });
+        } catch (err) {
+            runningEl.classList.add('hidden');
+            resultEl.classList.remove('hidden');
+            badgeEl.className = 'rounded-2xl px-4 py-3 text-sm font-semibold bg-red-50 border border-red-200 text-red-800';
+            badgeEl.textContent = 'İstek başarısız oldu: ' + err.message;
+        }
+    });
+
+    function escHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+})();
+</script>
+@endpush
+
 @endsection
