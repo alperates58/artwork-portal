@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ArtworkGalleryController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\DataTransferController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\MikroTestController;
 use App\Http\Controllers\Admin\PermissionsController;
@@ -108,6 +109,11 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('/ayarlar/update-check', [SettingsController::class, 'checkUpdates'])->name('settings.update-check');
             Route::post('/ayarlar/update-prepare', [SettingsController::class, 'prepareUpdate'])->name('settings.update-prepare');
             Route::get('/integrations/mikro/test', MikroTestController::class)->name('integrations.mikro.test');
+
+            Route::get('/veri-aktarimi', [DataTransferController::class, 'index'])->name('data-transfer.index');
+            Route::get('/veri-aktarimi/export', [DataTransferController::class, 'export'])->name('data-transfer.export');
+            Route::post('/veri-aktarimi/import', [DataTransferController::class, 'import'])->name('data-transfer.import');
+            Route::delete('/veri-aktarimi/imported', [DataTransferController::class, 'destroyImported'])->name('data-transfer.destroy-imported');
         });
 
     // Reports, Gallery, Logs — accessible to all internal roles; fine-grained access enforced in controllers via hasPermission()
