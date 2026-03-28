@@ -113,15 +113,15 @@
         }
         .nav-group-items > div { overflow: hidden; }
 
-        /* ── Brand: orange overrides ── */
+        /* ── Brand: violet overrides ── */
         .btn-primary, button.btn-primary, a.btn-primary {
-            background: linear-gradient(170deg, #f97316, #c2410c) !important;
+            background: linear-gradient(170deg, #8b5cf6, #6d28d9) !important;
             color: #fff !important;
-            box-shadow: 0 2px 8px rgba(234,88,12,0.32) !important;
+            box-shadow: 0 2px 8px rgba(124,58,237,0.32) !important;
         }
         .btn-primary:hover, button.btn-primary:hover, a.btn-primary:hover {
-            background: linear-gradient(170deg, #fb923c, #ea580c) !important;
-            box-shadow: 0 4px 12px rgba(234,88,12,0.40) !important;
+            background: linear-gradient(170deg, #a78bfa, #7c3aed) !important;
+            box-shadow: 0 4px 12px rgba(124,58,237,0.40) !important;
         }
 
         /* ── Dark sidebar overrides ── */
@@ -129,27 +129,27 @@
         #main-sidebar .sidebar-link { color: rgba(148,163,184,0.9); }
         #main-sidebar .sidebar-link:hover { background: rgba(255,255,255,0.07); color: #f8fafc; }
         #main-sidebar .sidebar-link.active {
-            background: rgba(249,115,22,0.15) !important;
+            background: rgba(139,92,246,0.18) !important;
             color: #fff !important;
-            box-shadow: inset 3px 0 0 #f97316 !important;
+            box-shadow: inset 3px 0 0 #8b5cf6 !important;
         }
-        #main-sidebar .sidebar-link.active svg { color: #f97316 !important; }
+        #main-sidebar .sidebar-link.active svg { color: #a78bfa !important; }
         #main-sidebar [data-nav-group-chevron] { color: rgba(148,163,184,0.55) !important; }
-        #main-sidebar [data-nav-group-chevron].rotate-180 { color: #f97316 !important; }
+        #main-sidebar [data-nav-group-chevron].rotate-180 { color: #a78bfa !important; }
 
         /* ── Brand utilities ── */
-        .text-brand-500 { color: #f97316; }
-        .text-brand-600 { color: #ea580c; }
-        .text-brand-700 { color: #c2410c; }
-        .text-brand-800 { color: #9a3412; }
-        .text-brand-900 { color: #7c2d12; }
-        .hover\:text-brand-700:hover { color: #c2410c; }
-        .bg-brand-50  { background-color: #fff7ed; }
-        .bg-brand-50\/70 { background-color: rgba(255,247,237,0.7); }
-        .bg-brand-100 { background-color: #ffedd5; }
-        .bg-brand-500 { background-color: #f97316; }
-        .bg-brand-600 { background-color: #ea580c; }
-        .border-brand-200 { border-color: #fed7aa; }
+        .text-brand-500 { color: #8b5cf6; }
+        .text-brand-600 { color: #7c3aed; }
+        .text-brand-700 { color: #6d28d9; }
+        .text-brand-800 { color: #5b21b6; }
+        .text-brand-900 { color: #4c1d95; }
+        .hover\:text-brand-700:hover { color: #6d28d9; }
+        .bg-brand-50  { background-color: #f5f3ff; }
+        .bg-brand-50\/70 { background-color: rgba(245,243,255,0.7); }
+        .bg-brand-100 { background-color: #ede9fe; }
+        .bg-brand-500 { background-color: #8b5cf6; }
+        .bg-brand-600 { background-color: #7c3aed; }
+        .border-brand-200 { border-color: #ddd6fe; }
         .rotate-180 { transform: rotate(180deg); }
     </style>
 </head>
@@ -178,31 +178,19 @@
                 @php
                     $iconLogoUrl = asset('brand/logo2.png');
                 @endphp
-                <div class="px-4 py-4" style="border-bottom: 1px solid rgba(255,255,255,0.06);">
-                    <a href="{{ route('dashboard') }}"
-                       class="sb-logo-wrap group flex flex-col items-center gap-2 rounded-2xl px-4 py-4 transition" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);">
-                        {{-- Expanded: full logo + brand name --}}
+                <div class="px-5 py-5" style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+                    <a href="{{ route('dashboard') }}" class="sb-logo-wrap group flex flex-col items-center gap-3">
+                        {{-- Expanded: lotus + brand text --}}
                         <div class="sb-logo-expanded flex flex-col items-center gap-2">
-                            @if($logoUrl)
-                                <img src="{{ $logoUrl }}" alt="{{ config('portal.brand_name') }}" class="sb-logo-img h-16 w-auto object-contain">
-                            @else
-                                <div class="sb-logo-img h-16 w-16 rounded-2xl bg-brand-600 flex items-center justify-center text-white text-2xl font-bold">
-                                    {{ mb_substr(config('portal.brand_name'), 0, 1) }}
-                                </div>
-                            @endif
-                            <div class="sb-logo-text text-center">
-                                <span class="block text-sm font-semibold text-white/90">{{ config('portal.brand_name') }}</span>
+                            <img src="{{ asset('brand/logo2.png') }}" alt="Logo" class="h-14 w-14 object-contain drop-shadow-lg">
+                            <div class="sb-logo-text text-center space-y-0.5">
+                                <span class="block text-[11px] font-bold uppercase tracking-[0.20em] text-white/90">Lider Kozmetik</span>
+                                <span class="block text-[10px] font-semibold uppercase tracking-[0.18em]" style="color: rgba(167,139,250,0.8);">Portal</span>
                             </div>
                         </div>
-                        {{-- Collapsed: icon only --}}
+                        {{-- Collapsed: lotus only --}}
                         <div class="sb-logo-collapsed hidden items-center justify-center">
-                            @if($iconLogoUrl)
-                                <img src="{{ $iconLogoUrl }}" alt="{{ config('portal.brand_name') }}" class="h-20 w-20 object-contain">
-                            @else
-                                <div class="h-11 w-11 rounded-xl bg-brand-600 flex items-center justify-center text-white text-lg font-bold">
-                                    {{ mb_substr(config('portal.brand_name'), 0, 1) }}
-                                </div>
-                            @endif
+                            <img src="{{ asset('brand/logo2.png') }}" alt="Logo" class="h-10 w-10 object-contain">
                         </div>
                     </a>
                 </div>
@@ -450,11 +438,18 @@
                 <div class="p-3 sb-footer-expanded" style="border-top: 1px solid rgba(255,255,255,0.06);">
                     <div class="rounded-2xl p-3" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);">
                         <div class="flex items-center gap-3">
-                            <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-sm font-semibold text-white" style="background: linear-gradient(135deg, #f97316, #c2410c);">
-                                {{ $userInitials }}
-                            </div>
+                            <a href="{{ route('profile.edit') }}" class="flex-shrink-0" title="Profilim">
+                                @if($user?->profile_photo_path)
+                                    <img src="{{ $user->profile_photo_url }}" alt="{{ $user->name }}"
+                                         class="h-10 w-10 rounded-xl object-cover">
+                                @else
+                                    <div class="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-semibold text-white" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+                                        {{ $userInitials }}
+                                    </div>
+                                @endif
+                            </a>
                             <div class="sb-user-info min-w-0 flex-1">
-                                <p class="truncate text-sm font-semibold text-white/90">{{ $user?->name }}</p>
+                                <a href="{{ route('profile.edit') }}" class="block truncate text-sm font-semibold text-white/90 hover:text-white">{{ $user?->name }}</a>
                                 <p class="text-xs text-white/45">{{ $user?->role?->label() }}</p>
                             </div>
                             <form method="POST" action="{{ route('logout') }}" class="sb-logout flex-shrink-0">
@@ -474,9 +469,16 @@
                 {{-- Collapsed footer: just avatar + logout --}}
                 <div class="sb-footer-collapsed hidden p-2" style="border-top: 1px solid rgba(255,255,255,0.06);">
                     <div class="flex flex-col items-center gap-2 py-1">
-                        <div class="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-semibold text-white" style="background: linear-gradient(135deg, #f97316, #c2410c);" title="{{ $user?->name }}">
-                            {{ $userInitials }}
-                        </div>
+                        <a href="{{ route('profile.edit') }}" title="{{ $user?->name }}">
+                            @if($user?->profile_photo_path)
+                                <img src="{{ $user->profile_photo_url }}" alt="{{ $user->name }}"
+                                     class="h-9 w-9 rounded-xl object-cover">
+                            @else
+                                <div class="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-semibold text-white" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+                                    {{ $userInitials }}
+                                </div>
+                            @endif
+                        </a>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit"
@@ -517,6 +519,26 @@
                     </div>
 
                     <div class="flex flex-wrap items-center gap-3">
+                        {{-- Notification bell --}}
+                        @if(auth()->user()?->role?->value !== 'supplier')
+                            @include('partials.notification-bell')
+                        @endif
+
+                        {{-- Global search trigger --}}
+                        @if(auth()->user()?->role?->value !== 'supplier')
+                        <button type="button"
+                                onclick="window.dispatchEvent(new CustomEvent('search-open'))"
+                                class="hidden sm:inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-600"
+                                title="Global Arama (Ctrl+K)">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+                            </svg>
+                            <span>Ara</span>
+                            <kbd class="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium">Ctrl K</kbd>
+                        </button>
+                        @endif
+
                         @if($hasPageAside)
                             <button type="button" class="btn btn-secondary"
                                     data-aside-toggle
@@ -728,5 +750,7 @@
 </script>
 
 @stack('scripts')
+
+@include('partials.search-modal')
 </body>
 </html>

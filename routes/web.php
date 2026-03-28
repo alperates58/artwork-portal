@@ -15,7 +15,10 @@ use App\Http\Controllers\Artwork\DownloadController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Order\OrderController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Order\OrderLineController;
 use App\Http\Controllers\Portal\PortalOrderController;
 use Illuminate\Support\Facades\Route;
@@ -32,6 +35,15 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('/', DashboardController::class)->name('dashboard');
+    Route::get('/search', [SearchController::class, 'search'])->name('search');
+    Route::get('/bildirimler', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/bildirimler/okundu', [NotificationController::class, 'markRead'])->name('notifications.read');
+
+    Route::get('/profil', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profil', [ProfileController::class, 'update'])->name('profile.update');
+    Route::patch('/profil/sifre', [ProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::post('/profil/foto', [ProfileController::class, 'updatePhoto'])->name('profile.photo');
+    Route::delete('/profil/foto', [ProfileController::class, 'deletePhoto'])->name('profile.photo.delete');
 
     Route::middleware('role:supplier')
         ->prefix('portal')

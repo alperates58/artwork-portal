@@ -180,5 +180,58 @@
             @endif
         </div>
     </div>
+
+    {{-- Activity Timeline --}}
+    @if(!auth()->user()->isSupplier())
+    <div class="lg:col-span-3">
+        <div class="card">
+            <div class="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+                <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <h3 class="text-sm font-semibold text-slate-800">Aktivite Zaman Çizelgesi</h3>
+            </div>
+
+            @if($timeline->isEmpty())
+                <div class="px-5 py-8 text-center text-sm text-slate-400">Henüz aktivite yok.</div>
+            @else
+                <div class="px-5 py-4">
+                    <ol class="relative border-l border-slate-200 ml-3 space-y-0">
+                        @foreach($timeline as $event)
+                        <li class="mb-6 ml-6">
+                            <span class="absolute -left-3 flex h-6 w-6 items-center justify-center rounded-full ring-4 ring-white
+                                @if($event['color'] === 'violet') bg-violet-100 text-violet-600
+                                @elseif($event['color'] === 'blue') bg-blue-100 text-blue-600
+                                @elseif($event['color'] === 'amber') bg-amber-100 text-amber-600
+                                @else bg-slate-100 text-slate-500 @endif
+                            ">
+                                @if($event['icon'] === 'plus')
+                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                @elseif($event['icon'] === 'upload')
+                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                @elseif($event['icon'] === 'note')
+                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+                                @endif
+                            </span>
+                            <div>
+                                <p class="text-sm font-medium text-slate-800">{{ $event['title'] }}</p>
+                                <p class="text-xs text-slate-500">{{ $event['sub'] }}</p>
+                                @if(!empty($event['body']))
+                                    <p class="mt-1 text-xs text-slate-600 bg-slate-50 rounded-lg px-3 py-2">{{ $event['body'] }}</p>
+                                @endif
+                                <time class="mt-0.5 block text-[11px] text-slate-400">
+                                    {{ $event['at']->format('d.m.Y H:i') }}
+                                    <span class="ml-1">({{ $event['at']->diffForHumans() }})</span>
+                                </time>
+                            </div>
+                        </li>
+                        @endforeach
+                    </ol>
+                </div>
+            @endif
+        </div>
+    </div>
+    @endif
 </div>
 @endsection

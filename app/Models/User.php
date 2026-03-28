@@ -33,6 +33,7 @@ class User extends Authenticatable
         'last_login_at',
         'permissions',
         'department_id',
+        'profile_photo_path',
     ];
 
     protected $hidden = [
@@ -166,6 +167,14 @@ class User extends Authenticatable
     public function uploadedGalleryItems(): HasMany
     {
         return $this->hasMany(ArtworkGallery::class, 'uploaded_by');
+    }
+
+    public function getProfilePhotoUrlAttribute(): ?string
+    {
+        if ($this->profile_photo_path) {
+            return asset('storage/' . $this->profile_photo_path);
+        }
+        return null;
     }
 
     public function isAdmin(): bool

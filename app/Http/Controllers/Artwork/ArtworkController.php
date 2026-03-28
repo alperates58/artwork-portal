@@ -11,6 +11,7 @@ use App\Models\ArtworkTag;
 use App\Models\PurchaseOrderLine;
 use App\Services\ArtworkUploadService;
 use App\Services\AuditLogService;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -18,7 +19,8 @@ class ArtworkController extends Controller
 {
     public function __construct(
         private ArtworkUploadService $uploadService,
-        private AuditLogService $audit
+        private AuditLogService $audit,
+        private NotificationService $notifications,
     ) {}
 
     public function create(PurchaseOrderLine $line): View
@@ -66,6 +68,17 @@ class ArtworkController extends Controller
                 meta: $meta,
                 uploader: auth()->user()
             );
+
+        // Notify all purchasing/admin users about the new artwork upload
+        $line->load('purchaseOrder:id,order_no,supplier_id');
+        $orderNo = $line->purchaseOrder?->order_no ?? 'Sipariş';
+        $this->notifications->notifyDepartment(
+            null,
+            'artwork_uploaded',
+            "Yeni artwork yüklendi: {$orderNo}",
+            auth()->user()->name . ' tarafından Rev.' . $revision->revision_no . ' yüklendi.',
+            route('order-lines.show', $line),
+        );
 
         return redirect()
             ->route('order-lines.show', $line)

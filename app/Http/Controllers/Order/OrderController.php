@@ -8,6 +8,7 @@ use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Services\AuditLogService;
 use App\Services\DashboardCacheService;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,7 @@ class OrderController extends Controller
     public function __construct(
         private AuditLogService $audit,
         private DashboardCacheService $dashboardCache,
+        private NotificationService $notifications,
     ) {}
 
     public function index(Request $request): View
@@ -46,12 +48,52 @@ class OrderController extends Controller
             'createdBy',
             'lines.artwork.activeRevision.uploadedBy',
             'lines.artwork.revisions' => fn ($query) => $query->orderByDesc('revision_no'),
+            'lines.artwork.revisions.uploadedBy:id,name',
             'orderNotes.user:id,name',
         ]);
 
         $this->audit->log('order.view', $order);
 
-        return view('orders.show', compact('order'));
+        // Build activity timeline
+        $timeline = collect();
+
+        // 1. Order created
+        $timeline->push([
+            'at'    => $order->created_at,
+            'icon'  => 'plus',
+            'color' => 'violet',
+            'title' => 'Sipariş oluşturuldu',
+            'sub'   => $order->createdBy?->name ?? '—',
+        ]);
+
+        // 2. Artwork revisions
+        foreach ($order->lines as $line) {
+            foreach ($line->artwork?->revisions ?? [] as $revision) {
+                $timeline->push([
+                    'at'    => $revision->created_at,
+                    'icon'  => 'upload',
+                    'color' => 'blue',
+                    'title' => "Revizyon #{$revision->revision_no} yüklendi",
+                    'sub'   => ($revision->uploadedBy?->name ?? '—') . ' · ' . ($line->description ?? $line->product_code ?? "Satır #{$line->id}"),
+                ]);
+            }
+        }
+
+        // 3. Notes
+        foreach ($order->orderNotes as $note) {
+            $timeline->push([
+                'at'    => $note->created_at,
+                'icon'  => 'note',
+                'color' => 'amber',
+                'title' => 'Not eklendi',
+                'sub'   => $note->user?->name ?? '—',
+                'body'  => mb_strimwidth($note->body, 0, 120, '…'),
+            ]);
+        }
+
+        $timeline = $timeline->sortByDesc('at')->values();
+
+        return view('orders.show', compact('order', 'timeline'));
     }
 
     public function create(): View
@@ -104,6 +146,15 @@ class OrderController extends Controller
 
         $this->audit->log('order.create', $order, ['order_no' => $order->order_no]);
         $this->dashboardCache->forgetMetrics();
+
+        // Notify graphic dept about new order needing artwork
+        $this->notifications->notifyDepartment(
+            null,
+            'order_created',
+            "Yeni sipariş: {$order->order_no}",
+            auth()->user()->name . ' tarafından ' . count($validated['lines']) . ' satırlı sipariş oluşturuldu.',
+            route('orders.show', $order),
+        );
 
         return redirect()
             ->route('orders.show', $order)
