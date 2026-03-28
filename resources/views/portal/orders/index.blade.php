@@ -24,8 +24,8 @@
 {{-- Filters --}}
 <form method="GET" class="flex flex-wrap gap-3 mb-5">
     <x-ui.input type="text" name="search" value="{{ request('search') }}"
-                placeholder="Sipariş no ara..." class="w-52" />
-    <select name="status" class="input w-44">
+                placeholder="Sipariş no ara..." class="w-full sm:w-52" />
+    <select name="status" class="input w-full sm:w-44">
         <option value="">Tüm durumlar</option>
         <option value="active"    {{ request('status') === 'active'    ? 'selected' : '' }}>Aktif</option>
         <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Tamamlandı</option>

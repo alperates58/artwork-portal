@@ -15,14 +15,14 @@
 
 @section('content')
 <form method="GET" class="flex flex-wrap gap-3 mb-5">
-    <x-ui.input type="text" name="search" value="{{ request('search') }}" placeholder="Sipariş no ara..." class="w-52" />
-    <select name="supplier_id" class="input w-52" onchange="this.form.submit()">
+    <x-ui.input type="text" name="search" value="{{ request('search') }}" placeholder="Sipariş no ara..." class="w-full sm:w-52" />
+    <select name="supplier_id" class="input w-full sm:w-52" onchange="this.form.submit()">
         <option value="">Tüm tedarikçiler</option>
         @foreach($suppliers as $id => $name)
             <option value="{{ $id }}" {{ request('supplier_id') == $id ? 'selected' : '' }}>{{ $name }}</option>
         @endforeach
     </select>
-    <select name="status" class="input w-40" onchange="this.form.submit()">
+    <select name="status" class="input w-full sm:w-40" onchange="this.form.submit()">
         <option value="">Tüm durumlar</option>
         <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Aktif</option>
         <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Taslak</option>
@@ -35,8 +35,8 @@
     @endif
 </form>
 
-<div class="card">
-    <table class="w-full text-sm">
+<div class="card overflow-x-auto">
+    <table class="w-full min-w-[640px] text-sm">
         <thead>
             <tr class="border-b border-slate-200 bg-slate-50">
                 <th class="text-left px-4 py-3 font-medium text-slate-600">Sipariş No</th>

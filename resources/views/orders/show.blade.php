@@ -84,7 +84,7 @@
             <div class="divide-y divide-slate-100">
                 @foreach($order->lines as $line)
                     <div class="px-5 py-4">
-                        <div class="flex items-start justify-between gap-4">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 mb-1">
                                     <span class="text-xs font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">{{ $line->line_no }}</span>
@@ -100,7 +100,7 @@
                                 </p>
                             </div>
 
-                            <div class="flex items-center gap-2 flex-shrink-0">
+                            <div class="flex flex-wrap items-center gap-2">
                                 @if($line->hasActiveArtwork())
                                     <a href="{{ route('artwork.download', $line->activeRevision) }}" class="btn btn-secondary text-xs py-1.5">İndir Rev.{{ $line->activeRevision->revision_no }}</a>
                                     <a href="{{ route('artworks.revisions', $line) }}" class="text-xs text-brand-700 hover:underline font-medium">Revizyonlar</a>

@@ -32,7 +32,7 @@
         x-transition:leave="transition ease-in duration-100"
         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
         x-transition:leave-end="opacity-0 translate-y-1 scale-95"
-        class="absolute right-0 top-full z-50 mt-2 w-80 origin-top-right overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xl"
+        class="absolute left-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-1rem)] origin-top-left overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xl sm:left-auto sm:right-0 sm:origin-top-right"
         x-cloak
     >
         {{-- Header --}}
