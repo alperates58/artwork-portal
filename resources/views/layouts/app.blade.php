@@ -266,7 +266,7 @@
 
                                 @if($canViewSettings)
                                     {{-- Ayarlar nav group --}}
-                                    <div data-nav-group="settings" data-nav-group-open="false">
+                                    <div data-nav-group="settings" data-nav-group-open="false" data-nav-group-active="{{ $settingsActive ? 'true' : 'false' }}">
                                         <button type="button"
                                                 data-nav-group-toggle="settings"
                                                 title="Ayarlar"
@@ -340,7 +340,7 @@
                                 @if($canViewReports)
                                     {{-- Raporlar nav group --}}
                                     @php $reportsActive = request()->routeIs('admin.reports.*'); @endphp
-                                    <div data-nav-group="reports" data-nav-group-open="false">
+                                    <div data-nav-group="reports" data-nav-group-open="false" data-nav-group-active="{{ $reportsActive ? 'true' : 'false' }}">
                                         <button type="button"
                                                 data-nav-group-toggle="reports"
                                                 title="Raporlar"
@@ -401,7 +401,7 @@
                                 @if($canViewGallery)
                                     {{-- Artwork Galerisi nav group --}}
                                     @php $galleryActive = request()->routeIs('admin.artwork-gallery.*'); @endphp
-                                    <div data-nav-group="gallery" data-nav-group-open="false">
+                                    <div data-nav-group="gallery" data-nav-group-open="false" data-nav-group-active="{{ $galleryActive ? 'true' : 'false' }}">
                                         <button type="button" data-nav-group-toggle="gallery" title="Artwork Galerisi"
                                                 class="sidebar-link w-full {{ $galleryActive ? 'active' : '' }}">
                                             <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-10h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -698,37 +698,49 @@
         }
     });
 
-    /* ── Nav group toggle (Ayarlar vb.) ── */
+    /* ── Nav group toggle (Ayarlar, Raporlar, Galeri vb.) ── */
+    function openNavGroup(items, chevron, groupName) {
+        items.classList.remove('closed');
+        if (chevron) { chevron.classList.add('rotate-180','text-brand-500'); chevron.classList.remove('text-slate-400'); }
+        localStorage.setItem(NAV_GROUP_KEY + groupName, 'open');
+    }
+    function closeNavGroup(items, chevron, groupName) {
+        items.classList.add('closed');
+        if (chevron) { chevron.classList.remove('rotate-180','text-brand-500'); chevron.classList.add('text-slate-400'); }
+        localStorage.setItem(NAV_GROUP_KEY + groupName, 'closed');
+    }
+
     document.querySelectorAll('[data-nav-group-toggle]').forEach(function (btn) {
-        var groupName = btn.dataset.navGroupToggle;
-        var group     = document.querySelector('[data-nav-group="' + groupName + '"]');
-        var items     = group ? group.querySelector('.nav-group-items') : null;
-        var chevron   = group ? group.querySelector('[data-nav-group-chevron]') : null;
+        var groupName  = btn.dataset.navGroupToggle;
+        var group      = document.querySelector('[data-nav-group="' + groupName + '"]');
+        var items      = group ? group.querySelector('.nav-group-items') : null;
+        var chevron    = group ? group.querySelector('[data-nav-group-chevron]') : null;
         if (!group || !items) return;
 
-        /* Always use localStorage — never auto-expand based on route */
-        var stored = localStorage.getItem(NAV_GROUP_KEY + groupName);
-        if (stored === 'open') {
-            items.classList.remove('closed');
-            if (chevron) { chevron.classList.add('rotate-180','text-brand-500'); chevron.classList.remove('text-slate-400'); }
+        /* Route-based initial state: active group → always open; others → closed */
+        var isActive = group.dataset.navGroupActive === 'true';
+        if (isActive) {
+            openNavGroup(items, chevron, groupName);
         } else {
-            items.classList.add('closed');
-            if (chevron) { chevron.classList.remove('rotate-180','text-brand-500'); chevron.classList.add('text-slate-400'); }
+            closeNavGroup(items, chevron, groupName);
         }
 
         btn.addEventListener('click', function () {
-            /* Ignore toggle when sidebar is in icon-strip mode */
             if (wrap && wrap.classList.contains('collapsed')) return;
 
             var isClosed = items.classList.contains('closed');
             if (isClosed) {
-                items.classList.remove('closed');
-                if (chevron) { chevron.classList.add('rotate-180','text-brand-500'); chevron.classList.remove('text-slate-400'); }
-                localStorage.setItem(NAV_GROUP_KEY + groupName, 'open');
+                /* Close all other groups first */
+                document.querySelectorAll('[data-nav-group]').forEach(function (otherGroup) {
+                    if (otherGroup === group) return;
+                    var otherItems   = otherGroup.querySelector('.nav-group-items');
+                    var otherChevron = otherGroup.querySelector('[data-nav-group-chevron]');
+                    var otherName    = otherGroup.dataset.navGroup;
+                    if (otherItems) closeNavGroup(otherItems, otherChevron, otherName);
+                });
+                openNavGroup(items, chevron, groupName);
             } else {
-                items.classList.add('closed');
-                if (chevron) { chevron.classList.remove('rotate-180','text-brand-500'); chevron.classList.add('text-slate-400'); }
-                localStorage.setItem(NAV_GROUP_KEY + groupName, 'closed');
+                closeNavGroup(items, chevron, groupName);
             }
         });
     });
