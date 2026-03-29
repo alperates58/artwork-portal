@@ -1,7 +1,13 @@
 @extends('layouts.app')
 @section('title', $report ? 'Raporu Düzenle' : 'Yeni Rapor')
 @section('page-title', $report ? 'Raporu Düzenle' : 'Rapor Fabrikası')
-@section('page-subtitle', 'Alanlara tıklayarak veya sürükleyerek özel raporlar oluşturun.')
+@php
+$dimCount    = 8; // supplier, month, year, quarter, order_status, artwork_status, product_code, order_no
+$metricCount = 6; // order_count, line_count, pending_artwork, uploaded_artwork, revision_count, avg_days_to_upload
+$chartCount  = 4; // bar, line, pie, doughnut
+$combos = ((pow(2, $dimCount) - 1) * (pow(2, $metricCount) - 1) * $chartCount);
+@endphp
+@section('page-subtitle', 'Alanlara tıklayarak veya sürükleyerek özel raporlar oluşturun. · ' . number_format($combos) . ' farklı rapor kombinasyonu mevcut.')
 
 @section('header-actions')
     <a href="{{ route('admin.reports.factory.index') }}" class="btn btn-secondary">← Raporlarım</a>
@@ -34,7 +40,7 @@
             <div class="card p-4">
                 <h3 class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Boyutlar (X Ekseni) — Tıkla ekle</h3>
                 <div class="flex flex-wrap gap-2">
-                    @foreach(['supplier' => 'Tedarikçi', 'month' => 'Ay', 'year' => 'Yıl', 'quarter' => 'Çeyrek', 'order_status' => 'Sipariş Durumu', 'artwork_status' => 'Artwork Durumu'] as $key => $label)
+                    @foreach(['supplier' => 'Tedarikçi', 'month' => 'Ay', 'year' => 'Yıl', 'quarter' => 'Çeyrek', 'order_status' => 'Sipariş Durumu', 'artwork_status' => 'Artwork Durumu', 'product_code' => 'Stok Kodu', 'order_no' => 'Sipariş No'] as $key => $label)
                     <button type="button"
                             @click="toggleField('{{ $key }}', 'dimension')"
                             :class="selectedDimensions.includes('{{ $key }}')
@@ -83,7 +89,7 @@
                 <h3 class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3">Boyutlar (X Ekseni)</h3>
                 <p class="text-[11px] text-slate-400 mb-2">Sürükle veya tıkla ekle</p>
                 <div class="space-y-1.5">
-                    @foreach(['supplier' => 'Tedarikçi', 'month' => 'Ay', 'year' => 'Yıl', 'quarter' => 'Çeyrek', 'order_status' => 'Sipariş Durumu', 'artwork_status' => 'Artwork Durumu'] as $key => $label)
+                    @foreach(['supplier' => 'Tedarikçi', 'month' => 'Ay', 'year' => 'Yıl', 'quarter' => 'Çeyrek', 'order_status' => 'Sipariş Durumu', 'artwork_status' => 'Artwork Durumu', 'product_code' => 'Stok Kodu', 'order_no' => 'Sipariş No'] as $key => $label)
                     <div class="field-chip"
                          draggable="true"
                          data-key="{{ $key }}"
@@ -345,6 +351,7 @@ function reportBuilder() {
         dimLabels: {
             supplier: 'Tedarikçi', month: 'Ay', year: 'Yıl', quarter: 'Çeyrek',
             order_status: 'Sipariş Durumu', artwork_status: 'Artwork Durumu',
+            product_code: 'Stok Kodu', order_no: 'Sipariş No',
         },
         metricLabels: {
             order_count: 'Sipariş Sayısı', line_count: 'Satır Sayısı',
@@ -362,7 +369,7 @@ function reportBuilder() {
             date_to:      '{{ $report?->filters['date_to'] ?? '' }}',
         },
 
-        mobileFieldsOpen: false,
+        mobileFieldsOpen: true,
         dragKey:  null,
         dragType: null,
         dropTarget: null,

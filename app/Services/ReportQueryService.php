@@ -83,6 +83,14 @@ class ReportQueryService
                     $selects[]  = 'purchase_order_lines.artwork_status as dim_artwork_status';
                     $groupBys[] = 'purchase_order_lines.artwork_status';
                     break;
+                case 'product_code':
+                    $selects[]  = 'purchase_order_lines.product_code as dim_product_code';
+                    $groupBys[] = 'purchase_order_lines.product_code';
+                    break;
+                case 'order_no':
+                    $selects[]  = 'purchase_orders.order_no as dim_order_no';
+                    $groupBys[] = 'purchase_orders.order_no';
+                    break;
             }
         }
 
@@ -136,6 +144,8 @@ class ReportQueryService
             'quarter'        => 'Çeyrek',
             'order_status'   => 'Sipariş Durumu',
             'artwork_status' => 'Artwork Durumu',
+            'product_code'   => 'Stok Kodu',
+            'order_no'       => 'Sipariş No',
         ];
         $metricLabels = [
             'order_count'        => 'Sipariş Sayısı',
@@ -169,6 +179,8 @@ class ReportQueryService
                     'quarter'        => 'Q' . ($row['dim_quarter'] ?? '') . ' ' . ($row['dim_q_year'] ?? ''),
                     'order_status'   => $orderStatusLabels[$row['dim_order_status'] ?? ''] ?? ($row['dim_order_status'] ?? '—'),
                     'artwork_status' => $artworkStatusLabels[$row['dim_artwork_status'] ?? ''] ?? ($row['dim_artwork_status'] ?? '—'),
+                    'product_code'   => $row['dim_product_code'] ?? '—',
+                    'order_no'       => $row['dim_order_no'] ?? '—',
                     default          => '—',
                 };
             }
