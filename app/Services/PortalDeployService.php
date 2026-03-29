@@ -74,7 +74,7 @@ class PortalDeployService
 
     private function applyUpdatePipeline(array $steps): array
     {
-        $ok = true;
+        $hasWarnings = false;
 
         $steps[] = $this->runArtisan('config:clear');
         $steps[] = $this->runArtisan('cache:clear');
@@ -83,22 +83,40 @@ class PortalDeployService
         $steps[] = $portalUpdateStep;
 
         if (! $portalUpdateStep['ok']) {
-            return ['ok' => false, 'steps' => $steps];
+            return ['ok' => false, 'steps' => $steps, 'warning' => false];
         }
 
         $frontendBuild = $this->buildFrontendAssets();
         foreach ($frontendBuild['steps'] as $frontendStep) {
+            if (! ($frontendStep['ok'] ?? false)) {
+                $frontendStep['cmd'] = 'UYARI · ' . $frontendStep['cmd'];
+                $frontendStep['output'] = "Frontend build adımı başarısız oldu. Kod güncellendi, gerekirse manuel build çalıştırın.\n\n"
+                    . ($frontendStep['output'] ?? '(çıktı yok)');
+                $frontendStep['ok'] = true;
+                $hasWarnings = true;
+            }
             $steps[] = $frontendStep;
         }
 
-        if (! $frontendBuild['ok']) {
-            $ok = false;
+        $finalConfigClear = $this->runArtisan('config:clear');
+        if (! $finalConfigClear['ok']) {
+            $finalConfigClear['cmd'] = 'UYARI · ' . $finalConfigClear['cmd'];
+            $finalConfigClear['output'] = "Final config temizliği başarısız oldu.\n\n" . ($finalConfigClear['output'] ?? '(çıktı yok)');
+            $finalConfigClear['ok'] = true;
+            $hasWarnings = true;
         }
+        $steps[] = $finalConfigClear;
 
-        $steps[] = $this->runArtisan('config:clear');
-        $steps[] = $this->runArtisan('cache:clear');
+        $finalCacheClear = $this->runArtisan('cache:clear');
+        if (! $finalCacheClear['ok']) {
+            $finalCacheClear['cmd'] = 'UYARI · ' . $finalCacheClear['cmd'];
+            $finalCacheClear['output'] = "Final cache temizliği başarısız oldu.\n\n" . ($finalCacheClear['output'] ?? '(çıktı yok)');
+            $finalCacheClear['ok'] = true;
+            $hasWarnings = true;
+        }
+        $steps[] = $finalCacheClear;
 
-        return ['ok' => $ok, 'steps' => $steps];
+        return ['ok' => true, 'steps' => $steps, 'warning' => $hasWarnings];
     }
 
     private function buildFrontendAssets(): array

@@ -1511,8 +1511,13 @@
             actionsEl.innerHTML = '<button type="button" onclick="location.reload()" class="btn btn-secondary">Sayfayı Yenile</button>';
 
             if (data.ok) {
-                badgeEl.className   = 'rounded-2xl px-4 py-3 text-sm font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800';
-                badgeEl.textContent = 'Güncelleme başarıyla tamamlandı.';
+                if (data.warning) {
+                    badgeEl.className   = 'rounded-2xl px-4 py-3 text-sm font-semibold bg-amber-50 border border-amber-200 text-amber-800';
+                    badgeEl.textContent = 'Güncelleme tamamlandı (uyarılar var).';
+                } else {
+                    badgeEl.className   = 'rounded-2xl px-4 py-3 text-sm font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800';
+                    badgeEl.textContent = 'Güncelleme başarıyla tamamlandı.';
+                }
             } else {
                 badgeEl.className   = 'rounded-2xl px-4 py-3 text-sm font-semibold bg-red-50 border border-red-200 text-red-800';
                 badgeEl.textContent = 'Güncelleme sırasında bir hata oluştu.';
