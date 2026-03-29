@@ -824,8 +824,9 @@
                                         ];
                                     @endphp
                                 @foreach($toggles as $t)
-                                        <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 hover:bg-slate-50/60">
-                                            <label for="portal_{{ $t['key'] }}" class="block cursor-pointer">
+                                        @php $toggleChecked = (bool) ($portalConfig[$t['key']] ?? false); @endphp
+                                        <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 hover:bg-slate-50/60" data-portal-toggle-row>
+                                            <button type="button" class="block cursor-pointer text-left" data-portal-toggle-label>
                                                 <p class="text-sm font-semibold text-slate-800 flex items-center gap-2">
                                                     {{ $t['label'] }}
                                                     @if($t['warn'])
@@ -833,16 +834,24 @@
                                                     @endif
                                                 </p>
                                                 <p class="text-xs text-slate-500 mt-0.5">{{ $t['desc'] }}</p>
-                                            </label>
+                                            </button>
                                             <div class="flex items-center justify-end">
                                                 <input type="hidden" name="portal[{{ $t['key'] }}]" value="0">
-                                                <label for="portal_{{ $t['key'] }}" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center">
-                                                    <input type="checkbox" name="portal[{{ $t['key'] }}]" value="1" id="portal_{{ $t['key'] }}"
-                                                           @checked($portalConfig[$t['key']] ?? false)
-                                                           class="peer absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0">
-                                                    <span aria-hidden="true" class="pointer-events-none h-6 w-11 rounded-full bg-slate-200 transition-colors duration-200 peer-checked:bg-brand-500 peer-focus:ring-2 peer-focus:ring-brand-300 peer-focus:ring-offset-2"></span>
-                                                    <span aria-hidden="true" class="pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-5"></span>
-                                                </label>
+                                                <input type="checkbox" name="portal[{{ $t['key'] }}]" value="1" id="portal_{{ $t['key'] }}"
+                                                       @checked($toggleChecked)
+                                                       class="sr-only"
+                                                       tabindex="-1"
+                                                       aria-hidden="true"
+                                                       data-portal-toggle-input>
+                                                <button type="button"
+                                                        class="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand-300 focus:ring-offset-2 {{ $toggleChecked ? 'bg-brand-500' : 'bg-slate-200' }}"
+                                                        aria-pressed="{{ $toggleChecked ? 'true' : 'false' }}"
+                                                        aria-label="{{ $t['label'] }}"
+                                                        data-portal-toggle-button>
+                                                    <span aria-hidden="true"
+                                                          class="pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 {{ $toggleChecked ? 'translate-x-5' : '' }}"
+                                                          data-portal-toggle-thumb></span>
+                                                </button>
                                             </div>
                                         </div>
                                     @endforeach
@@ -1270,6 +1279,72 @@
 </script>
 <script>
 (function () {
+    const toggleRows = document.querySelectorAll('[data-portal-toggle-row]');
+
+    if (toggleRows.length) {
+        const debugEnabled = new URLSearchParams(window.location.search).get('toggle_debug') === '1';
+        let debugPanel = null;
+
+        function debugToggle(message) {
+            if (!debugEnabled) {
+                return;
+            }
+
+            if (!debugPanel) {
+                debugPanel = document.createElement('div');
+                debugPanel.className = 'fixed bottom-4 right-4 z-[200] max-w-sm rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900 shadow-xl';
+                document.body.appendChild(debugPanel);
+            }
+
+            debugPanel.textContent = message;
+            window.console?.info?.('[portal-toggle-debug]', message);
+        }
+
+        function syncPortalToggle(row, reason) {
+            const input = row.querySelector('[data-portal-toggle-input]');
+            const button = row.querySelector('[data-portal-toggle-button]');
+            const thumb = row.querySelector('[data-portal-toggle-thumb]');
+
+            if (!input || !button || !thumb) {
+                return;
+            }
+
+            const checked = input.checked;
+
+            button.setAttribute('aria-pressed', checked ? 'true' : 'false');
+            button.classList.toggle('bg-brand-500', checked);
+            button.classList.toggle('bg-slate-200', !checked);
+            thumb.classList.toggle('translate-x-5', checked);
+
+            debugToggle(`${input.name} => ${checked ? '1' : '0'} (${reason})`);
+        }
+
+        function togglePortalInput(row, reason) {
+            const input = row.querySelector('[data-portal-toggle-input]');
+
+            if (!input) {
+                return;
+            }
+
+            input.checked = !input.checked;
+            syncPortalToggle(row, reason);
+        }
+
+        toggleRows.forEach((row) => {
+            syncPortalToggle(row, 'init');
+
+            row.querySelector('[data-portal-toggle-button]')?.addEventListener('click', function (event) {
+                event.preventDefault();
+                togglePortalInput(row, 'button');
+            });
+
+            row.querySelector('[data-portal-toggle-label]')?.addEventListener('click', function (event) {
+                event.preventDefault();
+                togglePortalInput(row, 'label');
+            });
+        });
+    }
+
     /* ── Grup satırları ── */
     const groupContainer = document.getElementById('group-rows');
     const addGroupBtn    = document.getElementById('add-group-row');

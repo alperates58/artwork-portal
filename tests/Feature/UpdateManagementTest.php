@@ -193,7 +193,8 @@ class UpdateManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Portal Ayarları')
             ->assertSee('Portal İşletim Parametreleri')
-            ->assertSee('name="tab" value="portal"', false);
+            ->assertSee('name="tab" value="portal"', false)
+            ->assertSee('data-portal-toggle-button', false);
     }
 
     public function test_admin_can_store_portal_upload_limit_up_to_system_cap(): void
