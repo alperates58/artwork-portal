@@ -1354,9 +1354,9 @@ class DataTransferService
                 'artwork_revision_id' => $revision->id,
                 'user_id'             => $userId,
                 'supplier_id'         => $supplierId,
-                'ip_address'          => null,
-                'user_agent'          => 'DataTransfer/Import',
-                'download_token'      => null,
+                'ip_address'          => $payload['ip_address'] ?? $this->defaultImportedIpAddress(),
+                'user_agent'          => $payload['user_agent'] ?? 'DataTransfer/Import',
+                'download_token'      => $payload['download_token'] ?? null,
                 'downloaded_at'       => $downloadedAt,
             ]);
 
@@ -1504,6 +1504,12 @@ class DataTransferService
             throw new \RuntimeException('Medya dahil dışa aktarım paketi 50 MB sınırını aşıyor. Lütfen medya seçimini kaldırın veya aktarımı bölüm bölüm yapın.');
         }
     }
+
+    private function defaultImportedIpAddress(): string
+    {
+        return '0.0.0.0';
+    }
+
     private function supportsDepartments(): bool
     {
         static $supportsDepartments;

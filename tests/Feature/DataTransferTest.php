@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Artwork;
+use App\Models\ArtworkRevision;
 use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -99,5 +102,65 @@ XML;
             'supplier_id' => Supplier::query()->where('code', 'TED-002')->value('id'),
         ]);
         $this->assertEquals(2, PurchaseOrder::count());
+    }
+
+    public function test_import_download_logs_uses_fallback_ip_address_when_source_payload_has_none(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $downloader = User::factory()->create([
+            'email' => 'indirici@example.com',
+        ]);
+        $supplier = Supplier::factory()->create([
+            'code' => 'TED-777',
+        ]);
+        $order = PurchaseOrder::factory()->create([
+            'supplier_id' => $supplier->id,
+            'order_no' => 'PO-2026-0777',
+            'created_by' => $admin->id,
+        ]);
+        $line = PurchaseOrderLine::factory()->create([
+            'purchase_order_id' => $order->id,
+            'line_no' => 7,
+        ]);
+        $artwork = Artwork::factory()->create([
+            'order_line_id' => $line->id,
+        ]);
+        $revision = ArtworkRevision::factory()->create([
+            'artwork_id' => $artwork->id,
+            'revision_no' => 1,
+        ]);
+
+        $artwork->update(['active_revision_id' => $revision->id]);
+
+        $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<portal_export exported_at="2026-03-29T20:00:00+03:00" version="3" include_media="0">
+    <selection_hash>demo</selection_hash>
+    <download_logs>
+        <log entity_key="revision:TED-777|PO-2026-0777|7|1|indirici@example.com|20260329120000">
+            <revision_ref>revision:TED-777|PO-2026-0777|7|1</revision_ref>
+            <user_email>indirici@example.com</user_email>
+            <supplier_ref>TED-777</supplier_ref>
+            <downloaded_at>2026-03-29T12:00:00+03:00</downloaded_at>
+        </log>
+    </download_logs>
+</portal_export>
+XML;
+
+        $file = UploadedFile::fake()->createWithContent('download-logs.xml', $xml);
+
+        $response = $this->actingAs($admin)->post(route('admin.data-transfer.import'), [
+            'xml_file' => $file,
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('artwork_download_logs', [
+            'artwork_revision_id' => $revision->id,
+            'user_id' => $downloader->id,
+            'supplier_id' => $supplier->id,
+            'ip_address' => '0.0.0.0',
+        ]);
     }
 }
