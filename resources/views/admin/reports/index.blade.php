@@ -3,6 +3,23 @@
 @section('page-title', 'Operasyonel Raporlar')
 
 @section('content')
+{{-- Quick nav to detailed reports --}}
+<div class="flex flex-wrap gap-2 mb-6">
+    @foreach([
+        ['route' => 'admin.reports.lead-time',  'label' => 'Lead Time',          'icon' => '⏱'],
+        ['route' => 'admin.reports.pending',     'label' => 'Bekleyen Artwork',   'icon' => '⏳'],
+        ['route' => 'admin.reports.performance', 'label' => 'Performans',         'icon' => '🏆'],
+        ['route' => 'admin.reports.category',    'label' => 'Kategori',           'icon' => '🗂'],
+        ['route' => 'admin.reports.stock-code',  'label' => 'Stok Kodu',          'icon' => '📋'],
+        ['route' => 'admin.reports.timeline',    'label' => 'Aktivite',           'icon' => '📅'],
+    ] as $r)
+        <a href="{{ route($r['route']) }}"
+           class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:border-brand-300 hover:text-brand-700 transition">
+            {{ $r['icon'] }} {{ $r['label'] }}
+        </a>
+    @endforeach
+</div>
+
 <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
     <x-ui.card padding="p-5">
         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Aktif Sipariş</p>

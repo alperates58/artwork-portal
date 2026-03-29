@@ -30,6 +30,11 @@
             'description' => 'İzin verilen dosya uzantıları ve format tanımlarını yönetin.',
             'eyebrow' => 'Yükleme kuralları',
         ],
+        'portal' => [
+            'label' => 'Portal Ayarları',
+            'description' => 'Sipariş oluşturma, upload limiti ve portal davranış parametreleri.',
+            'eyebrow' => 'İşletim parametreleri',
+        ],
         'general' => [
             'label' => 'Genel Sistem',
             'description' => 'Read-only uygulama ortamı ve çalışma zamanı özeti.',
@@ -765,6 +770,132 @@
 
                                 <div class="flex justify-end pt-2 border-t border-slate-100">
                                     <button type="submit" class="btn btn-primary px-8">Formatları Kaydet</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    {{-- ══════════════════════ PORTAL AYARLARI ══════════════════════ --}}
+                    <div class="{{ $activeTab === 'portal' ? '' : 'hidden' }}">
+                        <form method="POST" action="{{ route('admin.settings.update') }}">
+                            @csrf @method('PUT')
+                            <input type="hidden" name="settings_section" value="portal">
+                            <div class="space-y-6">
+
+                                {{-- Section title --}}
+                                <div>
+                                    <h3 class="text-lg font-semibold text-slate-900">Portal İşletim Parametreleri</h3>
+                                    <p class="mt-1 text-sm text-slate-500">Bu ayarlar portaldaki işlemleri ve kısıtlamaları kontrol eder.</p>
+                                </div>
+
+                                {{-- Toggle switches --}}
+                                <div class="rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+                                    @php
+                                        $toggles = [
+                                            ['key' => 'order_creation_enabled', 'label' => 'Sipariş Oluşturma', 'desc' => 'Admin panelinden yeni sipariş oluşturulabilir. Kapalıysa sipariş oluşturma formu devre dışı kalır.', 'warn' => false],
+                                            ['key' => 'supplier_portal_enabled', 'label' => 'Tedarikçi Portalı', 'desc' => 'Tedarikçilerin kendi portallarine erişim izni. Kapalıysa tedarikçi girişi engellenir.', 'warn' => true],
+                                            ['key' => 'maintenance_mode', 'label' => 'Bakım Modu', 'desc' => 'Aktif edildiğinde admin dışındaki kullanıcılar bakım sayfasına yönlendirilir.', 'warn' => true],
+                                            ['key' => 'allow_manual_artwork', 'label' => 'Manuel Artwork Tamamlama', 'desc' => 'Satın alma ekibinin "Manuel Gönderildi" olarak işaretleyebilmesi.', 'warn' => false],
+                                            ['key' => 'data_transfer_allowed', 'label' => 'Veri Aktarımı', 'desc' => 'Local ↔ Sunucu veri aktarım özelliğinin kullanılmasına izin verir.', 'warn' => false],
+                                            ['key' => 'require_2fa_for_admin', 'label' => '2FA Admin Zorunluluğu', 'desc' => 'Admin hesapları için iki faktörlü doğrulama zorunlu olur (geliştirme planında).', 'warn' => false],
+                                        ];
+                                    @endphp
+                                    @foreach($toggles as $t)
+                                        <label class="flex items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50/60 cursor-pointer">
+                                            <div>
+                                                <p class="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                                                    {{ $t['label'] }}
+                                                    @if($t['warn'])
+                                                        <span class="rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[10px] font-semibold">Dikkat</span>
+                                                    @endif
+                                                </p>
+                                                <p class="text-xs text-slate-500 mt-0.5">{{ $t['desc'] }}</p>
+                                            </div>
+                                            <div class="relative flex-shrink-0">
+                                                <input type="hidden" name="portal[{{ $t['key'] }}]" value="0">
+                                                <input type="checkbox" name="portal[{{ $t['key'] }}]" value="1" id="portal_{{ $t['key'] }}"
+                                                       @checked($portalConfig[$t['key']] ?? false)
+                                                       class="sr-only peer">
+                                                <div class="w-11 h-6 bg-slate-200 peer-focus:ring-2 peer-focus:ring-brand-300 rounded-full peer peer-checked:bg-brand-500 transition-colors"></div>
+                                                <div class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+                                            </div>
+                                        </label>
+                                    @endforeach
+                                </div>
+
+                                {{-- Numeric settings --}}
+                                <div class="rounded-2xl border border-slate-200 p-5">
+                                    <h4 class="text-sm font-semibold text-slate-700 mb-4">Limit & Kota Ayarları</h4>
+                                    <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                                        <div>
+                                            <label class="label" for="max_upload_size_mb">Maks. Upload Boyutu (MB)</label>
+                                            <input type="number" id="max_upload_size_mb" name="portal[max_upload_size_mb]"
+                                                   value="{{ old('portal.max_upload_size_mb', $portalConfig['max_upload_size_mb']) }}"
+                                                   min="1" max="500" class="input">
+                                            <p class="text-[11px] text-slate-400 mt-1">Her artwork yüklemesi için maksimum dosya boyutu.</p>
+                                        </div>
+                                        <div>
+                                            <label class="label" for="max_revision_count">Maks. Revizyon Sayısı</label>
+                                            <input type="number" id="max_revision_count" name="portal[max_revision_count]"
+                                                   value="{{ old('portal.max_revision_count', $portalConfig['max_revision_count']) }}"
+                                                   min="1" max="100" class="input">
+                                            <p class="text-[11px] text-slate-400 mt-1">Bir sipariş satırı için izin verilen maksimum revizyon sayısı.</p>
+                                        </div>
+                                        <div>
+                                            <label class="label" for="session_timeout_minutes">Oturum Zaman Aşımı (dk)</label>
+                                            <input type="number" id="session_timeout_minutes" name="portal[session_timeout_minutes]"
+                                                   value="{{ old('portal.session_timeout_minutes', $portalConfig['session_timeout_minutes']) }}"
+                                                   min="15" max="10080" class="input">
+                                            <p class="text-[11px] text-slate-400 mt-1">Hareketsiz kullanıcı için oturum süresi. Min: 15 dk.</p>
+                                        </div>
+                                        <div>
+                                            <label class="label" for="order_deadline_warning_days">Sipariş Uyarı Süresi (gün)</label>
+                                            <input type="number" id="order_deadline_warning_days" name="portal[order_deadline_warning_days]"
+                                                   value="{{ old('portal.order_deadline_warning_days', $portalConfig['order_deadline_warning_days']) }}"
+                                                   min="1" max="60" class="input">
+                                            <p class="text-[11px] text-slate-400 mt-1">Son teslim tarihi yaklaşan siparişler için uyarı eşiği.</p>
+                                        </div>
+                                        <div>
+                                            <label class="label" for="max_orders_per_page">Sayfa Başı Sipariş</label>
+                                            <input type="number" id="max_orders_per_page" name="portal[max_orders_per_page]"
+                                                   value="{{ old('portal.max_orders_per_page', $portalConfig['max_orders_per_page']) }}"
+                                                   min="5" max="200" class="input">
+                                            <p class="text-[11px] text-slate-400 mt-1">Sipariş listesi sayfalama limiti.</p>
+                                        </div>
+                                        <div>
+                                            <label class="label" for="audit_log_retention_days">Log Saklama Süresi (gün)</label>
+                                            <input type="number" id="audit_log_retention_days" name="portal[audit_log_retention_days]"
+                                                   value="{{ old('portal.audit_log_retention_days', $portalConfig['audit_log_retention_days']) }}"
+                                                   min="30" max="3650" class="input">
+                                            <p class="text-[11px] text-slate-400 mt-1">Audit ve aktivite loglarının tutulacağı süre.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Current values summary --}}
+                                <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                                    <p class="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-3">Aktif Durum Özeti</p>
+                                    <div class="flex flex-wrap gap-2 text-xs">
+                                        <span class="rounded-full px-3 py-1 {{ $portalConfig['order_creation_enabled'] ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200' }}">
+                                            Sipariş: {{ $portalConfig['order_creation_enabled'] ? 'Açık' : 'Kapalı' }}
+                                        </span>
+                                        <span class="rounded-full px-3 py-1 {{ $portalConfig['supplier_portal_enabled'] ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200' }}">
+                                            Tedarikçi Portali: {{ $portalConfig['supplier_portal_enabled'] ? 'Açık' : 'Kapalı' }}
+                                        </span>
+                                        <span class="rounded-full px-3 py-1 {{ $portalConfig['maintenance_mode'] ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200' }}">
+                                            Bakım: {{ $portalConfig['maintenance_mode'] ? 'Aktif' : 'Pasif' }}
+                                        </span>
+                                        <span class="rounded-full px-3 py-1 bg-slate-100 text-slate-600">
+                                            Upload: {{ $portalConfig['max_upload_size_mb'] }} MB
+                                        </span>
+                                        <span class="rounded-full px-3 py-1 bg-slate-100 text-slate-600">
+                                            Revizyon: maks. {{ $portalConfig['max_revision_count'] }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="flex justify-end pt-2 border-t border-slate-100">
+                                    <button type="submit" class="btn btn-primary px-8">Portal Ayarlarını Kaydet</button>
                                 </div>
                             </div>
                         </form>

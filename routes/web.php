@@ -146,6 +146,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/raporlar/kategori', [ReportController::class, 'category'])->name('reports.category');
             Route::get('/raporlar/stok-kodu', [ReportController::class, 'stockCode'])->name('reports.stock-code');
             Route::get('/raporlar/aktivite', [ReportController::class, 'timeline'])->name('reports.timeline');
+            Route::get('/raporlar/performans', [ReportController::class, 'performance'])->name('reports.performance');
             // Report Factory
             Route::post('/raporlar/fabrika/onizleme', [ReportFactoryController::class, 'preview'])->name('reports.factory.preview');
             Route::get('/raporlar/fabrika', [ReportFactoryController::class, 'index'])->name('reports.factory.index');

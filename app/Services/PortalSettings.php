@@ -229,6 +229,42 @@ class PortalSettings
         }
     }
 
+    public function portalConfig(): array
+    {
+        return [
+            'order_creation_enabled'         => filter_var($this->get('portal.order_creation_enabled', true), FILTER_VALIDATE_BOOL),
+            'supplier_portal_enabled'        => filter_var($this->get('portal.supplier_portal_enabled', true), FILTER_VALIDATE_BOOL),
+            'maintenance_mode'               => filter_var($this->get('portal.maintenance_mode', false), FILTER_VALIDATE_BOOL),
+            'allow_manual_artwork'           => filter_var($this->get('portal.allow_manual_artwork', true), FILTER_VALIDATE_BOOL),
+            'max_upload_size_mb'             => (int) $this->get('portal.max_upload_size_mb', 50),
+            'max_revision_count'             => (int) $this->get('portal.max_revision_count', 10),
+            'session_timeout_minutes'        => (int) $this->get('portal.session_timeout_minutes', 120),
+            'order_deadline_warning_days'    => (int) $this->get('portal.order_deadline_warning_days', 7),
+            'max_orders_per_page'            => (int) $this->get('portal.max_orders_per_page', 25),
+            'require_2fa_for_admin'          => filter_var($this->get('portal.require_2fa_for_admin', false), FILTER_VALIDATE_BOOL),
+            'data_transfer_allowed'          => filter_var($this->get('portal.data_transfer_allowed', true), FILTER_VALIDATE_BOOL),
+            'audit_log_retention_days'       => (int) $this->get('portal.audit_log_retention_days', 365),
+        ];
+    }
+
+    public function syncPortalSettings(array $s): void
+    {
+        $boolKeys = [
+            'order_creation_enabled', 'supplier_portal_enabled', 'maintenance_mode',
+            'allow_manual_artwork', 'require_2fa_for_admin', 'data_transfer_allowed',
+        ];
+        $intKeys = [
+            'max_upload_size_mb', 'max_revision_count', 'session_timeout_minutes',
+            'order_deadline_warning_days', 'max_orders_per_page', 'audit_log_retention_days',
+        ];
+        foreach ($boolKeys as $k) {
+            $this->set('portal', "portal.{$k}", (string) filter_var($s[$k] ?? false, FILTER_VALIDATE_BOOL));
+        }
+        foreach ($intKeys as $k) {
+            $this->set('portal', "portal.{$k}", (string) (int) ($s[$k] ?? 0));
+        }
+    }
+
     public function syncMailNotificationSettings(array $settings): void
     {
         $this->set('mail_notifications', 'mail_notifications.enabled', (string) ($settings['enabled'] ?? false));

@@ -77,14 +77,18 @@ class PermissionsController extends Controller
 
     public function index(): View
     {
-        $users = User::whereIn('role', [
-            UserRole::PURCHASING->value,
-            UserRole::GRAPHIC->value,
-        ])->orderBy('name')->get();
+        $users = User::with('department')
+            ->where('role', '!=', UserRole::SUPPLIER->value)
+            ->where('role', '!=', UserRole::ADMIN->value)
+            ->orderBy('name')
+            ->get();
+
+        $departments = \App\Models\Department::orderBy('name')->get();
 
         return view('admin.permissions.index', [
-            'users'   => $users,
-            'screens' => self::$screens,
+            'users'       => $users,
+            'departments' => $departments,
+            'screens'     => self::$screens,
         ]);
     }
 

@@ -28,6 +28,7 @@ class SettingsController extends Controller
         'mikro',
         'mail',
         'formats',
+        'portal',
         'general',
     ];
 
@@ -74,6 +75,7 @@ class SettingsController extends Controller
             'mailNotifications' => $this->settings->mailNotificationFormConfig(),
             'updateStatus' => $this->updateStatus->snapshot(),
             'generalSystem' => $this->generalSystemConfig(),
+            'portalConfig'  => $this->settings->portalConfig(),
             'fileFormats' => $this->fileFormatsConfig(),
             'fileGroups'  => $this->fileGroupsConfig(),
         ]);
@@ -115,6 +117,10 @@ class SettingsController extends Controller
 
         if (array_key_exists('formats', $validated)) {
             $this->syncFileFormats($validated['formats']);
+        }
+
+        if (array_key_exists('portal', $validated)) {
+            $this->settings->syncPortalSettings($validated['portal']);
         }
 
         return $this->redirectToTab($activeTab)->with('success', 'Sistem ayarlari guncellendi.');
@@ -372,6 +378,23 @@ class SettingsController extends Controller
                 'formats.groups'           => ['nullable', 'array'],
                 'formats.groups.*.key'     => ['required', 'string', 'max:50'],
                 'formats.groups.*.label'   => ['required', 'string', 'max:100'],
+            ];
+        }
+
+        if ($section === 'portal' || $request->has('portal')) {
+            $rules += [
+                'portal.order_creation_enabled'      => ['nullable', 'boolean'],
+                'portal.supplier_portal_enabled'     => ['nullable', 'boolean'],
+                'portal.maintenance_mode'            => ['nullable', 'boolean'],
+                'portal.allow_manual_artwork'        => ['nullable', 'boolean'],
+                'portal.require_2fa_for_admin'       => ['nullable', 'boolean'],
+                'portal.data_transfer_allowed'       => ['nullable', 'boolean'],
+                'portal.max_upload_size_mb'          => ['required', 'integer', 'min:1', 'max:500'],
+                'portal.max_revision_count'          => ['required', 'integer', 'min:1', 'max:100'],
+                'portal.session_timeout_minutes'     => ['required', 'integer', 'min:15', 'max:10080'],
+                'portal.order_deadline_warning_days' => ['required', 'integer', 'min:1', 'max:60'],
+                'portal.max_orders_per_page'         => ['required', 'integer', 'min:5', 'max:200'],
+                'portal.audit_log_retention_days'    => ['required', 'integer', 'min:30', 'max:3650'],
             ];
         }
 

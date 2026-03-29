@@ -532,4 +532,159 @@ class ReportController extends Controller
             'suppliers', 'selectedSupplier', 'dateFrom', 'dateTo', 'types'
         ));
     }
+
+    /**
+     * Tedarikçi Performans Raporu
+     * 100 puan üzerinden değerlendirme:
+     *  - Hızlı İndirme      (30 puan) : Yükleme → İndirme ortalaması
+     *  - Onay Oranı         (25 puan) : Onaylanan artwork %'si
+     *  - Hızlı Sipariş Takibi (20 puan) : İlk indirme <= 3 gün bonus
+     *  - Tamamlama Oranı    (15 puan) : Approved / toplam satır
+     *  - Sipariş Hacmi      (10 puan) : Sipariş adedine göre göreli bonus
+     */
+    public function performance(Request $request): View
+    {
+        $this->checkAccess();
+
+        $supplierId = $request->integer('supplier_id') ?: null;
+        $period     = $request->input('period', '90'); // gün
+
+        $since = match ($period) {
+            '30'  => now()->subDays(30),
+            '180' => now()->subDays(180),
+            '365' => now()->subDays(365),
+            'all' => null,
+            default => now()->subDays(90),
+        };
+
+        // --- Per-supplier metrics ---
+        $query = DB::table('suppliers as s')
+            ->select([
+                's.id',
+                's.name',
+                's.code',
+                DB::raw('COUNT(DISTINCT po.id) as order_count'),
+                DB::raw('COUNT(DISTINCT pol.id) as line_count'),
+                DB::raw('SUM(CASE WHEN pol.artwork_status = \'approved\' THEN 1 ELSE 0 END) as approved_count'),
+                DB::raw('SUM(CASE WHEN pol.artwork_status IN (\'uploaded\',\'approved\') THEN 1 ELSE 0 END) as uploaded_count'),
+                DB::raw('AVG(DATEDIFF(adl.downloaded_at, ar.created_at)) as avg_upload_to_download'),
+                DB::raw('SUM(CASE WHEN DATEDIFF(adl.downloaded_at, ar.created_at) <= 3 THEN 1 ELSE 0 END) as fast_downloads'),
+                DB::raw('COUNT(adl.id) as total_downloads'),
+            ])
+            ->join('purchase_orders as po', 'po.supplier_id', '=', 's.id')
+            ->join('purchase_order_lines as pol', 'pol.purchase_order_id', '=', 'po.id')
+            ->leftJoin('artworks as a', 'a.order_line_id', '=', 'pol.id')
+            ->leftJoin('artwork_revisions as ar', fn ($j) => $j
+                ->on('ar.artwork_id', '=', 'a.id')
+                ->where('ar.is_active', '=', 1)
+            )
+            ->leftJoin('artwork_download_logs as adl', 'adl.artwork_revision_id', '=', 'ar.id')
+            ->when($since, fn ($q) => $q->where('po.order_date', '>=', $since))
+            ->when($supplierId, fn ($q) => $q->where('s.id', $supplierId))
+            ->groupBy('s.id', 's.name', 's.code')
+            ->orderByDesc('order_count')
+            ->get();
+
+        // Max order count for relative volume scoring
+        $maxOrders = $query->max('order_count') ?: 1;
+
+        $suppliers = $query->map(function ($row) use ($maxOrders) {
+            $lineCount    = max((int) $row->line_count, 1);
+            $approvedPct  = ($row->approved_count / $lineCount) * 100;
+            $uploadedPct  = ($row->uploaded_count / $lineCount) * 100;
+            $avgDays      = $row->avg_upload_to_download !== null ? round((float) $row->avg_upload_to_download, 1) : null;
+            $fastPct      = $row->total_downloads > 0 ? ($row->fast_downloads / $row->total_downloads) * 100 : 0;
+
+            // --- Scoring ---
+            // 1. Hızlı İndirme (30p): avg days ≤1→30, ≤3→24, ≤7→16, ≤14→8, >14→3, null→0
+            $downloadScore = match (true) {
+                $avgDays === null                  => 0,
+                $avgDays <= 1                      => 30,
+                $avgDays <= 3                      => 24,
+                $avgDays <= 7                      => 16,
+                $avgDays <= 14                     => 8,
+                default                            => 3,
+            };
+
+            // 2. Onay Oranı (25p): approved% × 0.25
+            $approvalScore = round($approvedPct * 0.25);
+
+            // 3. Hızlı İndirme Oranı (20p): fast download % × 0.20
+            $fastScore = round($fastPct * 0.20);
+
+            // 4. Tamamlama Oranı (15p): uploaded% × 0.15
+            $completionScore = round($uploadedPct * 0.15);
+
+            // 5. Sipariş Hacmi (10p): relative to max
+            $volumeScore = round(($row->order_count / $maxOrders) * 10);
+
+            $total = min(100, $downloadScore + $approvalScore + $fastScore + $completionScore + $volumeScore);
+
+            $grade = match (true) {
+                $total >= 85 => ['label' => 'Mükemmel', 'color' => 'emerald'],
+                $total >= 70 => ['label' => 'İyi',       'color' => 'brand'],
+                $total >= 50 => ['label' => 'Orta',      'color' => 'amber'],
+                $total >= 30 => ['label' => 'Zayıf',     'color' => 'orange'],
+                default      => ['label' => 'Kritik',    'color' => 'red'],
+            };
+
+            return (object) [
+                'id'               => $row->id,
+                'name'             => $row->name,
+                'code'             => $row->code,
+                'order_count'      => (int) $row->order_count,
+                'line_count'       => (int) $row->line_count,
+                'approved_count'   => (int) $row->approved_count,
+                'uploaded_count'   => (int) $row->uploaded_count,
+                'avg_days'         => $avgDays,
+                'fast_pct'         => round($fastPct),
+                'approved_pct'     => round($approvedPct),
+                'uploaded_pct'     => round($uploadedPct),
+                'scores'           => compact('downloadScore', 'approvalScore', 'fastScore', 'completionScore', 'volumeScore'),
+                'total'            => $total,
+                'grade'            => $grade,
+            ];
+        })->sortByDesc('total')->values();
+
+        // Distribution counts for summary badges
+        $gradeDist = [
+            'excellent' => $suppliers->where('total', '>=', 85)->count(),
+            'good'      => $suppliers->whereBetween('total', [70, 84])->count(),
+            'average'   => $suppliers->whereBetween('total', [50, 69])->count(),
+            'poor'      => $suppliers->whereBetween('total', [30, 49])->count(),
+            'critical'  => $suppliers->where('total', '<', 30)->count(),
+        ];
+
+        // Graphic team performance: upload speed per user
+        $graphicPerformance = DB::table('users as u')
+            ->select([
+                'u.id',
+                'u.name',
+                DB::raw('COUNT(ar.id) as upload_count'),
+                DB::raw('AVG(DATEDIFF(ar.created_at, po.order_date)) as avg_upload_days'),
+                DB::raw('SUM(CASE WHEN pol.artwork_status = \'approved\' THEN 1 ELSE 0 END) as approved_count'),
+            ])
+            ->join('artwork_revisions as ar', 'ar.uploaded_by', '=', 'u.id')
+            ->join('artworks as a', 'a.id', '=', 'ar.artwork_id')
+            ->join('purchase_order_lines as pol', 'pol.id', '=', 'a.order_line_id')
+            ->join('purchase_orders as po', 'po.id', '=', 'pol.purchase_order_id')
+            ->when($since, fn ($q) => $q->where('po.order_date', '>=', $since))
+            ->groupBy('u.id', 'u.name')
+            ->orderByDesc('upload_count')
+            ->get()
+            ->map(fn ($row) => (object) [
+                'name'         => $row->name,
+                'upload_count' => (int) $row->upload_count,
+                'avg_days'     => $row->avg_upload_days !== null ? round((float) $row->avg_upload_days, 1) : null,
+                'approved_count' => (int) $row->approved_count,
+                'approval_rate'  => $row->upload_count > 0 ? round($row->approved_count / $row->upload_count * 100) : 0,
+            ]);
+
+        $allSuppliers = Supplier::orderBy('name')->get(['id', 'name']);
+
+        return view('admin.reports.performance', compact(
+            'suppliers', 'gradeDist', 'graphicPerformance',
+            'allSuppliers', 'supplierId', 'period'
+        ));
+    }
 }
