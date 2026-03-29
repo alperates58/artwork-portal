@@ -52,7 +52,7 @@
         <tbody class="divide-y divide-slate-100">
             @forelse($orders as $order)
                 <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="px-4 py-3"><span class="font-mono font-medium text-slate-900">{{ $order->order_no }}</span></td>
+                    <td class="px-4 py-3"><a href="{{ route('orders.show', $order) }}" class="font-mono font-medium text-slate-900 hover:text-brand-700 hover:underline transition-colors">{{ $order->order_no }}</a></td>
                     <td class="px-4 py-3 text-slate-700">{{ $order->supplier->name }}</td>
                     <td class="px-4 py-3 text-slate-500">{{ $order->order_date->format('d.m.Y') }}</td>
                     <td class="px-4 py-3"><x-ui.badge :variant="match($order->status){'active'=>'success','draft'=>'gray','completed'=>'info','cancelled'=>'danger',default=>'gray'}">{{ $order->status_label }}</x-ui.badge></td>
