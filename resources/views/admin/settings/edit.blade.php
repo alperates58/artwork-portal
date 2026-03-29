@@ -1446,6 +1446,7 @@
                 <li><code class="font-mono text-xs">git pull origin main</code> — GitHub'dan son kodu çeker</li>
                 <li><code class="font-mono text-xs">config:clear</code> + <code class="font-mono text-xs">cache:clear</code> — eski önbelleği temizler</li>
                 <li><code class="font-mono text-xs">portal:update</code> — migration, storage:link, optimize, queue:restart</li>
+                <li><code class="font-mono text-xs">npm ci && npm run build</code> — frontend assetlerini (Vite/Tailwind) yeniden derler</li>
             </ol>
         </div>
         <p class="text-sm text-slate-600">Sunucu üzerinde doğrudan çalışır. Devam etmek istiyor musunuz?</p>

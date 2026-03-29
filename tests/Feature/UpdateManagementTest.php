@@ -402,4 +402,14 @@ class UpdateManagementTest extends TestCase
             ])
             ->assertRedirect(route('admin.settings.edit', ['tab' => 'storage']));
     }
+
+    public function test_update_dialog_mentions_frontend_asset_build_step(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.settings.edit', ['tab' => 'updates']))
+            ->assertOk()
+            ->assertSee('npm run build', false);
+    }
 }
