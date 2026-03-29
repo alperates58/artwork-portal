@@ -802,6 +802,7 @@
                         <form method="POST" action="{{ route('admin.settings.update') }}">
                             @csrf @method('PUT')
                             <input type="hidden" name="settings_section" value="portal">
+                            <input type="hidden" name="tab" value="portal">
                             <div class="space-y-6">
 
                                 {{-- Section title --}}
