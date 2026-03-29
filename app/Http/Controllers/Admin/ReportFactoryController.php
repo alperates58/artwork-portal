@@ -98,7 +98,7 @@ class ReportFactoryController extends Controller
     {
         $this->gate();
 
-        $allowed_dims    = ['supplier', 'month', 'year', 'quarter', 'order_status', 'artwork_status'];
+        $allowed_dims    = ['supplier', 'month', 'year', 'quarter', 'order_status', 'artwork_status', 'product_code', 'order_no'];
         $allowed_metrics = ['order_count', 'line_count', 'pending_artwork', 'uploaded_artwork', 'revision_count', 'avg_days_to_upload'];
 
         $dimensions = array_values(array_filter(

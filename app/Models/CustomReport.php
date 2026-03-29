@@ -16,9 +16,9 @@ class CustomReport extends Model
     {
         return [
             'dimensions' => 'array',
-            'metrics'    => 'array',
-            'filters'    => 'array',
-            'is_shared'  => 'boolean',
+            'metrics' => 'array',
+            'filters' => 'array',
+            'is_shared' => 'boolean',
         ];
     }
 
@@ -30,23 +30,25 @@ class CustomReport extends Model
     public static function dimensionLabels(): array
     {
         return [
-            'supplier'       => 'Tedarikçi',
-            'month'          => 'Ay',
-            'year'           => 'Yıl',
-            'quarter'        => 'Çeyrek',
-            'order_status'   => 'Sipariş Durumu',
+            'supplier' => 'Tedarikçi',
+            'month' => 'Ay',
+            'year' => 'Yıl',
+            'quarter' => 'Çeyrek',
+            'order_status' => 'Sipariş Durumu',
             'artwork_status' => 'Artwork Durumu',
+            'product_code' => 'Stok Kodu',
+            'order_no' => 'Sipariş No',
         ];
     }
 
     public static function metricLabels(): array
     {
         return [
-            'order_count'        => 'Sipariş Sayısı',
-            'line_count'         => 'Satır Sayısı',
-            'pending_artwork'    => 'Bekleyen Artwork',
-            'uploaded_artwork'   => 'Yüklenen Artwork',
-            'revision_count'     => 'Revizyon Sayısı',
+            'order_count' => 'Sipariş Sayısı',
+            'line_count' => 'Satır Sayısı',
+            'pending_artwork' => 'Bekleyen Artwork',
+            'uploaded_artwork' => 'Yüklenen Artwork',
+            'revision_count' => 'Revizyon Sayısı',
             'avg_days_to_upload' => 'Ort. Yükleme (Gün)',
         ];
     }
