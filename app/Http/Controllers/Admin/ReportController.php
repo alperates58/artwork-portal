@@ -137,52 +137,70 @@ class ReportController extends Controller
         $suppliers = Supplier::query()->orderBy('name')->get(['id', 'name']);
         $selectedSupplierId = request()->integer('supplier_id') ?: null;
 
-        // Per-order: order_date, first_upload_at, first_download_at
-        $rows = PurchaseOrder::query()
+        // Per-line: her sipariş satırı için ayrı satır (stok kodu dahil)
+        $rows = PurchaseOrderLine::query()
             ->select([
-                'purchase_orders.id',
+                'purchase_order_lines.id as line_id',
+                'purchase_order_lines.line_no',
+                'purchase_order_lines.product_code',
+                'purchase_order_lines.description',
+                'purchase_order_lines.artwork_status',
+                'purchase_orders.id as order_id',
                 'purchase_orders.order_no',
                 'purchase_orders.order_date',
-                'purchase_orders.status',
+                'purchase_orders.status as order_status',
                 'suppliers.name as supplier_name',
                 DB::raw('MIN(artwork_revisions.created_at) as first_upload_at'),
                 DB::raw('MIN(artwork_download_logs.downloaded_at) as first_download_at'),
             ])
+            ->join('purchase_orders', 'purchase_orders.id', '=', 'purchase_order_lines.purchase_order_id')
             ->join('suppliers', 'suppliers.id', '=', 'purchase_orders.supplier_id')
-            ->leftJoin('purchase_order_lines', 'purchase_order_lines.purchase_order_id', '=', 'purchase_orders.id')
             ->leftJoin('artworks', 'artworks.order_line_id', '=', 'purchase_order_lines.id')
             ->leftJoin('artwork_revisions', 'artwork_revisions.artwork_id', '=', 'artworks.id')
             ->leftJoin('artwork_download_logs', 'artwork_download_logs.artwork_revision_id', '=', 'artwork_revisions.id')
             ->when($selectedSupplierId, fn ($q) => $q->where('purchase_orders.supplier_id', $selectedSupplierId))
-            ->groupBy('purchase_orders.id', 'purchase_orders.order_no', 'purchase_orders.order_date', 'purchase_orders.status', 'suppliers.name')
+            ->groupBy(
+                'purchase_order_lines.id',
+                'purchase_order_lines.line_no',
+                'purchase_order_lines.product_code',
+                'purchase_order_lines.description',
+                'purchase_order_lines.artwork_status',
+                'purchase_orders.id',
+                'purchase_orders.order_no',
+                'purchase_orders.order_date',
+                'purchase_orders.status',
+                'suppliers.name',
+            )
             ->orderByDesc('purchase_orders.order_date')
-            ->limit(50)
+            ->orderBy('purchase_order_lines.line_no')
+            ->limit(300)
             ->get()
             ->map(function ($row) {
-                $orderDate     = Carbon::parse($row->order_date);
-                $uploadAt      = $row->first_upload_at  ? Carbon::parse($row->first_upload_at)  : null;
-                $downloadAt    = $row->first_download_at ? Carbon::parse($row->first_download_at) : null;
-
-                $orderToUpload   = $uploadAt   ? $orderDate->diffInHours($uploadAt)   : null;
+                $orderDate        = Carbon::parse($row->order_date);
+                $uploadAt         = $row->first_upload_at   ? Carbon::parse($row->first_upload_at)   : null;
+                $downloadAt       = $row->first_download_at ? Carbon::parse($row->first_download_at) : null;
+                $orderToUpload    = $uploadAt ? $orderDate->diffInHours($uploadAt) : null;
                 $uploadToDownload = ($uploadAt && $downloadAt) ? $uploadAt->diffInHours($downloadAt) : null;
-                $orderToDownload = $downloadAt ? $orderDate->diffInHours($downloadAt) : null;
+                $orderToDownload  = $downloadAt ? $orderDate->diffInHours($downloadAt) : null;
 
                 return (object) [
+                    'order_id'             => $row->order_id,
                     'order_no'             => $row->order_no,
+                    'line_no'              => $row->line_no,
+                    'product_code'         => $row->product_code,
+                    'description'          => $row->description,
+                    'artwork_status'       => $row->artwork_status,
                     'supplier_name'        => $row->supplier_name,
                     'order_date'           => $orderDate,
-                    'status'               => $row->status,
                     'upload_at'            => $uploadAt,
                     'download_at'          => $downloadAt,
-                    'order_to_upload_h'    => $orderToUpload,
                     'order_to_upload_d'    => $orderToUpload !== null ? round($orderToUpload / 24, 1) : null,
-                    'upload_to_download_h' => $uploadToDownload,
                     'upload_to_download_d' => $uploadToDownload !== null ? round($uploadToDownload / 24, 1) : null,
                     'total_d'              => $orderToDownload !== null ? round($orderToDownload / 24, 1) : null,
                 ];
             });
 
-        // Supplier averages for chart
+        // Tedarikçi ortalamaları (grafik için)
         $supplierAvgs = $rows
             ->filter(fn ($r) => $r->order_to_upload_d !== null)
             ->groupBy('supplier_name')

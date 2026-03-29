@@ -116,7 +116,7 @@ class DataTransferService
             ],
             'artwork_revisions' => [
                 'label' => 'Artwork revizyonları',
-                'description' => 'Sipariş satırlarına bağlı revizyonlar ve onay metadatası aktarılır.',
+                'description' => 'Sipariş satırlarına bağlı revizyonlar ve onay metadatası aktarılır. Medya olmadan da içe aktarılabilir.',
                 'supports_media' => true,
                 'default' => false,
                 'fields' => [
@@ -135,6 +135,18 @@ class DataTransferService
                     'approved_at' => 'Onay tarihi',
                     'archived_at' => 'Arşiv tarihi',
                     'gallery_ref' => 'Galeri ilişkisi',
+                ],
+            ],
+            'download_logs' => [
+                'label' => 'İndirme kayıtları',
+                'description' => 'Tedarikçi indirme logları aktarılır (lead time raporları için gereklidir).',
+                'supports_media' => false,
+                'default' => true,
+                'fields' => [
+                    'revision_ref'  => 'Revizyon referansı',
+                    'user_email'    => 'İndiren kullanıcı',
+                    'supplier_ref'  => 'Tedarikçi referansı',
+                    'downloaded_at' => 'İndirme tarihi',
                 ],
             ],
         ];
@@ -250,12 +262,13 @@ class DataTransferService
         $batchUuid = (string) Str::uuid();
         $importedIds = $this->getImportedIds();
         $stats = [
-            'suppliers' => 0,
-            'users' => 0,
-            'purchase_orders' => 0,
-            'artwork_gallery' => 0,
-            'artwork_revisions' => 0,
-            'skipped' => 0,
+            'suppliers'        => 0,
+            'users'            => 0,
+            'purchase_orders'  => 0,
+            'artwork_gallery'  => 0,
+            'artwork_revisions'=> 0,
+            'download_logs'    => 0,
+            'skipped'          => 0,
         ];
 
         DB::transaction(function () use ($xml, $batchUuid, &$importedIds, &$stats): void {
@@ -265,13 +278,14 @@ class DataTransferService
             $this->importPurchaseOrders($xml, $supplierMap, $batchUuid, $importedIds, $stats);
             $galleryMap = $this->importArtworkGallery($xml, $batchUuid, $importedIds, $stats);
             $this->importArtworkRevisions($xml, $galleryMap, $batchUuid, $importedIds, $stats);
+            $this->importDownloadLogs($xml, $batchUuid, $stats);
         });
 
         $this->saveImportedIds($importedIds);
 
         return [
             'ok' => true,
-            'message' => "İçe aktarma tamamlandı: {$stats['suppliers']} tedarikçi, {$stats['users']} kullanıcı, {$stats['purchase_orders']} sipariş, {$stats['artwork_gallery']} galeri kaydı ve {$stats['artwork_revisions']} revizyon eklendi. {$stats['skipped']} kayıt atlandı.",
+            'message' => "İçe aktarma tamamlandı: {$stats['suppliers']} tedarikçi, {$stats['users']} kullanıcı, {$stats['purchase_orders']} sipariş, {$stats['artwork_gallery']} galeri kaydı, {$stats['artwork_revisions']} revizyon ve {$stats['download_logs']} indirme kaydı eklendi. {$stats['skipped']} kayıt atlandı.",
             'stats' => $stats,
         ];
     }
@@ -355,12 +369,13 @@ class DataTransferService
     private function totalCountForSection(string $section): int
     {
         return match ($section) {
-            'suppliers' => Supplier::withTrashed()->count(),
-            'users' => User::query()->where('role', '!=', 'admin')->count(),
-            'purchase_orders' => PurchaseOrder::query()->count(),
-            'artwork_gallery' => ArtworkGallery::query()->count(),
-            'artwork_revisions' => ArtworkRevision::query()->count(),
-            default => 0,
+            'suppliers'        => Supplier::withTrashed()->count(),
+            'users'            => User::query()->where('role', '!=', 'admin')->count(),
+            'purchase_orders'  => PurchaseOrder::query()->count(),
+            'artwork_gallery'  => ArtworkGallery::query()->count(),
+            'artwork_revisions'=> ArtworkRevision::query()->count(),
+            'download_logs'    => \App\Models\ArtworkDownloadLog::query()->count(),
+            default            => 0,
         };
     }
 
@@ -539,6 +554,64 @@ class DataTransferService
             $node->addAttribute('entity_key', $entityKey);
             $this->writePayloadToNode($node, $payload);
             $this->markTransferred('export', 'artwork_revisions', $entityKey, $selectionHash, $payloadHash, $batchUuid);
+            $exported++;
+        }
+
+        return ['count' => $exported];
+    }
+
+    private function appendDownloadLogsSection(SimpleXMLElement $xml, array $fields, bool $includeMedia, bool $onlyNew, string $selectionHash, string $batchUuid): array
+    {
+        $logsNode = $xml->addChild('download_logs');
+        $logsNode->addAttribute('fields', implode(',', $fields));
+        $exported = 0;
+
+        $logs = \App\Models\ArtworkDownloadLog::query()->with([
+            'revision.artwork.orderLine.purchaseOrder.supplier:id,code',
+            'revision.artwork.orderLine',
+            'user:id,email',
+            'supplier:id,code',
+        ])->get();
+
+        foreach ($logs as $log) {
+            $revision = $log->revision;
+            if (! $revision) {
+                continue;
+            }
+
+            $order       = $revision->artwork?->orderLine?->purchaseOrder;
+            $line        = $revision->artwork?->orderLine;
+            $supplierRef = $order?->supplier?->code ?: ($order ? 'supplier:' . $order->supplier_id : null);
+
+            if (! $supplierRef || ! $order?->order_no || ! $line?->line_no) {
+                continue;
+            }
+
+            $revisionRef = $this->artworkRevisionNaturalKey(
+                $supplierRef,
+                (string) $order->order_no,
+                (int) $line->line_no,
+                (int) $revision->revision_no,
+            );
+
+            $payload = [
+                'revision_ref'  => $revisionRef,
+                'user_email'    => $log->user?->email,
+                'supplier_ref'  => $log->supplier?->code ?: $supplierRef,
+                'downloaded_at' => $log->downloaded_at?->toIso8601String(),
+            ];
+
+            $entityKey   = $revisionRef . '|' . ($log->user?->email ?? '') . '|' . $log->downloaded_at?->format('YmdHis');
+            $payloadHash = $this->payloadHash($payload);
+
+            if ($onlyNew && $this->wasTransferred('export', 'download_logs', $entityKey, $selectionHash, $payloadHash)) {
+                continue;
+            }
+
+            $node = $logsNode->addChild('log');
+            $node->addAttribute('entity_key', $entityKey);
+            $this->writePayloadToNode($node, $payload);
+            $this->markTransferred('export', 'download_logs', $entityKey, $selectionHash, $payloadHash, $batchUuid);
             $exported++;
         }
 
@@ -1138,38 +1211,43 @@ class DataTransferService
                 }
             }
 
-            if (! $spacesPath) {
-                $stats['skipped']++;
-                continue;
-            }
-
+            // spacesPath olmadan da (medyasız export) metadata import edilebilir
             $uploadedBy = filled($payload['uploaded_by_email'] ?? null)
                 ? User::query()->where('email', $payload['uploaded_by_email'])->value('id')
                 : auth()->id();
 
+            $approvalStatus = $payload['approval_status'] ?? 'pending';
+            $isActive       = $this->toBool($payload['is_active'] ?? false);
+
             $revision = ArtworkRevision::create([
-                'artwork_id' => $artwork->id,
+                'artwork_id'        => $artwork->id,
                 'artwork_gallery_id' => $galleryItem?->id,
-                'revision_no' => $revisionNo,
-                'original_filename' => $payload['original_filename'] ?? basename($spacesPath),
-                'stored_filename' => basename($spacesPath),
-                'spaces_path' => $spacesPath,
-                'mime_type' => $mimeType,
-                'file_size' => $fileSize,
-                'is_active' => $this->toBool($payload['is_active'] ?? false),
-                'uploaded_by' => $uploadedBy,
-                'notes' => $payload['notes'] ?? null,
-                'approval_status' => $payload['approval_status'] ?? null,
-                'approved_at' => $payload['approved_at'] ?? null,
-                'archived_at' => $payload['archived_at'] ?? null,
+                'revision_no'       => $revisionNo,
+                'original_filename' => $payload['original_filename'] ?? ($spacesPath ? basename($spacesPath) : 'imported-file'),
+                'stored_filename'   => $spacesPath ? basename($spacesPath) : null,
+                'spaces_path'       => $spacesPath ?: null,
+                'mime_type'         => $mimeType,
+                'file_size'         => $fileSize,
+                'is_active'         => $isActive,
+                'uploaded_by'       => $uploadedBy,
+                'notes'             => $payload['notes'] ?? null,
+                'approval_status'   => $approvalStatus,
+                'approved_at'       => $payload['approved_at'] ?? null,
+                'archived_at'       => $payload['archived_at'] ?? null,
             ]);
 
             $this->syncTimestamps($revision->getTable(), $revision->id, $payload['created_at'] ?? null, $payload['created_at'] ?? null);
 
-            if ($revision->is_active) {
+            if ($isActive) {
                 $artwork->revisions()->where('id', '!=', $revision->id)->update(['is_active' => false]);
                 $artwork->update(['active_revision_id' => $revision->id]);
-                $line->update(['artwork_status' => 'uploaded']);
+
+                $lineStatus = match ($approvalStatus) {
+                    'approved'  => 'approved',
+                    'rejected'  => 'revision',
+                    default     => 'uploaded',
+                };
+                $line->update(['artwork_status' => $lineStatus]);
             }
 
             $importedIds['artwork_revisions'][] = $revision->id;
@@ -1178,6 +1256,88 @@ class DataTransferService
         }
 
         $this->dashboardCache->forgetAllAfterCommit();
+    }
+
+    private function importDownloadLogs(SimpleXMLElement $xml, string $batchUuid, array &$stats): void
+    {
+        foreach ($xml->download_logs->log ?? [] as $node) {
+            $payload     = $this->nodePayload($node);
+            $entityKey   = (string) ($node['entity_key'] ?? '');
+            $payloadHash = $this->payloadHash($payload);
+
+            if ($entityKey !== '' && $this->wasTransferred('import', 'download_logs', $entityKey, null, $payloadHash)) {
+                $stats['skipped']++;
+                continue;
+            }
+
+            $revisionRef  = $payload['revision_ref'] ?? null;
+            $downloadedAt = $payload['downloaded_at'] ?? null;
+
+            if (! $revisionRef || ! $downloadedAt) {
+                $stats['skipped']++;
+                continue;
+            }
+
+            // revision_ref = "revision:supplierRef|orderNo|lineNo|revisionNo"
+            // artworkRevisionNaturalKey format ile eşleşiyor
+            $revision = ArtworkRevision::query()
+                ->whereHas('artwork.orderLine.purchaseOrder', function ($q) use ($revisionRef): void {
+                    // revisionRef parse ederek doğal anahtar üzerinden bul
+                    // Format: revision:SUPPLIERREF|ORDERNO|LINENO|REVNO
+                    $parts = explode('|', ltrim($revisionRef, 'revision:'));
+                    if (count($parts) >= 4) {
+                        [$supplierRef, $orderNo, $lineNo, $revNo] = $parts;
+                        $supplierId = Supplier::withTrashed()->where('code', $supplierRef)->value('id');
+                        if ($supplierId) {
+                            $q->where('supplier_id', $supplierId)->where('order_no', $orderNo);
+                        }
+                    }
+                })
+                ->first();
+
+            // Daha basit yaklaşım: revision doğrudan entity_key ile eşleştir
+            if (! $revision) {
+                // entity_key'den parse et: revision:SUPPLIER|ORDER|LINE|REVNO
+                if (preg_match('/^revision:(.+)\|(.+)\|(\d+)\|(\d+)$/', $revisionRef, $m)) {
+                    $supplierId = Supplier::withTrashed()->where('code', $m[1])->value('id');
+                    if ($supplierId) {
+                        $order = PurchaseOrder::query()
+                            ->where('supplier_id', $supplierId)
+                            ->where('order_no', $m[2])
+                            ->first();
+                        $line = $order?->lines()->where('line_no', (int) $m[3])->first();
+                        $revision = $line?->artwork?->revisions()->where('revision_no', (int) $m[4])->first();
+                    }
+                }
+            }
+
+            if (! $revision) {
+                $stats['skipped']++;
+                continue;
+            }
+
+            $userId = filled($payload['user_email'] ?? null)
+                ? User::query()->where('email', $payload['user_email'])->value('id')
+                : null;
+
+            $supplierCode = $payload['supplier_ref'] ?? null;
+            $supplierId   = $supplierCode
+                ? Supplier::withTrashed()->where('code', $supplierCode)->value('id')
+                : $revision->artwork?->orderLine?->purchaseOrder?->supplier_id;
+
+            DB::table('artwork_download_logs')->insert([
+                'artwork_revision_id' => $revision->id,
+                'user_id'             => $userId,
+                'supplier_id'         => $supplierId,
+                'ip_address'          => null,
+                'user_agent'          => 'DataTransfer/Import',
+                'download_token'      => null,
+                'downloaded_at'       => $downloadedAt,
+            ]);
+
+            $this->markTransferred('import', 'download_logs', $entityKey, null, $payloadHash, $batchUuid);
+            $stats['download_logs']++;
+        }
     }
 
     private function nodePayload(SimpleXMLElement $node): array
