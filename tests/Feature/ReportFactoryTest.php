@@ -59,4 +59,46 @@ class ReportFactoryTest extends TestCase
         $this->assertSame('STK-700 · PO-2026-7001', $response->json('table.0.label'));
         $this->assertSame('1', (string) $response->json('table.0.pending_artwork'));
     }
+
+    public function test_preview_counts_manual_artwork_lines_with_dedicated_metric(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $supplier = Supplier::factory()->create([
+            'name' => 'Manuel Tedarik',
+            'code' => 'TED-701',
+        ]);
+
+        $order = PurchaseOrder::factory()->create([
+            'supplier_id' => $supplier->id,
+            'order_no' => 'PO-2026-7011',
+            'status' => 'active',
+        ]);
+
+        PurchaseOrderLine::factory()->create([
+            'purchase_order_id' => $order->id,
+            'line_no' => 1,
+            'product_code' => 'STK-701',
+            'artwork_status' => 'pending',
+            'manual_artwork_completed_at' => now(),
+            'manual_artwork_completed_by' => $admin->id,
+            'manual_artwork_note' => 'Mail ile tamamlandı.',
+        ]);
+
+        $response = $this->actingAs($admin)->postJson(route('admin.reports.factory.preview'), [
+            'dimensions' => ['supplier'],
+            'metrics' => ['manual_artwork', 'pending_artwork'],
+            'filters' => [
+                'supplier_id' => $supplier->id,
+            ],
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'row_count' => 1,
+                'columns' => ['Tedarikçi', 'Manuel Tamamlanan Artwork', 'Bekleyen Artwork'],
+            ]);
+
+        $this->assertSame('1', (string) $response->json('table.0.manual_artwork'));
+        $this->assertSame('0', (string) $response->json('table.0.pending_artwork'));
+    }
 }

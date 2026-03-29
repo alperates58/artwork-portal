@@ -79,7 +79,10 @@ class PurchaseOrder extends Model
         return $query->withCount('lines')
             ->withCount([
                 'lines as pending_artwork_lines_count' => fn (Builder $lineQuery) => $lineQuery
+                    ->whereNull('manual_artwork_completed_at')
                     ->whereDoesntHave('artwork.activeRevision'),
+                'lines as manual_artwork_lines_count' => fn (Builder $lineQuery) => $lineQuery
+                    ->whereNotNull('manual_artwork_completed_at'),
             ]);
     }
 
@@ -112,6 +115,7 @@ class PurchaseOrder extends Model
         }
 
         return $this->lines()
+            ->whereNull('manual_artwork_completed_at')
             ->whereDoesntHave('artwork.revisions', fn ($query) => $query->where('is_active', true))
             ->count();
     }
@@ -123,5 +127,14 @@ class PurchaseOrder extends Model
         }
 
         return $this->lines()->where('shipped_quantity', '>', 0)->count();
+    }
+
+    public function getManualArtworkCountAttribute(): int
+    {
+        if (array_key_exists('manual_artwork_lines_count', $this->attributes)) {
+            return (int) $this->attributes['manual_artwork_lines_count'];
+        }
+
+        return $this->lines()->whereNotNull('manual_artwork_completed_at')->count();
     }
 }

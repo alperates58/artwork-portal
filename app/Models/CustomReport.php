@@ -8,8 +8,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CustomReport extends Model
 {
     protected $fillable = [
-        'created_by', 'name', 'description',
-        'dimensions', 'metrics', 'chart_type', 'filters', 'is_shared',
+        'created_by',
+        'name',
+        'description',
+        'dimensions',
+        'metrics',
+        'chart_type',
+        'filters',
+        'is_shared',
     ];
 
     protected function casts(): array
@@ -48,6 +54,7 @@ class CustomReport extends Model
             'line_count' => 'Satır Sayısı',
             'pending_artwork' => 'Bekleyen Artwork',
             'uploaded_artwork' => 'Yüklenen Artwork',
+            'manual_artwork' => 'Manuel Tamamlanan Artwork',
             'revision_count' => 'Revizyon Sayısı',
             'avg_days_to_upload' => 'Ort. Yükleme (Gün)',
         ];

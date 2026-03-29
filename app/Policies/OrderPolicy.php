@@ -43,6 +43,15 @@ class OrderPolicy
         return $user->hasPermission('orders', 'edit');
     }
 
+    public function manualArtwork(User $user, PurchaseOrderLine $line): bool
+    {
+        if ($user->isSupplier()) {
+            return false;
+        }
+
+        return $user->hasPermission('orders', 'edit') || $user->canUploadArtwork();
+    }
+
     public function delete(User $user, PurchaseOrder $order): bool
     {
         if ($user->isSupplier()) return false;

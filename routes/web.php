@@ -67,6 +67,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('/siparisler/{order}/notlar', [OrderController::class, 'storeNote'])->name('orders.notes.store');
 
         Route::get('/satir/{line}', [OrderLineController::class, 'show'])->name('order-lines.show');
+        Route::post('/satir/{line}/manuel-artwork', [OrderLineController::class, 'markManualArtwork'])->name('order-lines.manual-artwork.store');
 
         Route::get('/satir/{line}/artwork/yukle', [ArtworkController::class, 'create'])->name('artworks.create');
         Route::post('/satir/{line}/artwork', [ArtworkController::class, 'store'])->name('artworks.store');

@@ -1,34 +1,82 @@
 @extends('layouts.app')
 @section('title', 'Satır Detayı')
 @section('page-title', $line->product_code . ' — Satır Detayı')
+
 @section('header-actions')
-    <a href="{{ route('orders.show', $line->purchaseOrder) }}" class="btn-secondary">← Siparişe Dön</a>
+    <a href="{{ route('orders.show', $line->purchaseOrder) }}" class="btn btn-secondary">← Siparişe Dön</a>
     @if(auth()->user()->canUploadArtwork())
-        <a href="{{ route('artworks.create', $line) }}" class="btn-primary">
+        <a href="{{ route('artworks.create', $line) }}" class="btn btn-primary">
             {{ $line->hasActiveArtwork() ? 'Yeni Revizyon' : 'Artwork Yükle' }}
         </a>
     @endif
 @endsection
+
 @section('content')
 <div class="max-w-2xl space-y-5">
-
-    {{-- Line info --}}
     <div class="card p-5 grid grid-cols-2 gap-4">
-        <div><p class="text-xs text-slate-500 mb-0.5">Sipariş</p><p class="text-sm font-mono font-semibold">{{ $line->purchaseOrder->order_no }}</p></div>
-        <div><p class="text-xs text-slate-500 mb-0.5">Tedarikçi</p><p class="text-sm">{{ $line->purchaseOrder->supplier->name }}</p></div>
-        <div><p class="text-xs text-slate-500 mb-0.5">Ürün Kodu</p><p class="text-sm font-semibold">{{ $line->product_code }}</p></div>
-        <div><p class="text-xs text-slate-500 mb-0.5">Satır No</p><p class="text-sm font-mono">{{ $line->line_no }}</p></div>
-        <div class="col-span-2"><p class="text-xs text-slate-500 mb-0.5">Açıklama</p><p class="text-sm">{{ $line->description }}</p></div>
-        <div><p class="text-xs text-slate-500 mb-0.5">Miktar</p><p class="text-sm">{{ $line->quantity }} {{ $line->unit }}</p></div>
-        <div><p class="text-xs text-slate-500 mb-0.5">Artwork Durumu</p>
-            @php $cls = match($line->artwork_status?->value ?? 'pending') {
-                'uploaded'=>'badge-success','revision'=>'badge-danger','approved'=>'badge-info',default=>'badge-warning'
-            }; @endphp
-            <span class="badge {{ $cls }}">{{ $line->artwork_status?->label() ?? 'Bekliyor' }}</span>
+        <div>
+            <p class="text-xs text-slate-500 mb-0.5">Sipariş</p>
+            <p class="text-sm font-mono font-semibold">{{ $line->purchaseOrder->order_no }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-slate-500 mb-0.5">Tedarikçi</p>
+            <p class="text-sm">{{ $line->purchaseOrder->supplier->name }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-slate-500 mb-0.5">Ürün Kodu</p>
+            <p class="text-sm font-semibold">{{ $line->product_code }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-slate-500 mb-0.5">Satır No</p>
+            <p class="text-sm font-mono">{{ $line->line_no }}</p>
+        </div>
+        <div class="col-span-2">
+            <p class="text-xs text-slate-500 mb-0.5">Açıklama</p>
+            <p class="text-sm">{{ $line->description }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-slate-500 mb-0.5">Miktar</p>
+            <p class="text-sm">{{ $line->quantity }} {{ $line->unit }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-slate-500 mb-0.5">Artwork Durumu</p>
+            @if($line->is_manual_artwork_completed && ! $line->hasActiveArtwork())
+                <x-ui.badge variant="info">Manuel gönderildi</x-ui.badge>
+            @else
+                @php $cls = match($line->artwork_status?->value ?? 'pending') {
+                    'uploaded' => 'badge-success',
+                    'revision' => 'badge-danger',
+                    'approved' => 'badge-info',
+                    default => 'badge-warning',
+                }; @endphp
+                <span class="badge {{ $cls }}">{{ $line->artwork_status?->label() ?? 'Bekliyor' }}</span>
+            @endif
         </div>
     </div>
 
-    {{-- Active revision --}}
+    @if($line->is_manual_artwork_completed)
+        <div class="card p-5 border border-sky-100">
+            <h3 class="text-sm font-semibold text-sky-700">Manuel Gönderim</h3>
+            <p class="mt-2 text-sm text-slate-700">{{ $line->manual_artwork_note }}</p>
+            <p class="mt-1 text-xs text-slate-500">
+                {{ $line->manualArtworkCompletedBy?->name ?? '—' }} · {{ $line->manual_artwork_completed_at?->format('d.m.Y H:i') }}
+            </p>
+        </div>
+    @elseif(auth()->user()->canUploadArtwork() || auth()->user()->hasPermission('orders', 'edit'))
+        <div class="card p-5 border border-emerald-100">
+            <h3 class="text-sm font-semibold text-emerald-700">Manuel Gönderim</h3>
+            <p class="mt-2 text-xs text-slate-500">Bu satırın tasarımı portal dışı kanalla tamamlandıysa açıklama notu ile manuel tamamlandı olarak işaretleyin.</p>
+            <form method="POST" action="{{ route('order-lines.manual-artwork.store', $line) }}" class="mt-4 space-y-3">
+                @csrf
+                <textarea name="manual_artwork_note" rows="4" class="input resize-none" placeholder="Örn: Bu ürün için daha önce mail ile onaylanan tasarım yeniden kullanılacak.">{{ old('manual_artwork_note') }}</textarea>
+                @error('manual_artwork_note')
+                    <p class="text-xs text-red-600">{{ $message }}</p>
+                @enderror
+                <button type="submit" class="btn btn-secondary text-emerald-700 border-emerald-200 hover:bg-emerald-50">Manuel gönderildi olarak işaretle</button>
+            </form>
+        </div>
+    @endif
+
     @if($line->hasActiveArtwork())
         @php $rev = $line->activeRevision; @endphp
         <div class="card p-5">
@@ -44,21 +92,22 @@
                     <p class="text-sm font-medium text-slate-900">{{ $rev->original_filename }}</p>
                     <p class="text-xs text-slate-500">
                         {{ $rev->file_size_formatted }} ·
-                        @if(!auth()->user()->isSupplier())
+                        @if(! auth()->user()->isSupplier())
                             <a href="{{ route('profile.edit') }}" class="hover:text-violet-600 hover:underline">{{ $rev->uploadedBy->name }}</a>
                         @else
                             {{ $rev->uploadedBy->name }}
                         @endif
                         · {{ $rev->created_at->format('d.m.Y H:i') }}
                     </p>
-                    @if($rev->notes)<p class="text-xs text-slate-400 mt-0.5 italic">{{ $rev->notes }}</p>@endif
+                    @if($rev->notes)
+                        <p class="text-xs text-slate-400 mt-0.5 italic">{{ $rev->notes }}</p>
+                    @endif
                 </div>
-                <a href="{{ route('artwork.download', $rev) }}" class="btn-primary text-xs py-2">İndir</a>
+                <a href="{{ route('artwork.download', $rev) }}" class="btn btn-primary text-xs py-2">İndir</a>
             </div>
         </div>
     @endif
 
-    {{-- All revisions --}}
     @if($line->artwork && $line->artwork->revisions->count() > 1)
         <div class="card">
             <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
@@ -67,13 +116,16 @@
             </div>
             <div class="divide-y divide-slate-100">
                 @foreach($line->artwork->revisions as $rev)
-                <div class="px-5 py-3 flex items-center gap-3">
-                    <span class="text-xs font-mono bg-slate-100 px-2 py-0.5 rounded">Rev.{{ $rev->revision_no }}</span>
-                    <span class="text-sm text-slate-700 flex-1 truncate">{{ $rev->original_filename }}</span>
-                    <span class="text-xs text-slate-400">{{ $rev->created_at->format('d.m.Y') }}</span>
-                    @if($rev->is_active)<span class="badge badge-success">Aktif</span>
-                    @else<span class="badge badge-gray">Arşiv</span>@endif
-                </div>
+                    <div class="px-5 py-3 flex items-center gap-3">
+                        <span class="text-xs font-mono bg-slate-100 px-2 py-0.5 rounded">Rev.{{ $rev->revision_no }}</span>
+                        <span class="text-sm text-slate-700 flex-1 truncate">{{ $rev->original_filename }}</span>
+                        <span class="text-xs text-slate-400">{{ $rev->created_at->format('d.m.Y') }}</span>
+                        @if($rev->is_active)
+                            <span class="badge badge-success">Aktif</span>
+                        @else
+                            <span class="badge badge-gray">Arşiv</span>
+                        @endif
+                    </div>
                 @endforeach
             </div>
         </div>

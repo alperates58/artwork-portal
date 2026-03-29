@@ -208,7 +208,12 @@ class ArtworkUploadService
         ]);
 
         $artwork->update(['active_revision_id' => $revision->id]);
-        $line->update(['artwork_status' => 'uploaded']);
+        $line->update([
+            'artwork_status' => 'uploaded',
+            'manual_artwork_completed_at' => null,
+            'manual_artwork_completed_by' => null,
+            'manual_artwork_note' => null,
+        ]);
         $this->dashboardCache->forgetAllAfterCommit();
 
         return $revision;

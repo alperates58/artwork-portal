@@ -22,6 +22,9 @@ class PurchaseOrderLine extends Model
         'unit',
         'artwork_status',
         'notes',
+        'manual_artwork_completed_at',
+        'manual_artwork_completed_by',
+        'manual_artwork_note',
     ];
 
     protected function casts(): array
@@ -30,6 +33,7 @@ class PurchaseOrderLine extends Model
             'artwork_status' => ArtworkStatus::class,
             'quantity'       => 'integer',
             'shipped_quantity' => 'integer',
+            'manual_artwork_completed_at' => 'datetime',
         ];
     }
 
@@ -38,6 +42,11 @@ class PurchaseOrderLine extends Model
     public function purchaseOrder(): BelongsTo
     {
         return $this->belongsTo(PurchaseOrder::class);
+    }
+
+    public function manualArtworkCompletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manual_artwork_completed_by');
     }
 
     public function artwork(): HasOne
@@ -50,6 +59,16 @@ class PurchaseOrderLine extends Model
     public function hasActiveArtwork(): bool
     {
         return $this->artwork?->activeRevision !== null;
+    }
+
+    public function getIsManualArtworkCompletedAttribute(): bool
+    {
+        return $this->manual_artwork_completed_at !== null;
+    }
+
+    public function hasArtworkStageCompleted(): bool
+    {
+        return $this->hasActiveArtwork() || $this->is_manual_artwork_completed;
     }
 
     public function getActiveRevisionAttribute(): ?ArtworkRevision

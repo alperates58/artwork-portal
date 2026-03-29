@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Order;
 
 use App\Http\Controllers\Controller;
-use App\Models\OrderNote;
+use App\Models\AuditLog;
 use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
 use App\Services\AuditLogService;
 use App\Services\DashboardCacheService;
@@ -46,6 +47,7 @@ class OrderController extends Controller
         $order->load([
             'supplier',
             'createdBy',
+            'lines.manualArtworkCompletedBy:id,name',
             'lines.artwork.activeRevision.uploadedBy',
             'lines.artwork.revisions' => fn ($query) => $query->orderByDesc('revision_no'),
             'lines.artwork.revisions.uploadedBy:id,name',
@@ -54,40 +56,58 @@ class OrderController extends Controller
 
         $this->audit->log('order.view', $order);
 
-        // Build activity timeline
         $timeline = collect();
 
-        // 1. Order created
         $timeline->push([
-            'at'    => $order->created_at,
-            'icon'  => 'plus',
+            'at' => $order->created_at,
+            'icon' => 'plus',
             'color' => 'violet',
             'title' => 'Sipariş oluşturuldu',
-            'sub'   => $order->createdBy?->name ?? '—',
+            'sub' => $order->createdBy?->name ?? '—',
         ]);
 
-        // 2. Artwork revisions
         foreach ($order->lines as $line) {
             foreach ($line->artwork?->revisions ?? [] as $revision) {
                 $timeline->push([
-                    'at'    => $revision->created_at,
-                    'icon'  => 'upload',
+                    'at' => $revision->created_at,
+                    'icon' => 'upload',
                     'color' => 'blue',
                     'title' => "Revizyon #{$revision->revision_no} yüklendi",
-                    'sub'   => ($revision->uploadedBy?->name ?? '—') . ' · ' . ($line->description ?? $line->product_code ?? "Satır #{$line->id}"),
+                    'sub' => ($revision->uploadedBy?->name ?? '—') . ' · ' . ($line->description ?? $line->product_code ?? "Satır #{$line->id}"),
                 ]);
             }
         }
 
-        // 3. Notes
         foreach ($order->orderNotes as $note) {
             $timeline->push([
-                'at'    => $note->created_at,
-                'icon'  => 'note',
+                'at' => $note->created_at,
+                'icon' => 'note',
                 'color' => 'amber',
                 'title' => 'Not eklendi',
-                'sub'   => $note->user?->name ?? '—',
-                'body'  => mb_strimwidth($note->body, 0, 120, '…'),
+                'sub' => $note->user?->name ?? '—',
+                'body' => mb_strimwidth($note->body, 0, 120, '…'),
+            ]);
+        }
+
+        $manualArtworkLogs = AuditLog::query()
+            ->select(['id', 'user_id', 'action', 'model_type', 'model_id', 'payload', 'created_at'])
+            ->with('user:id,name')
+            ->where('model_type', PurchaseOrderLine::class)
+            ->whereIn('model_id', $order->lines->pluck('id'))
+            ->where('action', 'order_line.manual_artwork.complete')
+            ->orderByDesc('created_at')
+            ->get();
+
+        foreach ($manualArtworkLogs as $log) {
+            $payload = $log->payload ?? [];
+
+            $timeline->push([
+                'at' => $log->created_at,
+                'icon' => 'mail',
+                'color' => 'emerald',
+                'title' => 'Satır manuel gönderildi olarak işaretlendi',
+                'sub' => ($log->user?->name ?? '—') . ' · ' . ($payload['product_code'] ?? ('Satır #' . ($payload['line_no'] ?? $log->model_id))),
+                'body' => $payload['note'] ?? null,
             ]);
         }
 
@@ -147,7 +167,6 @@ class OrderController extends Controller
         $this->audit->log('order.create', $order, ['order_no' => $order->order_no]);
         $this->dashboardCache->forgetMetrics();
 
-        // Notify graphic dept about new order needing artwork
         $this->notifications->notifyDepartment(
             null,
             'order_created',
@@ -203,7 +222,7 @@ class OrderController extends Controller
 
         $order->orderNotes()->create([
             'user_id' => auth()->id(),
-            'body'    => $request->string('body'),
+            'body' => $request->string('body'),
         ]);
 
         return back()->with('success', 'Not eklendi.');

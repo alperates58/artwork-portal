@@ -52,25 +52,39 @@
         <tbody class="divide-y divide-slate-100">
             @forelse($orders as $order)
                 <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="px-4 py-3"><a href="{{ route('orders.show', $order) }}" class="font-mono font-medium text-slate-900 hover:text-brand-700 hover:underline transition-colors">{{ $order->order_no }}</a></td>
+                    <td class="px-4 py-3">
+                        <a href="{{ route('orders.show', $order) }}" class="font-mono font-medium text-slate-900 hover:text-brand-700 hover:underline transition-colors">{{ $order->order_no }}</a>
+                    </td>
                     <td class="px-4 py-3 text-slate-700">{{ $order->supplier->name }}</td>
                     <td class="px-4 py-3 text-slate-500">{{ $order->order_date->format('d.m.Y') }}</td>
-                    <td class="px-4 py-3"><x-ui.badge :variant="match($order->status){'active'=>'success','draft'=>'gray','completed'=>'info','cancelled'=>'danger',default=>'gray'}">{{ $order->status_label }}</x-ui.badge></td>
-                    <td class="px-4 py-3"><x-ui.badge :variant="match($order->shipment_status){'dispatched'=>'info','delivered'=>'success','not_found'=>'danger',default=>'warning'}">{{ $order->shipment_status_label }}</x-ui.badge></td>
+                    <td class="px-4 py-3">
+                        <x-ui.badge :variant="match($order->status){'active' => 'success', 'draft' => 'gray', 'completed' => 'info', 'cancelled' => 'danger', default => 'gray'}">{{ $order->status_label }}</x-ui.badge>
+                    </td>
+                    <td class="px-4 py-3">
+                        <x-ui.badge :variant="match($order->shipment_status){'dispatched' => 'info', 'delivered' => 'success', 'not_found' => 'danger', default => 'warning'}">{{ $order->shipment_status_label }}</x-ui.badge>
+                    </td>
                     <td class="px-4 py-3 text-slate-700">{{ $order->lines_count }} satır</td>
                     <td class="px-4 py-3">
-                        @if($order->pending_artwork_count > 0)
-                            <x-ui.badge variant="warning">{{ $order->pending_artwork_count }} bekliyor</x-ui.badge>
-                        @else
-                            <x-ui.badge variant="success">Tamamlandı</x-ui.badge>
-                        @endif
+                        <div class="flex flex-wrap gap-1.5">
+                            @if($order->pending_artwork_count > 0)
+                                <x-ui.badge variant="warning">{{ $order->pending_artwork_count }} bekliyor</x-ui.badge>
+                            @else
+                                <x-ui.badge variant="success">Tamamlandı</x-ui.badge>
+                            @endif
+
+                            @if($order->manual_artwork_count > 0)
+                                <x-ui.badge variant="info">{{ $order->manual_artwork_count }} manuel</x-ui.badge>
+                            @endif
+                        </div>
                     </td>
                     <td class="px-4 py-3 text-right">
                         <a href="{{ route('orders.show', $order) }}" class="text-brand-700 hover:text-brand-800 text-xs font-medium">Detay</a>
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="8" class="px-4 py-10 text-center text-slate-400">Sipariş bulunamadı.</td></tr>
+                <tr>
+                    <td colspan="8" class="px-4 py-10 text-center text-slate-400">Sipariş bulunamadı.</td>
+                </tr>
             @endforelse
         </tbody>
     </table>
