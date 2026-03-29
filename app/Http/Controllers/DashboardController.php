@@ -21,52 +21,53 @@ class DashboardController extends Controller
         }
 
         $metrics = $this->dashboardCache->rememberMetrics(function (): array {
-            $activeLinesBase = PurchaseOrderLine::query()
+            $trackedLinesBase = PurchaseOrderLine::query()
                 ->join('purchase_orders', 'purchase_orders.id', '=', 'purchase_order_lines.purchase_order_id')
-                ->where('purchase_orders.status', 'active');
+                ->where('purchase_orders.status', '!=', 'cancelled');
 
-            $activeOrderLines = (clone $activeLinesBase)->count();
-            $pendingArtwork = (clone $activeLinesBase)
+            $totalOrderLines = (clone $trackedLinesBase)->count();
+            $pendingArtwork = (clone $trackedLinesBase)
                 ->where('purchase_order_lines.artwork_status', 'pending')
                 ->count();
-            $uploadedArtwork = (clone $activeLinesBase)
+            $uploadedArtwork = (clone $trackedLinesBase)
                 ->whereIn('purchase_order_lines.artwork_status', ['uploaded', 'revision', 'approved'])
                 ->count();
-            $pendingApproval = (clone $activeLinesBase)
+            $pendingApproval = (clone $trackedLinesBase)
                 ->where('purchase_order_lines.artwork_status', 'revision')
                 ->count();
-            $approvedArtwork = (clone $activeLinesBase)
+            $approvedArtwork = (clone $trackedLinesBase)
                 ->where('purchase_order_lines.artwork_status', 'approved')
                 ->count();
 
-            $stalledPendingArtwork = (clone $activeLinesBase)
+            $stalledPendingArtwork = (clone $trackedLinesBase)
                 ->where('purchase_order_lines.artwork_status', 'pending')
                 ->whereDate('purchase_orders.order_date', '<=', now()->subDays(7)->toDateString())
                 ->count();
 
             $blockedOrders = PurchaseOrder::query()
-                ->where('status', 'active')
+                ->where('status', '!=', 'cancelled')
                 ->whereDate('order_date', '<=', now()->subDays(7)->toDateString())
                 ->whereHas('lines', fn ($query) => $query->where('artwork_status', 'pending'))
                 ->count();
 
             return [
+                'tracked_orders' => PurchaseOrder::query()->where('status', '!=', 'cancelled')->count(),
                 'active_orders' => PurchaseOrder::query()->where('status', 'active')->count(),
-                'active_order_lines' => $activeOrderLines,
+                'active_order_lines' => $totalOrderLines,
                 'pending_artwork' => $pendingArtwork,
                 'uploaded_artwork' => $uploadedArtwork,
                 'pending_approval' => $pendingApproval,
                 'approved_artwork' => $approvedArtwork,
                 'stalled_pending_artwork' => $stalledPendingArtwork,
                 'blocked_orders' => $blockedOrders,
-                'flow_pressure_pct' => $activeOrderLines > 0
-                    ? round(($pendingArtwork / $activeOrderLines) * 100, 1)
+                'flow_pressure_pct' => $totalOrderLines > 0
+                    ? round(($pendingArtwork / $totalOrderLines) * 100, 1)
                     : 0.0,
-                'upload_completion_pct' => $activeOrderLines > 0
-                    ? round(($uploadedArtwork / $activeOrderLines) * 100, 1)
+                'upload_completion_pct' => $totalOrderLines > 0
+                    ? round(($uploadedArtwork / $totalOrderLines) * 100, 1)
                     : 0.0,
-                'approval_completion_pct' => $activeOrderLines > 0
-                    ? round(($approvedArtwork / $activeOrderLines) * 100, 1)
+                'approval_completion_pct' => $totalOrderLines > 0
+                    ? round(($approvedArtwork / $totalOrderLines) * 100, 1)
                     : 0.0,
             ];
         });

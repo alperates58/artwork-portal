@@ -11,6 +11,25 @@
 @endsection
 
 @section('content')
+<style>
+    @media (min-width: 768px) {
+        .users-desktop-table {
+            display: block !important;
+        }
+        .users-mobile-cards {
+            display: none !important;
+        }
+    }
+    @media (max-width: 767.98px) {
+        .users-desktop-table {
+            display: none !important;
+        }
+        .users-mobile-cards {
+            display: block !important;
+        }
+    }
+</style>
+
 <form method="GET" class="card mb-5 p-4">
     <div class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
         <input type="text" name="search" value="{{ request('search') }}" placeholder="İsim veya e-posta ara..." class="input w-full">
@@ -36,7 +55,7 @@
 </form>
 
 <div class="card overflow-hidden">
-    <div class="hidden md:block overflow-x-auto">
+    <div class="users-desktop-table overflow-x-auto">
         <table class="w-full min-w-[860px] text-sm">
             <thead>
                 <tr class="border-b border-slate-200 bg-slate-50">
@@ -98,7 +117,7 @@
         </table>
     </div>
 
-    <div class="divide-y divide-slate-100 md:hidden">
+    <div class="users-mobile-cards divide-y divide-slate-100">
         @forelse($users as $user)
             <div class="p-4">
                 <div class="flex items-start justify-between gap-3">

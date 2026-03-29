@@ -45,19 +45,19 @@
 
 <div class="grid grid-cols-2 gap-4 xl:grid-cols-4 mb-6">
     <x-ui.card padding="p-5">
-        <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Aktif Sipariş</p>
-        <a href="{{ route('orders.index', ['status' => 'active']) }}" class="text-2xl font-semibold text-slate-900 hover:text-brand-700 transition-colors">
-            {{ number_format($metrics['active_orders'] ?? 0) }}
+        <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Takip Edilen Sipariş</p>
+        <a href="{{ route('orders.index') }}" class="text-2xl font-semibold text-slate-900 hover:text-brand-700 transition-colors">
+            {{ number_format($metrics['tracked_orders'] ?? 0) }}
         </a>
-        <p class="mt-1 text-xs text-slate-500">Şu anda işlemde olan sipariş</p>
+        <p class="mt-1 text-xs text-slate-500">İptal dışı tüm sipariş</p>
     </x-ui.card>
 
     <x-ui.card padding="p-5">
-        <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Toplam Aktif Satır</p>
-        <a href="{{ route('orders.index', ['status' => 'active']) }}" class="text-2xl font-semibold text-slate-900 hover:text-brand-700 transition-colors">
+        <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Toplam Sipariş Satırı</p>
+        <a href="{{ route('orders.index') }}" class="text-2xl font-semibold text-slate-900 hover:text-brand-700 transition-colors">
             {{ number_format($activeOrderLines) }}
         </a>
-        <p class="mt-1 text-xs text-slate-500">Aktif siparişlerin toplam satırı</p>
+        <p class="mt-1 text-xs text-slate-500">İptal dışı siparişlerin toplam satırı</p>
     </x-ui.card>
 
     <x-ui.card padding="p-5">
@@ -112,7 +112,7 @@
                     <p class="mt-1 text-lg font-semibold text-amber-700">{{ number_format($pendingArtwork) }}</p>
                 </div>
                 <div class="rounded-xl bg-slate-50 px-4 py-3">
-                    <p class="text-xs text-slate-400">Toplam aktif satır</p>
+                    <p class="text-xs text-slate-400">Toplam sipariş satırı</p>
                     <p class="mt-1 text-lg font-semibold text-slate-800">{{ number_format($activeOrderLines) }}</p>
                 </div>
             </div>

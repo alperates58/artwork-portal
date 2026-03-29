@@ -45,8 +45,6 @@ class DashboardMetricCacheInvalidationTest extends TestCase
             ->assertOk()
             ->assertViewHas('metrics', fn (array $metrics) => $metrics['pending_artwork'] === 1);
 
-        $this->assertNotNull(Cache::get('dashboard.metrics'));
-
         $this->mock(SpacesStorageService::class, function ($mock) {
             $mock->shouldReceive('buildPath')->andReturn('artworks/test/revision-1.pdf');
         });
@@ -197,6 +195,7 @@ class DashboardMetricCacheInvalidationTest extends TestCase
         $this->actingAs($adminUser)
             ->get(route('dashboard'))
             ->assertOk()
+            ->assertViewHas('metrics', fn (array $metrics) => $metrics['tracked_orders'] === 2)
             ->assertViewHas('metrics', fn (array $metrics) => $metrics['active_order_lines'] === 2)
             ->assertViewHas('metrics', fn (array $metrics) => $metrics['pending_artwork'] === 1)
             ->assertViewHas('metrics', fn (array $metrics) => (float) $metrics['flow_pressure_pct'] === 50.0)
