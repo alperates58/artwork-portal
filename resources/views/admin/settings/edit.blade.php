@@ -253,20 +253,11 @@
                             </div>
 
                             {{-- ── Commit tablosu ── --}}
-                            <div class="card overflow-hidden">
+                            <div class="card overflow-x-auto">
                                 {{-- Tablo başlığı --}}
                                 <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-3">
                                     <h3 class="text-sm font-semibold text-slate-700">GitHub Commit Geçmişi</h3>
                                     <span id="commits-branch-badge" class="hidden rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-mono text-slate-600"></span>
-                                </div>
-
-                                {{-- Sütun başlıkları --}}
-                                <div id="commits-header" class="hidden grid grid-cols-[16px_1fr_120px_160px_80px] gap-3 border-b border-slate-100 bg-slate-50/60 px-5 py-1.5">
-                                    <div></div>
-                                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Commit Mesajı</p>
-                                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Yazar</p>
-                                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Tarih</p>
-                                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 text-right">SHA</p>
                                 </div>
 
                                 <div id="commits-loading" class="hidden px-5 py-10 text-center">
@@ -284,7 +275,29 @@
                                     <p class="text-xs text-slate-300 mt-0.5">GitHub'daki son commit'leri görüntüleyin.</p>
                                 </div>
 
-                                <ol id="commits-list" class="hidden divide-y divide-slate-100"></ol>
+                                {{-- Gerçek tablo --}}
+                                <table id="commits-table" class="hidden w-full text-sm" style="min-width:640px">
+                                    <thead>
+                                        <tr class="border-b border-slate-200 bg-slate-50 text-left">
+                                            <th class="w-6 px-4 py-2"></th>
+                                            <th class="px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">Commit Mesajı</th>
+                                            <th class="w-32 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">Yazar</th>
+                                            <th class="w-40 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">Tarih</th>
+                                            <th class="w-20 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400 text-right">SHA</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="commits-tbody" class="divide-y divide-slate-100"></tbody>
+                                    <tfoot id="commits-footer" class="hidden">
+                                        <tr>
+                                            <td colspan="5" class="px-4 py-3 text-center border-t border-slate-100">
+                                                <button id="commits-more-btn" type="button"
+                                                        class="text-xs font-medium text-brand-600 hover:text-brand-800 transition-colors">
+                                                    Daha fazla göster
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
                             </div>
 
                         </div>
@@ -647,11 +660,14 @@
 <script>
 /* ── Commit geçmişi ── */
 (function () {
-    var loadBtn    = document.getElementById('load-commits-btn');
-    var loadingEl  = document.getElementById('commits-loading');
-    var errorEl    = document.getElementById('commits-error');
-    var emptyEl    = document.getElementById('commits-empty');
-    var listEl     = document.getElementById('commits-list');
+    var loadBtn     = document.getElementById('load-commits-btn');
+    var loadingEl   = document.getElementById('commits-loading');
+    var errorEl     = document.getElementById('commits-error');
+    var emptyEl     = document.getElementById('commits-empty');
+    var tableEl     = document.getElementById('commits-table');
+    var tbodyEl     = document.getElementById('commits-tbody');
+    var footerEl    = document.getElementById('commits-footer');
+    var moreBtn     = document.getElementById('commits-more-btn');
     var branchBadge = document.getElementById('commits-branch-badge');
     var localCommit = '{{ $localCommit }}';
 
@@ -661,7 +677,7 @@
         loadBtn.disabled = true;
         emptyEl.classList.add('hidden');
         errorEl.classList.add('hidden');
-        listEl.classList.add('hidden');
+        tableEl.classList.add('hidden');
         loadingEl.classList.remove('hidden');
 
         fetch('{{ route('admin.settings.commits') }}', {
@@ -684,13 +700,13 @@
             branchBadge.textContent = branch;
             branchBadge.classList.remove('hidden');
 
-            var headerEl = document.getElementById('commits-header');
-            if (headerEl) headerEl.classList.remove('hidden');
+            if (commits.length === 0) {
+                emptyEl.classList.remove('hidden');
+                return;
+            }
 
-            // Find index of local commit → before = new, at = current, after = applied
-            var localIdx = commits.findIndex(function (c) { return c.sha === localCommit; });
-
-            var PAGE_SIZE = 30;
+            var localIdx    = commits.findIndex(function (c) { return c.sha === localCommit; });
+            var PAGE_SIZE   = 30;
             var visibleCount = PAGE_SIZE;
 
             function buildRow(c, i) {
@@ -702,67 +718,77 @@
                       + ' · ' + date.toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit' })
                     : '—';
 
-                var dotColor = isCurrent ? 'bg-emerald-500 ring-2 ring-emerald-100'
-                             : isNew     ? 'bg-violet-400 ring-2 ring-violet-100'
-                             : 'bg-slate-300';
-                var shaColor = isCurrent ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
-                             : isNew     ? 'text-violet-700 bg-violet-50 border-violet-200'
-                             : 'text-slate-400 bg-slate-50 border-slate-200';
-                var rowBg    = isCurrent ? 'bg-emerald-50/30' : isNew ? 'bg-violet-50/10' : '';
-                var badge    = isCurrent
-                    ? ' <span class="flex-shrink-0 rounded-full bg-emerald-100 px-1.5 py-px text-[10px] font-semibold text-emerald-700">✓ Kurulu</span>'
+                var dotCls  = isCurrent ? 'background:#10b981;box-shadow:0 0 0 3px #d1fae5'
+                            : isNew     ? 'background:#8b5cf6;box-shadow:0 0 0 3px #ede9fe'
+                            : 'background:#cbd5e1';
+                var rowBg   = isCurrent ? 'background:#f0fdf9' : isNew ? 'background:#faf5ff' : '';
+                var msgCls  = isCurrent ? 'color:#065f46' : isNew ? 'color:#4c1d95' : 'color:#1e293b';
+                var badge   = isCurrent
+                    ? '<span style="display:inline-flex;align-items:center;background:#d1fae5;color:#065f46;border-radius:9999px;padding:1px 7px;font-size:10px;font-weight:600;white-space:nowrap;flex-shrink:0">✓ Kurulu</span>'
                     : isNew
-                    ? ' <span class="flex-shrink-0 rounded-full bg-violet-100 px-1.5 py-px text-[10px] font-semibold text-violet-700">↑ Yeni</span>'
+                    ? '<span style="display:inline-flex;align-items:center;background:#ede9fe;color:#4c1d95;border-radius:9999px;padding:1px 7px;font-size:10px;font-weight:600;white-space:nowrap;flex-shrink:0">↑ Yeni</span>'
                     : '';
 
+                var shaStyle = isCurrent
+                    ? 'color:#065f46;background:#d1fae5;border:1px solid #6ee7b7'
+                    : isNew
+                    ? 'color:#4c1d95;background:#ede9fe;border:1px solid #c4b5fd'
+                    : 'color:#94a3b8;background:#f8fafc;border:1px solid #e2e8f0';
                 var shaEl = c.url
-                    ? '<a href="' + c.url + '" target="_blank" class="rounded border px-1.5 py-0.5 font-mono text-[10px] ' + shaColor + ' hover:opacity-70 transition-opacity">' + escHtml(c.sha) + '</a>'
-                    : '<span class="rounded border px-1.5 py-0.5 font-mono text-[10px] ' + shaColor + '">' + escHtml(c.sha) + '</span>';
+                    ? '<a href="' + c.url + '" target="_blank" style="' + shaStyle + ';border-radius:6px;padding:2px 6px;font-family:monospace;font-size:10px;text-decoration:none;display:inline-block">' + escHtml(c.sha) + '</a>'
+                    : '<span style="' + shaStyle + ';border-radius:6px;padding:2px 6px;font-family:monospace;font-size:10px;display:inline-block">' + escHtml(c.sha) + '</span>';
 
-                var li = document.createElement('li');
-                li.className = 'grid grid-cols-[16px_1fr_120px_160px_80px] gap-3 items-center px-5 py-1.5 hover:bg-slate-50/70 transition-colors ' + rowBg;
-                li.innerHTML =
-                    '<div class="flex justify-center"><span class="inline-block h-2 w-2 flex-shrink-0 rounded-full ' + dotColor + '"></span></div>' +
-                    '<div class="min-w-0 flex items-center gap-1.5">' +
-                        '<span class="truncate text-xs font-medium text-slate-800">' + escHtml(c.message) + '</span>' + badge +
-                    '</div>' +
-                    '<div class="min-w-0"><p class="truncate text-xs text-slate-500">' + escHtml(c.author) + '</p></div>' +
-                    '<div><p class="text-xs text-slate-600">' + dateStr + '</p></div>' +
-                    '<div class="flex justify-end">' + shaEl + '</div>';
-                return li;
+                var tr = document.createElement('tr');
+                if (rowBg) tr.style.cssText = rowBg;
+                tr.innerHTML =
+                    '<td style="width:24px;padding:6px 16px;vertical-align:middle">' +
+                        '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0;' + dotCls + '"></span>' +
+                    '</td>' +
+                    '<td style="padding:6px 16px;vertical-align:middle;max-width:0">' +
+                        '<div style="display:flex;align-items:center;gap:6px;min-width:0">' +
+                            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:500;' + msgCls + '">' + escHtml(c.message) + '</span>' +
+                            badge +
+                        '</div>' +
+                    '</td>' +
+                    '<td style="width:130px;padding:6px 16px;vertical-align:middle">' +
+                        '<span style="font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">' + escHtml(c.author) + '</span>' +
+                    '</td>' +
+                    '<td style="width:160px;padding:6px 16px;vertical-align:middle">' +
+                        '<span style="font-size:11px;color:#475569;white-space:nowrap">' + dateStr + '</span>' +
+                    '</td>' +
+                    '<td style="width:80px;padding:6px 16px;vertical-align:middle;text-align:right">' +
+                        shaEl +
+                    '</td>';
+                return tr;
             }
 
-            function renderCommits() {
-                listEl.innerHTML = '';
+            function renderRows() {
+                tbodyEl.innerHTML = '';
                 commits.slice(0, visibleCount).forEach(function (c, i) {
-                    listEl.appendChild(buildRow(c, i));
+                    tbodyEl.appendChild(buildRow(c, i));
                 });
 
-                // "Daha fazla göster" butonu
-                var moreBtn = document.getElementById('commits-more-btn');
-                if (moreBtn) moreBtn.remove();
-
-                if (visibleCount < commits.length) {
-                    var remaining = commits.length - visibleCount;
-                    var btn = document.createElement('li');
-                    btn.id = 'commits-more-btn';
-                    btn.className = 'flex justify-center border-t border-slate-100 py-3';
-                    btn.innerHTML = '<button class="text-xs font-medium text-brand-600 hover:text-brand-800 transition-colors">Daha fazla göster (' + remaining + ' kayıt daha)</button>';
-                    btn.querySelector('button').addEventListener('click', function () {
-                        visibleCount += PAGE_SIZE;
-                        renderCommits();
-                    });
-                    listEl.appendChild(btn);
+                var remaining = commits.length - visibleCount;
+                if (remaining > 0) {
+                    moreBtn.textContent = 'Daha fazla göster (' + remaining + ' kayıt daha)';
+                    footerEl.classList.remove('hidden');
+                } else {
+                    footerEl.classList.add('hidden');
                 }
             }
 
-            renderCommits();
-            listEl.classList.remove('hidden');
+            moreBtn.addEventListener('click', function () {
+                visibleCount += PAGE_SIZE;
+                renderRows();
+            });
+
+            renderRows();
+            tableEl.classList.remove('hidden');
         })
         .catch(function (err) {
             loadingEl.classList.add('hidden');
             loadBtn.disabled = false;
-            errorEl.textContent = 'İstek başarısız: ' + err.message;
+            errorEl.textContent = 'Yükleme başarısız: ' + err.message;
             errorEl.classList.remove('hidden');
         });
     });
