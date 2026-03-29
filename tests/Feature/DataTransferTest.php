@@ -52,6 +52,36 @@ class DataTransferTest extends TestCase
         $this->assertCount(1, $thirdXml->suppliers->supplier);
     }
 
+    public function test_export_can_include_previously_tracked_records_when_only_new_is_disabled(): void
+    {
+        $admin = User::factory()->admin()->create();
+        Supplier::factory()->create([
+            'name' => 'Tam Export Tedarik',
+            'code' => 'TED-200',
+        ]);
+
+        $payload = [
+            'fields' => [
+                'suppliers' => ['name', 'code'],
+            ],
+            'only_new' => '1',
+        ];
+
+        $this->actingAs($admin)->get(route('admin.data-transfer.export', $payload))->assertOk();
+
+        $fullExportResponse = $this->actingAs($admin)->post(route('admin.data-transfer.export'), [
+            'fields' => [
+                'suppliers' => ['name', 'code'],
+            ],
+            'only_new' => '0',
+        ]);
+
+        $fullExportResponse->assertOk();
+
+        $fullXml = simplexml_load_string($fullExportResponse->getContent());
+        $this->assertCount(1, $fullXml->suppliers->supplier);
+    }
+
     public function test_import_uses_supplier_and_order_number_together_for_duplicate_check(): void
     {
         $admin = User::factory()->admin()->create();

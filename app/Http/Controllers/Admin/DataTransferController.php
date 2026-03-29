@@ -34,7 +34,7 @@ class DataTransferController extends Controller
             $result = $this->dataTransfer->export(
                 selection: $selection,
                 includeMedia: $request->boolean('include_media'),
-                onlyNew: $request->boolean('only_new', true),
+                onlyNew: $request->boolean('only_new'),
             );
         } catch (\Throwable $exception) {
             report($exception);

@@ -47,6 +47,7 @@
 
         <div class="mb-6 grid gap-4 md:grid-cols-2">
             <label class="flex items-start gap-3 rounded-2xl border border-brand-100 bg-brand-50/70 px-4 py-3">
+                <input type="hidden" name="only_new" value="0">
                 <input type="checkbox" name="only_new" value="1" class="mt-1 rounded border-slate-300 text-brand-600 focus:ring-brand-500" checked>
                 <span>
                     <span class="block text-sm font-semibold text-slate-800">Sadece yeni veya değişmiş kayıtları dahil et</span>
