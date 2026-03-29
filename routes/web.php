@@ -128,7 +128,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/integrations/mikro/test', MikroTestController::class)->name('integrations.mikro.test');
 
             Route::get('/veri-aktarimi', [DataTransferController::class, 'index'])->name('data-transfer.index');
-            Route::get('/veri-aktarimi/export', [DataTransferController::class, 'export'])->name('data-transfer.export');
+            Route::match(['get', 'post'], '/veri-aktarimi/export', [DataTransferController::class, 'export'])->name('data-transfer.export');
             Route::post('/veri-aktarimi/import', [DataTransferController::class, 'import'])->name('data-transfer.import');
             Route::delete('/veri-aktarimi/imported', [DataTransferController::class, 'destroyImported'])->name('data-transfer.destroy-imported');
         });

@@ -20,10 +20,10 @@ class RedirectIfSetupComplete
     public static function isInstalled(): bool
     {
         if (app()->environment('testing')) {
-            return filter_var(env('APP_INSTALLED', false), FILTER_VALIDATE_BOOLEAN);
+            return (bool) config('app.installed', false);
         }
 
         return file_exists(storage_path('app/.setup_complete'))
-            && filter_var(env('APP_INSTALLED', false), FILTER_VALIDATE_BOOLEAN);
+            && (bool) config('app.installed', false);
     }
 }

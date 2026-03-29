@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\RedirectIfSetupComplete;
 use Tests\TestCase;
 
 class SetupWizardTest extends TestCase
@@ -33,5 +34,12 @@ class SetupWizardTest extends TestCase
         $response->assertRedirect(route('setup.step', 4));
         $response->assertSessionHas('setup.step_3_done', true);
         $response->assertSessionHas('setup.spaces.enabled', false);
+    }
+
+    public function test_setup_installation_check_reads_config_value(): void
+    {
+        config()->set('app.installed', true);
+
+        $this->assertTrue(RedirectIfSetupComplete::isInstalled());
     }
 }

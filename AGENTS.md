@@ -135,6 +135,7 @@ ArtworkRevision >── ArtworkGallery (reused from gallery)
 | `ArtworkGallery` | `artwork_gallery` | `name`, `stock_code`, `category_id`, `file_path`, `file_disk` |
 | `AuditLog` | `audit_logs` | `user_id`, `action`, `model_type`, `model_id`, `payload` (json) |
 | `SystemSetting` | `system_settings` | `key`, `value` — runtime config, NEVER expose secrets in UI |
+| `DataTransferRecord` | `data_transfer_records` | `direction`, `entity_type`, `entity_key`, `selection_hash`, `payload_hash` |
 | `SupplierMikroAccount` | `supplier_mikro_accounts` | `supplier_id`, `mikro_cari_kod`, `mikro_company_code`, `is_active` |
 | `Department` | `departments` | `name`, `permissions` (array) |
 | `CustomReport` | `custom_reports` | `dimensions` (array), `metrics` (array), `chart_type`, `filters` (array) |
@@ -350,6 +351,7 @@ YYYY_MM_DD_HHMMSS_description_table.php
 - `artwork_revisions`: only one `is_active = true` per `artwork_id`
 - `supplier_users`: unique on `(user_id, supplier_id)`
 - `audit_logs`: no foreign key constraint on `user_id` (user may be deleted)
+- `data_transfer_records`: same direction + entity + selection hash + payload hash combination is unique
 
 ### Soft Deletes
 Tables with soft deletes: `suppliers` (use `whereNull('deleted_at')` or `Supplier::query()` which respects SoftDeletes)

@@ -56,6 +56,8 @@ return [
 
     'version' => env('APP_VERSION', '1.9.1'),
 
+    'installed' => (bool) env('APP_INSTALLED', false),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone
