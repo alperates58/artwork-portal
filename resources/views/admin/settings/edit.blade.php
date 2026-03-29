@@ -824,8 +824,8 @@
                                         ];
                                     @endphp
                                 @foreach($toggles as $t)
-                                        <label class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 hover:bg-slate-50/60 cursor-pointer">
-                                            <div>
+                                        <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 hover:bg-slate-50/60">
+                                            <label for="portal_{{ $t['key'] }}" class="block cursor-pointer">
                                                 <p class="text-sm font-semibold text-slate-800 flex items-center gap-2">
                                                     {{ $t['label'] }}
                                                     @if($t['warn'])
@@ -833,18 +833,18 @@
                                                     @endif
                                                 </p>
                                                 <p class="text-xs text-slate-500 mt-0.5">{{ $t['desc'] }}</p>
-                                            </div>
+                                            </label>
                                             <div class="flex items-center justify-end">
                                                 <input type="hidden" name="portal[{{ $t['key'] }}]" value="0">
-                                                <span class="relative inline-flex h-6 w-11 flex-shrink-0 items-center">
+                                                <label for="portal_{{ $t['key'] }}" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer items-center">
                                                     <input type="checkbox" name="portal[{{ $t['key'] }}]" value="1" id="portal_{{ $t['key'] }}"
                                                            @checked($portalConfig[$t['key']] ?? false)
-                                                           class="peer sr-only">
-                                                    <span aria-hidden="true" class="h-6 w-11 rounded-full bg-slate-200 transition-colors duration-200 peer-checked:bg-brand-500 peer-focus:ring-2 peer-focus:ring-brand-300 peer-focus:ring-offset-2"></span>
+                                                           class="peer absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0">
+                                                    <span aria-hidden="true" class="pointer-events-none h-6 w-11 rounded-full bg-slate-200 transition-colors duration-200 peer-checked:bg-brand-500 peer-focus:ring-2 peer-focus:ring-brand-300 peer-focus:ring-offset-2"></span>
                                                     <span aria-hidden="true" class="pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-5"></span>
-                                                </span>
+                                                </label>
                                             </div>
-                                        </label>
+                                        </div>
                                     @endforeach
                                 </div>
 
