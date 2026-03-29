@@ -261,12 +261,12 @@
                                 </div>
 
                                 {{-- Sütun başlıkları --}}
-                                <div id="commits-header" class="hidden grid grid-cols-[20px_1fr_140px_110px_90px] gap-4 border-b border-slate-100 bg-slate-50/50 px-5 py-2">
+                                <div id="commits-header" class="hidden grid grid-cols-[16px_1fr_120px_160px_80px] gap-3 border-b border-slate-100 bg-slate-50/60 px-5 py-1.5">
                                     <div></div>
                                     <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Commit Mesajı</p>
                                     <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Yazar</p>
                                     <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Tarih</p>
-                                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">SHA</p>
+                                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 text-right">SHA</p>
                                 </div>
 
                                 <div id="commits-loading" class="hidden px-5 py-10 text-center">
@@ -687,59 +687,76 @@
             var headerEl = document.getElementById('commits-header');
             if (headerEl) headerEl.classList.remove('hidden');
 
-            // Find index of local commit → everything before = new, at = current, after = applied
+            // Find index of local commit → before = new, at = current, after = applied
             var localIdx = commits.findIndex(function (c) { return c.sha === localCommit; });
 
-            listEl.innerHTML = '';
-            commits.forEach(function (c, i) {
+            var PAGE_SIZE = 30;
+            var visibleCount = PAGE_SIZE;
+
+            function buildRow(c, i) {
                 var isNew     = localIdx === -1 || i < localIdx;
                 var isCurrent = i === localIdx;
                 var date      = c.date ? new Date(c.date) : null;
-                var dateStr   = date ? date.toLocaleDateString('tr-TR', { day:'2-digit', month:'short', year:'numeric' }) : '—';
-                var timeStr   = date ? date.toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit' }) : '';
+                var dateStr   = date
+                    ? date.toLocaleDateString('tr-TR', { day:'2-digit', month:'short', year:'numeric' })
+                      + ' · ' + date.toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit' })
+                    : '—';
 
-                var dotColor  = isCurrent ? 'bg-emerald-500 ring-4 ring-emerald-100'
-                              : isNew     ? 'bg-violet-500 ring-4 ring-violet-100'
-                              : 'bg-slate-300';
-                var shaColor  = isCurrent ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
-                              : isNew     ? 'text-violet-700 bg-violet-50 border-violet-200'
-                              : 'text-slate-500 bg-slate-50 border-slate-200';
-                var rowBg     = isCurrent ? 'bg-emerald-50/40' : isNew ? 'bg-violet-50/20' : '';
-                var badge     = isCurrent
-                    ? '<span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">✓ Sunucuda kurulu</span>'
+                var dotColor = isCurrent ? 'bg-emerald-500 ring-2 ring-emerald-100'
+                             : isNew     ? 'bg-violet-400 ring-2 ring-violet-100'
+                             : 'bg-slate-300';
+                var shaColor = isCurrent ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                             : isNew     ? 'text-violet-700 bg-violet-50 border-violet-200'
+                             : 'text-slate-400 bg-slate-50 border-slate-200';
+                var rowBg    = isCurrent ? 'bg-emerald-50/30' : isNew ? 'bg-violet-50/10' : '';
+                var badge    = isCurrent
+                    ? ' <span class="flex-shrink-0 rounded-full bg-emerald-100 px-1.5 py-px text-[10px] font-semibold text-emerald-700">✓ Kurulu</span>'
                     : isNew
-                    ? '<span class="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">↑ Yeni</span>'
+                    ? ' <span class="flex-shrink-0 rounded-full bg-violet-100 px-1.5 py-px text-[10px] font-semibold text-violet-700">↑ Yeni</span>'
                     : '';
 
                 var shaEl = c.url
-                    ? '<a href="' + c.url + '" target="_blank" class="rounded-lg border px-2 py-1 font-mono text-[11px] ' + shaColor + ' hover:opacity-70 transition-opacity">' + escHtml(c.sha) + '</a>'
-                    : '<span class="rounded-lg border px-2 py-1 font-mono text-[11px] ' + shaColor + '">' + escHtml(c.sha) + '</span>';
+                    ? '<a href="' + c.url + '" target="_blank" class="rounded border px-1.5 py-0.5 font-mono text-[10px] ' + shaColor + ' hover:opacity-70 transition-opacity">' + escHtml(c.sha) + '</a>'
+                    : '<span class="rounded border px-1.5 py-0.5 font-mono text-[10px] ' + shaColor + '">' + escHtml(c.sha) + '</span>';
 
                 var li = document.createElement('li');
-                li.className = 'grid grid-cols-[20px_1fr_140px_110px_90px] gap-4 items-center px-5 py-3 hover:bg-slate-50/80 transition-colors ' + rowBg;
+                li.className = 'grid grid-cols-[16px_1fr_120px_160px_80px] gap-3 items-center px-5 py-1.5 hover:bg-slate-50/70 transition-colors ' + rowBg;
                 li.innerHTML =
-                    // Dot
-                    '<div class="flex justify-center"><span class="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full ' + dotColor + '"></span></div>' +
-                    // Message + badge
-                    '<div class="min-w-0">' +
-                        '<p class="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-800 leading-snug">' +
-                            '<span class="truncate">' + escHtml(c.message) + '</span>' + badge +
-                        '</p>' +
+                    '<div class="flex justify-center"><span class="inline-block h-2 w-2 flex-shrink-0 rounded-full ' + dotColor + '"></span></div>' +
+                    '<div class="min-w-0 flex items-center gap-1.5">' +
+                        '<span class="truncate text-xs font-medium text-slate-800">' + escHtml(c.message) + '</span>' + badge +
                     '</div>' +
-                    // Author
-                    '<div class="min-w-0">' +
-                        '<p class="text-xs text-slate-500 truncate">' + escHtml(c.author) + '</p>' +
-                    '</div>' +
-                    // Date + time
-                    '<div>' +
-                        '<p class="text-xs font-medium text-slate-700">' + dateStr + '</p>' +
-                        '<p class="text-[11px] text-slate-400">' + timeStr + '</p>' +
-                    '</div>' +
-                    // SHA
+                    '<div class="min-w-0"><p class="truncate text-xs text-slate-500">' + escHtml(c.author) + '</p></div>' +
+                    '<div><p class="text-xs text-slate-600">' + dateStr + '</p></div>' +
                     '<div class="flex justify-end">' + shaEl + '</div>';
-                listEl.appendChild(li);
-            });
+                return li;
+            }
 
+            function renderCommits() {
+                listEl.innerHTML = '';
+                commits.slice(0, visibleCount).forEach(function (c, i) {
+                    listEl.appendChild(buildRow(c, i));
+                });
+
+                // "Daha fazla göster" butonu
+                var moreBtn = document.getElementById('commits-more-btn');
+                if (moreBtn) moreBtn.remove();
+
+                if (visibleCount < commits.length) {
+                    var remaining = commits.length - visibleCount;
+                    var btn = document.createElement('li');
+                    btn.id = 'commits-more-btn';
+                    btn.className = 'flex justify-center border-t border-slate-100 py-3';
+                    btn.innerHTML = '<button class="text-xs font-medium text-brand-600 hover:text-brand-800 transition-colors">Daha fazla göster (' + remaining + ' kayıt daha)</button>';
+                    btn.querySelector('button').addEventListener('click', function () {
+                        visibleCount += PAGE_SIZE;
+                        renderCommits();
+                    });
+                    listEl.appendChild(btn);
+                }
+            }
+
+            renderCommits();
             listEl.classList.remove('hidden');
         })
         .catch(function (err) {
