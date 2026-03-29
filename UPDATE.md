@@ -26,6 +26,7 @@ docker compose exec app php artisan portal:update
 
 ```bash
 cd /var/www/artwork-portal
+git config --global --add safe.directory /var/www/artwork-portal
 
 # 1. Kodu çek
 git pull origin main
@@ -38,8 +39,7 @@ docker compose exec app php artisan cache:clear
 docker compose exec app composer install --no-dev --optimize-autoloader
 
 # 4. Yeni frontend değişikliği varsa
-docker compose run --rm node npm ci
-docker compose run --rm node npm run build
+docker compose exec -u www-data app sh -lc "npm ci --no-audit --no-fund && npm run build"
 
 # 5. Migration + cache + route + view güncelle
 docker compose exec app php artisan portal:update
@@ -67,8 +67,23 @@ docker compose exec app npm -v
 | Sadece PHP/Blade değişikliği | `config:clear` + `cache:clear` + `portal:update` |
 | Yeni migration eklendi | `config:clear` + `cache:clear` + `portal:update` (migrate dahil) |
 | composer.json değişti | `composer install` + `config:clear` + `cache:clear` + `portal:update` |
-| Tailwind/JS değişti | `npm ci` + `npm run build` + `config:clear` + `cache:clear` + `portal:update` |
+| Tailwind/JS değişti | `docker compose exec -u www-data app sh -lc "npm ci --no-audit --no-fund && npm run build"` + `config:clear` + `cache:clear` + `portal:update` |
 | Dockerfile değişti | `docker compose build app` + `up -d --force-recreate` |
+
+---
+
+## Güncelleme Ekranında `npm EACCES` Hatası
+
+`npm ERR! EACCES ... node_modules` görüyorsanız izinleri bir kez düzeltin:
+
+```bash
+cd /var/www/artwork-portal
+docker compose exec -u root app sh -lc "mkdir -p /var/www/html/node_modules /var/www/.npm /var/www/.config /var/www/html/public/build && chown -R www-data:www-data /var/www/html/node_modules /var/www/.npm /var/www/.config /var/www/html/public/build"
+docker compose exec -u www-data app sh -lc "npm install --no-audit --no-fund && npm run build"
+docker compose restart app nginx
+```
+
+Sonrasında paneldeki `GitHub'dan Güncelle` butonu izinsiz hata vermeden çalışır.
 
 ---
 

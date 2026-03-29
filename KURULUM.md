@@ -152,8 +152,7 @@ docker compose exec app php artisan portal:update
 ### 2.10 Frontend Asset Build
 
 ```powershell
-docker compose run --rm node npm install
-docker compose run --rm node npm run build
+docker compose exec -u www-data app sh -lc "npm install --no-audit --no-fund && npm run build"
 ```
 
 ### 2.11 Nginx ve App Restart
@@ -305,8 +304,7 @@ docker compose exec app php artisan portal:update
 ### 3.9 Frontend Asset Build
 
 ```bash
-docker compose run --rm node npm ci
-docker compose run --rm node npm run build
+docker compose exec -u www-data app sh -lc "npm ci --no-audit --no-fund && npm run build"
 ```
 
 ### 3.10 Nginx ve App Restart
@@ -387,13 +385,13 @@ docker compose exec app npm -v
 
 ```bash
 cd /var/www/artwork-portal
+git config --global --add safe.directory /var/www/artwork-portal
 git fetch --all --prune
 git pull origin main
 docker compose build app
 docker compose up -d --force-recreate app queue scheduler nginx
 docker compose exec app composer install --no-dev --optimize-autoloader
-docker compose run --rm node npm ci
-docker compose run --rm node npm run build
+docker compose exec -u www-data app sh -lc "npm ci --no-audit --no-fund && npm run build"
 docker compose exec app php artisan portal:update
 ```
 
@@ -485,6 +483,20 @@ chown root:www-data .env
 ```bash
 docker compose exec app php artisan migrate --force
 docker compose restart queue scheduler
+```
+
+---
+
+### `npm ERR! EACCES ... node_modules` — Güncelleme ekranında frontend build izni hatası
+
+**Neden:** `node_modules` veya `.npm` dizinleri root sahipliğinde kalmıştır; update butonu `www-data` ile çalışırken yazamaz.
+
+**Çözüm:**
+```bash
+cd /var/www/artwork-portal
+docker compose exec -u root app sh -lc "mkdir -p /var/www/html/node_modules /var/www/.npm /var/www/.config /var/www/html/public/build && chown -R www-data:www-data /var/www/html/node_modules /var/www/.npm /var/www/.config /var/www/html/public/build"
+docker compose exec -u www-data app sh -lc "npm install --no-audit --no-fund && npm run build"
+docker compose restart app nginx
 ```
 
 ---
