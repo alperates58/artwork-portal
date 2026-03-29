@@ -382,6 +382,158 @@
                             </div>
                             <div class="flex justify-end"><button type="submit" class="btn btn-primary">Mikro Ayarlarını Kaydet</button></div>
                         </form>
+
+                        @php
+                            $mikroFieldDefinitions = $mikroViewMapping['field_definitions'];
+                            $savedSamplePayload = $mikroViewMapping['sample_payload'];
+                        @endphp
+
+                        <form method="POST" action="{{ route('admin.settings.update', ['tab' => 'mikro']) }}" class="mt-6 space-y-5" id="mikro-view-mapping-form">
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="settings_section" value="mikro_view_mapping">
+                            <input type="hidden" name="tab" value="mikro">
+                            <input type="hidden" name="mikro_view_mapping[id]" value="{{ $mikroViewMapping['id'] ?? '' }}">
+
+                            <div class="rounded-3xl border border-slate-200 p-6">
+                                <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-slate-900">Sipariş View Eşleme</h3>
+                                        <p class="mt-1 text-sm text-slate-500">BT tarafının hazırladığı SQL view / endpoint kolonlarını portalın sipariş alanlarıyla eşleyin. Aktif mapping, mevcut Mikro sipariş senkronizasyonunda otomatik kullanılır.</p>
+                                    </div>
+                                    <div class="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
+                                        <p class="font-semibold text-slate-700">Kimlik Kuralları</p>
+                                        <p class="mt-1">Supplier: <span class="font-mono">supplier_code</span> → <span class="font-mono">mikro_cari_kod</span></p>
+                                        <p>Sipariş: <span class="font-mono">(supplier_id, order_no)</span></p>
+                                        <p>Satır: <span class="font-mono">line_no / sip_satirno</span></p>
+                                    </div>
+                                </div>
+
+                                <div class="mt-6 grid gap-4 md:grid-cols-2">
+                                    <div>
+                                        <label class="label">Mapping Adı</label>
+                                        <input class="input" type="text" name="mikro_view_mapping[name]" value="{{ old('mikro_view_mapping.name', $mikroViewMapping['name'] ?? '') }}">
+                                    </div>
+                                    <div>
+                                        <label class="label">SQL View Adı</label>
+                                        <input class="input font-mono" type="text" name="mikro_view_mapping[view_name]" value="{{ old('mikro_view_mapping.view_name', $mikroViewMapping['view_name'] ?? '') }}" placeholder="vw_portal_purchase_orders">
+                                    </div>
+                                    <div>
+                                        <label class="label">Sipariş Endpoint Yolu</label>
+                                        <input class="input font-mono" type="text" name="mikro_view_mapping[endpoint_path]" value="{{ old('mikro_view_mapping.endpoint_path', $mikroViewMapping['endpoint_path'] ?? '') }}" placeholder="/api/portal-orders">
+                                    </div>
+                                    <div>
+                                        <label class="label">Payload Modu</label>
+                                        <select class="input" name="mikro_view_mapping[payload_mode]" id="mikro-payload-mode">
+                                            <option value="nested_lines" {{ old('mikro_view_mapping.payload_mode', $mikroViewMapping['payload_mode'] ?? 'nested_lines') === 'nested_lines' ? 'selected' : '' }}>Sipariş + iç içe satırlar</option>
+                                            <option value="flat_rows" {{ old('mikro_view_mapping.payload_mode', $mikroViewMapping['payload_mode'] ?? 'nested_lines') === 'flat_rows' ? 'selected' : '' }}>Her satır ayrı kayıt</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="label">Satır Dizi Alanı</label>
+                                        <input class="input font-mono" type="text" name="mikro_view_mapping[line_array_key]" id="mikro-line-array-key" value="{{ old('mikro_view_mapping.line_array_key', $mikroViewMapping['line_array_key'] ?? 'lines') }}" placeholder="lines">
+                                        <p class="mt-1 text-xs text-slate-500">İç içe satır modunda sipariş içindeki satır dizisinin adı.</p>
+                                    </div>
+                                    <div>
+                                        <label class="label">Not</label>
+                                        <input class="input" type="text" name="mikro_view_mapping[notes]" value="{{ old('mikro_view_mapping.notes', $mikroViewMapping['notes'] ?? '') }}" placeholder="BT tarafı view v2, 2026 Q1 vb.">
+                                    </div>
+                                </div>
+
+                                <div class="mt-6 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                                    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                        <div>
+                                            <p class="font-semibold">Örnek Veri Çek</p>
+                                            <p class="mt-1 text-xs text-blue-800">Mevcut Mikro bağlantı ayarlarıyla endpoint'ten örnek veri çekilir, kaynak kolonlar okunur ve aşağıdaki seçim listeleri otomatik doldurulur.</p>
+                                        </div>
+                                        <button type="button" class="btn btn-secondary border-blue-200 text-blue-700 hover:bg-blue-100" id="mikro-fetch-sample-btn">
+                                            Endpoint'ten Örnek Veri Çek
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="mt-6 grid gap-5 xl:grid-cols-2">
+                                    <div class="rounded-2xl border border-slate-200 p-4">
+                                        <div class="mb-3 flex items-center justify-between gap-3">
+                                            <div>
+                                                <h4 class="text-sm font-semibold text-slate-900">Sipariş Alanları</h4>
+                                                <p class="mt-1 text-xs text-slate-500">Başlık seviyesinde tekil sipariş bilgileri</p>
+                                            </div>
+                                            <span class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600" id="mikro-order-columns-badge">Kolon bekleniyor</span>
+                                        </div>
+                                        <div class="space-y-3">
+                                            @foreach($mikroFieldDefinitions['order'] as $fieldKey => $fieldLabel)
+                                                <div class="grid gap-2 md:grid-cols-[180px_1fr] md:items-center">
+                                                    <label class="text-sm font-medium text-slate-700">
+                                                        {{ $fieldLabel }}
+                                                        @if(in_array($fieldKey, $mikroFieldDefinitions['required']['order'], true))
+                                                            <span class="text-red-500">*</span>
+                                                        @endif
+                                                    </label>
+                                                    <select
+                                                        class="input mikro-column-select"
+                                                        name="mikro_view_mapping[mapping][order][{{ $fieldKey }}]"
+                                                        data-scope="order"
+                                                        data-field="{{ $fieldKey }}"
+                                                        data-current="{{ old('mikro_view_mapping.mapping.order.' . $fieldKey, $mikroViewMapping['mapping']['order'][$fieldKey] ?? '') }}"
+                                                    >
+                                                        <option value="">Kolon seçin</option>
+                                                    </select>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+
+                                    <div class="rounded-2xl border border-slate-200 p-4">
+                                        <div class="mb-3 flex items-center justify-between gap-3">
+                                            <div>
+                                                <h4 class="text-sm font-semibold text-slate-900">Satır Alanları</h4>
+                                                <p class="mt-1 text-xs text-slate-500">Sipariş satırı ve ürün detayları</p>
+                                            </div>
+                                            <span class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600" id="mikro-line-columns-badge">Kolon bekleniyor</span>
+                                        </div>
+                                        <div class="space-y-3">
+                                            @foreach($mikroFieldDefinitions['line'] as $fieldKey => $fieldLabel)
+                                                <div class="grid gap-2 md:grid-cols-[180px_1fr] md:items-center">
+                                                    <label class="text-sm font-medium text-slate-700">
+                                                        {{ $fieldLabel }}
+                                                        @if(in_array($fieldKey, $mikroFieldDefinitions['required']['line'], true))
+                                                            <span class="text-red-500">*</span>
+                                                        @endif
+                                                    </label>
+                                                    <select
+                                                        class="input mikro-column-select"
+                                                        name="mikro_view_mapping[mapping][line][{{ $fieldKey }}]"
+                                                        data-scope="line"
+                                                        data-field="{{ $fieldKey }}"
+                                                        data-current="{{ old('mikro_view_mapping.mapping.line.' . $fieldKey, $mikroViewMapping['mapping']['line'][$fieldKey] ?? '') }}"
+                                                    >
+                                                        <option value="">Kolon seçin</option>
+                                                    </select>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-6 grid gap-5 xl:grid-cols-2">
+                                    <div class="rounded-2xl border border-slate-200 p-4">
+                                        <h4 class="text-sm font-semibold text-slate-900">Kaynak Önizleme</h4>
+                                        <p class="mt-1 text-xs text-slate-500">Endpoint'ten dönen ilk kayıt ve ilk satır örneği burada görünür.</p>
+                                        <pre id="mikro-sample-preview" class="mt-4 min-h-[240px] overflow-auto rounded-2xl bg-slate-950 p-4 text-[11px] leading-5 text-emerald-200">{{ $savedSamplePayload ? json_encode($savedSamplePayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : 'Henüz örnek veri çekilmedi.' }}</pre>
+                                    </div>
+                                    <div class="rounded-2xl border border-slate-200 p-4">
+                                        <h4 class="text-sm font-semibold text-slate-900">Normalize Edilmiş Önizleme</h4>
+                                        <p class="mt-1 text-xs text-slate-500">Portalın sipariş sync servisinin göreceği hedef payload biçimi.</p>
+                                        <pre id="mikro-normalized-preview" class="mt-4 min-h-[240px] overflow-auto rounded-2xl bg-slate-950 p-4 text-[11px] leading-5 text-sky-200">Henüz normalize önizleme üretilmedi.</pre>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end gap-3">
+                                <button type="submit" class="btn btn-primary">View Mapping Kaydet</button>
+                            </div>
+                        </form>
                     </div>
 
                     <div class="{{ $activeTab === 'mail' ? '' : 'hidden' }}">
@@ -796,6 +948,133 @@
     function escHtml(str) {
         return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
+})();
+</script>
+<script>
+(function () {
+    const form = document.getElementById('mikro-view-mapping-form');
+    if (!form) return;
+
+    const sampleBtn = document.getElementById('mikro-fetch-sample-btn');
+    const samplePreview = document.getElementById('mikro-sample-preview');
+    const normalizedPreview = document.getElementById('mikro-normalized-preview');
+    const orderBadge = document.getElementById('mikro-order-columns-badge');
+    const lineBadge = document.getElementById('mikro-line-columns-badge');
+    const payloadMode = document.getElementById('mikro-payload-mode');
+    const lineArrayKey = document.getElementById('mikro-line-array-key');
+    const endpoint = '{{ route('admin.settings.mikro-view-sample') }}';
+
+    function currentValue(select) {
+        return select.dataset.current || select.value || '';
+    }
+
+    function populateSelects(scope, columns) {
+        form.querySelectorAll(`.mikro-column-select[data-scope="${scope}"]`).forEach((select) => {
+            const selected = currentValue(select);
+            const opts = ['<option value="">Kolon seçin</option>'];
+            const items = Array.isArray(columns) ? columns : [];
+
+            items.forEach((column) => {
+                const isSelected = selected === column ? ' selected' : '';
+                opts.push(`<option value="${escapeHtml(column)}"${isSelected}>${escapeHtml(column)}</option>`);
+            });
+
+            if (selected && !items.includes(selected)) {
+                opts.push(`<option value="${escapeHtml(selected)}" selected>${escapeHtml(selected)} (kayıtlı)</option>`);
+            }
+
+            select.innerHTML = opts.join('');
+        });
+    }
+
+    function updateBadges(orderColumns, lineColumns) {
+        orderBadge.textContent = Array.isArray(orderColumns) && orderColumns.length
+            ? orderColumns.length + ' kolon bulundu'
+            : 'Kolon bekleniyor';
+        lineBadge.textContent = Array.isArray(lineColumns) && lineColumns.length
+            ? lineColumns.length + ' kolon bulundu'
+            : 'Kolon bekleniyor';
+    }
+
+    function toggleLineArrayKey() {
+        lineArrayKey.readOnly = payloadMode.value === 'flat_rows';
+        lineArrayKey.classList.toggle('bg-slate-50', payloadMode.value === 'flat_rows');
+    }
+
+    function formPayload() {
+        const data = Object.fromEntries(new FormData(form).entries());
+        const payload = {
+            mikro_view_mapping: {
+                id: data['mikro_view_mapping[id]'] || null,
+                name: data['mikro_view_mapping[name]'] || '',
+                view_name: data['mikro_view_mapping[view_name]'] || '',
+                endpoint_path: data['mikro_view_mapping[endpoint_path]'] || '',
+                payload_mode: data['mikro_view_mapping[payload_mode]'] || 'nested_lines',
+                line_array_key: data['mikro_view_mapping[line_array_key]'] || 'lines',
+                notes: data['mikro_view_mapping[notes]'] || '',
+                mapping: { order: {}, line: {} },
+            },
+        };
+
+        form.querySelectorAll('.mikro-column-select').forEach((select) => {
+            const scope = select.dataset.scope;
+            const field = select.dataset.field;
+            payload.mikro_view_mapping.mapping[scope][field] = select.value;
+        });
+
+        return payload;
+    }
+
+    async function fetchSample() {
+        sampleBtn.disabled = true;
+        sampleBtn.textContent = 'Örnek veri çekiliyor…';
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                },
+                body: JSON.stringify(formPayload()),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Örnek veri alınamadı.');
+            }
+
+            populateSelects('order', data.columns?.order || []);
+            populateSelects('line', data.columns?.line || []);
+            updateBadges(data.columns?.order || [], data.columns?.line || []);
+            samplePreview.textContent = JSON.stringify(data.sample_payload, null, 2);
+            normalizedPreview.textContent = JSON.stringify(data.normalized_preview, null, 2);
+        } catch (error) {
+            samplePreview.textContent = error.message;
+            normalizedPreview.textContent = 'Önizleme üretilemedi.';
+        } finally {
+            sampleBtn.disabled = false;
+            sampleBtn.textContent = 'Endpoint\'ten Örnek Veri Çek';
+        }
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    populateSelects('order', []);
+    populateSelects('line', []);
+    updateBadges([], []);
+    toggleLineArrayKey();
+
+    sampleBtn.addEventListener('click', fetchSample);
+    payloadMode.addEventListener('change', toggleLineArrayKey);
 })();
 </script>
 <script>

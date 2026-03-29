@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\Erp\MikroViewMappingService;
 use App\Services\GithubUpdateChecker;
 use App\Services\MailNotificationDispatcher;
 use App\Services\MailServerConnectionTester;
@@ -59,6 +60,7 @@ class SettingsController extends Controller
         private MailNotificationDispatcher $mailDispatcher,
         private MailServerConnectionTester $mailConnectionTester,
         private PortalDeployService $deployService,
+        private MikroViewMappingService $mikroViewMappings,
     ) {}
 
     public function edit(Request $request): View
@@ -67,6 +69,7 @@ class SettingsController extends Controller
             'activeTab' => $this->resolveTab($request),
             'spaces' => $this->settings->spacesConfig(),
             'mikro' => $this->settings->mikroFormConfig(),
+            'mikroViewMapping' => $this->mikroViewMappings->formConfig(),
             'mailServer' => $this->settings->mailServerFormConfig(),
             'mailNotifications' => $this->settings->mailNotificationFormConfig(),
             'updateStatus' => $this->updateStatus->snapshot(),
@@ -96,6 +99,10 @@ class SettingsController extends Controller
 
         if (array_key_exists('mikro', $validated)) {
             $this->syncMikroSettings($validated['mikro']);
+        }
+
+        if (array_key_exists('mikro_view_mapping', $validated)) {
+            $this->mikroViewMappings->save($validated['mikro_view_mapping'], $request->user());
         }
 
         if (array_key_exists('mail_server', $validated)) {
@@ -216,6 +223,30 @@ class SettingsController extends Controller
         }
     }
 
+    public function mikroViewSample(Request $request): JsonResponse
+    {
+        abort_if(! $request->user()->isAdmin(), 403);
+
+        $validated = $request->validate([
+            'mikro_view_mapping.name' => ['required', 'string', 'max:120'],
+            'mikro_view_mapping.view_name' => ['required', 'string', 'max:120'],
+            'mikro_view_mapping.endpoint_path' => ['required', 'string', 'max:255'],
+            'mikro_view_mapping.payload_mode' => ['required', 'in:flat_rows,nested_lines'],
+            'mikro_view_mapping.line_array_key' => ['nullable', 'string', 'max:80'],
+            'mikro_view_mapping.notes' => ['nullable', 'string', 'max:1000'],
+            'mikro_view_mapping.mapping.order' => ['nullable', 'array'],
+            'mikro_view_mapping.mapping.line' => ['nullable', 'array'],
+        ]);
+
+        try {
+            return response()->json($this->mikroViewMappings->fetchSample($validated['mikro_view_mapping']));
+        } catch (\InvalidArgumentException $exception) {
+            return response()->json(['error' => $exception->getMessage()], 422);
+        } catch (\Throwable $exception) {
+            return response()->json(['error' => $exception->getMessage()], 500);
+        }
+    }
+
     public function checkUpdates(Request $request): RedirectResponse
     {
         $activeTab = $this->resolveTab($request);
@@ -303,6 +334,20 @@ class SettingsController extends Controller
                 'mikro.verify_ssl' => ['nullable', 'boolean'],
                 'mikro.shipment_endpoint' => ['nullable', 'string', 'max:255'],
                 'mikro.sync_interval_minutes' => ['required', 'integer', 'min:5', 'max:1440'],
+            ];
+        }
+
+        if ($section === 'mikro_view_mapping' || $request->has('mikro_view_mapping')) {
+            $rules += [
+                'mikro_view_mapping.id' => ['nullable', 'integer'],
+                'mikro_view_mapping.name' => ['required', 'string', 'max:120'],
+                'mikro_view_mapping.view_name' => ['required', 'string', 'max:120'],
+                'mikro_view_mapping.endpoint_path' => ['required', 'string', 'max:255'],
+                'mikro_view_mapping.payload_mode' => ['required', 'in:flat_rows,nested_lines'],
+                'mikro_view_mapping.line_array_key' => ['nullable', 'string', 'max:80'],
+                'mikro_view_mapping.notes' => ['nullable', 'string', 'max:1000'],
+                'mikro_view_mapping.mapping.order' => ['required', 'array'],
+                'mikro_view_mapping.mapping.line' => ['required', 'array'],
             ];
         }
 

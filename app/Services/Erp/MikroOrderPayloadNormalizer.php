@@ -9,6 +9,8 @@ use Illuminate\Support\Carbon;
 
 class MikroOrderPayloadNormalizer
 {
+    public function __construct(private MikroViewMappingService $viewMappings) {}
+
     /**
      * Normalize disparate endpoint payloads to the ERP VIEW contract expected by the portal.
      *
@@ -16,6 +18,12 @@ class MikroOrderPayloadNormalizer
      */
     public function normalizeOrder(array $payload, SupplierMikroAccount $account): array
     {
+        $activeMapping = $this->viewMappings->active();
+
+        if ($activeMapping) {
+            return $this->viewMappings->normalizePayload($payload, $activeMapping, $account);
+        }
+
         $lines = Arr::wrap($payload['lines'] ?? Arr::get($payload, 'order_lines', []));
 
         $normalized = [

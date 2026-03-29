@@ -22,7 +22,8 @@ class MikroOrderService
 {
     public function __construct(
         private MikroClient $mikro,
-        private MikroOrderPayloadNormalizer $normalizer
+        private MikroOrderPayloadNormalizer $normalizer,
+        private MikroViewMappingService $viewMappings,
     ) {}
 
     public function syncSupplier(Supplier|int $supplier): array
@@ -95,7 +96,7 @@ class MikroOrderService
         }
 
         try {
-            $response = $this->mikro->get('/api/purchase-orders', array_filter([
+            $response = $this->mikro->get($this->viewMappings->activeEndpointPath(), array_filter([
                 'supplier_code' => $account->mikro_cari_kod,
                 'company_code' => $account->mikro_company_code ?: null,
                 'work_year' => $account->mikro_work_year ?: null,
@@ -105,7 +106,13 @@ class MikroOrderService
             throw new \RuntimeException($exception->getMessage(), previous: $exception);
         }
 
-        return Arr::wrap($response->json('data', []));
+        $data = Arr::wrap($response->json('data', []));
+
+        if ($this->viewMappings->shouldGroupFlatRows()) {
+            return $this->viewMappings->groupFlatRows($data);
+        }
+
+        return $data;
     }
 
     private function syncAccountOrders(

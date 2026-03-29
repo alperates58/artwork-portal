@@ -118,6 +118,7 @@ Route::middleware(['auth', 'active'])->group(function () {
 
             Route::get('/ayarlar', [SettingsController::class, 'edit'])->name('settings.edit');
             Route::put('/ayarlar', [SettingsController::class, 'update'])->name('settings.update');
+            Route::post('/ayarlar/mikro-view-sample', [SettingsController::class, 'mikroViewSample'])->name('settings.mikro-view-sample');
             Route::post('/ayarlar/mail-connection-test', [SettingsController::class, 'testMailConnection'])->name('settings.mail-connection-test');
             Route::post('/ayarlar/mail-test', [SettingsController::class, 'sendTestMail'])->name('settings.mail-test');
             Route::post('/ayarlar/update-check', [SettingsController::class, 'checkUpdates'])->name('settings.update-check');
