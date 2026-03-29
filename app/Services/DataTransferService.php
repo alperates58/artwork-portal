@@ -275,7 +275,7 @@ class DataTransferService
             $this->importPurchaseOrders($xml, $supplierMap, $batchUuid, $importedIds, $stats);
             $galleryMap = $this->importArtworkGallery($xml, $batchUuid, $importedIds, $stats);
             $this->importArtworkRevisions($xml, $galleryMap, $batchUuid, $importedIds, $stats);
-            $this->importDownloadLogs($xml, $batchUuid, $stats);
+            $this->importDownloadLogs($xml, $batchUuid, $importedIds, $stats);
         });
 
         $this->saveImportedIds($importedIds);
@@ -292,6 +292,11 @@ class DataTransferService
         $importedIds = $this->getImportedIds();
 
         DB::transaction(function () use ($importedIds): void {
+            $downloadLogIds = $importedIds['download_logs'] ?? [];
+            if ($downloadLogIds !== []) {
+                DB::table('artwork_download_logs')->whereIn('id', $downloadLogIds)->delete();
+            }
+
             $revisionIds = $importedIds['artwork_revisions'] ?? [];
             if ($revisionIds !== []) {
                 ArtworkRevision::query()->whereIn('id', $revisionIds)->delete();
@@ -323,6 +328,12 @@ class DataTransferService
             if ($supplierIds !== []) {
                 DB::table('supplier_users')->whereIn('supplier_id', $supplierIds)->delete();
                 Supplier::query()->whereIn('id', $supplierIds)->forceDelete();
+            }
+
+            if ($this->supportsTransferTracking()) {
+                DataTransferRecord::query()
+                    ->where('direction', 'import')
+                    ->delete();
             }
         });
 
@@ -1254,7 +1265,7 @@ class DataTransferService
         $this->dashboardCache->forgetAllAfterCommit();
     }
 
-    private function importDownloadLogs(SimpleXMLElement $xml, string $batchUuid, array &$stats): void
+    private function importDownloadLogs(SimpleXMLElement $xml, string $batchUuid, array &$importedIds, array &$stats): void
     {
         foreach ($xml->download_logs->log ?? [] as $node) {
             $payload     = $this->nodePayload($node);
@@ -1321,7 +1332,7 @@ class DataTransferService
                 ? Supplier::withTrashed()->where('code', $supplierCode)->value('id')
                 : $revision->artwork?->orderLine?->purchaseOrder?->supplier_id;
 
-            DB::table('artwork_download_logs')->insert([
+            $downloadLogId = DB::table('artwork_download_logs')->insertGetId([
                 'artwork_revision_id' => $revision->id,
                 'user_id'             => $userId,
                 'supplier_id'         => $supplierId,
@@ -1331,6 +1342,7 @@ class DataTransferService
                 'downloaded_at'       => $downloadedAt,
             ]);
 
+            $importedIds['download_logs'][] = (int) $downloadLogId;
             $this->markTransferred('import', 'download_logs', $entityKey, null, $payloadHash, $batchUuid);
             $stats['download_logs']++;
         }

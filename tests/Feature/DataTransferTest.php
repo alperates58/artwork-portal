@@ -4,10 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\Artwork;
 use App\Models\ArtworkRevision;
+use App\Models\DataTransferRecord;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
+use App\Models\SystemSetting;
 use App\Models\User;
+use App\Services\DataTransferService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
@@ -162,5 +165,84 @@ XML;
             'supplier_id' => $supplier->id,
             'ip_address' => '0.0.0.0',
         ]);
+    }
+
+    public function test_destroy_imported_resets_import_tracking_and_allows_reimporting_the_same_file(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<portal_export exported_at="2026-03-29T21:00:00+03:00" version="3" include_media="0">
+    <selection_hash>demo</selection_hash>
+    <suppliers>
+        <supplier entity_key="supplier:TED-900">
+            <name>Yeni Tedarikçi</name>
+            <code>TED-900</code>
+            <email>tedarikci@example.com</email>
+            <is_active>1</is_active>
+        </supplier>
+    </suppliers>
+    <users>
+        <user entity_key="user:portal@example.com">
+            <name>Portal Kullanıcısı</name>
+            <email>portal@example.com</email>
+            <role>supplier</role>
+            <is_active>1</is_active>
+            <supplier_ref>TED-900</supplier_ref>
+        </user>
+    </users>
+    <purchase_orders>
+        <purchase_order entity_key="order:TED-900|PO-2026-0900">
+            <supplier_ref>TED-900</supplier_ref>
+            <order_no>PO-2026-0900</order_no>
+            <status>active</status>
+            <lines type="json">[{"line_no":1,"product_code":"STK-900","description":"Deneme siparişi","quantity":10,"shipped_quantity":0,"unit":"Adet","artwork_status":"pending","notes":null}]</lines>
+        </purchase_order>
+    </purchase_orders>
+</portal_export>
+XML;
+
+        $file = UploadedFile::fake()->createWithContent('reimport.xml', $xml);
+
+        $firstImportResponse = $this->actingAs($admin)->post(route('admin.data-transfer.import'), [
+            'xml_file' => $file,
+        ]);
+
+        $firstImportResponse->assertSessionHasNoErrors();
+        $firstImportResponse->assertSessionHas('success');
+
+        $this->assertDatabaseHas('suppliers', ['code' => 'TED-900']);
+        $this->assertDatabaseHas('users', ['email' => 'portal@example.com']);
+        $this->assertDatabaseHas('purchase_orders', ['order_no' => 'PO-2026-0900']);
+        $this->assertGreaterThan(0, DataTransferRecord::query()->where('direction', 'import')->count());
+
+        $destroyResponse = $this->actingAs($admin)->delete(route('admin.data-transfer.destroy-imported'));
+        $destroyResponse->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('suppliers', ['code' => 'TED-900']);
+        $this->assertDatabaseMissing('users', ['email' => 'portal@example.com']);
+        $this->assertDatabaseMissing('purchase_orders', ['order_no' => 'PO-2026-0900']);
+        $this->assertSame(0, DataTransferRecord::query()->where('direction', 'import')->count());
+        $this->assertFalse(SystemSetting::query()->where('group', 'data_transfer')->where('key', 'imported_ids')->exists());
+
+        $secondFile = UploadedFile::fake()->createWithContent('reimport.xml', $xml);
+
+        $secondImportResponse = $this->actingAs($admin)->post(route('admin.data-transfer.import'), [
+            'xml_file' => $secondFile,
+        ]);
+
+        $secondImportResponse->assertSessionHasNoErrors();
+        $secondImportResponse->assertSessionHas('success');
+
+        $this->assertDatabaseHas('suppliers', ['code' => 'TED-900']);
+        $this->assertDatabaseHas('users', ['email' => 'portal@example.com']);
+        $this->assertDatabaseHas('purchase_orders', ['order_no' => 'PO-2026-0900']);
+
+        $importedCount = app(DataTransferService::class)->buildExportOptions()['imported_count'];
+
+        $this->assertSame(1, $importedCount['suppliers']);
+        $this->assertSame(1, $importedCount['users']);
+        $this->assertSame(1, $importedCount['purchase_orders']);
     }
 }
