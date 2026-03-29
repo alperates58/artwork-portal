@@ -17,9 +17,10 @@ class UserController extends Controller
     public function index(Request $request): View
     {
         $users = User::query()
-            ->select(['id', 'name', 'email', 'role', 'supplier_id', 'last_login_at', 'is_active'])
-            ->with('supplier')
+            ->select(['id', 'name', 'email', 'role', 'supplier_id', 'department_id', 'last_login_at', 'is_active'])
+            ->with(['supplier:id,name', 'department:id,name'])
             ->when($request->role, fn ($query) => $query->where('role', $request->role))
+            ->when($request->department_id, fn ($query) => $query->where('department_id', $request->integer('department_id')))
             ->when($request->search, fn ($query) => $query->where(function ($query) use ($request) {
                 $query->where('name', 'like', "%{$request->search}%")
                     ->orWhere('email', 'like', "%{$request->search}%");
@@ -28,7 +29,9 @@ class UserController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        return view('admin.users.index', compact('users'));
+        $departments = Department::orderBy('name')->get(['id', 'name']);
+
+        return view('admin.users.index', compact('users', 'departments'));
     }
 
     public function create(): View

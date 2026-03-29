@@ -75,30 +75,48 @@
         </div>
 
         {{-- Tablo --}}
-        <div class="card overflow-x-auto">
+        <div class="card overflow-hidden">
             <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-slate-900">Veri Tablosu</h3>
                 <span class="text-xs text-slate-400">{{ $data['row_count'] }} kayıt</span>
             </div>
-            <table class="w-full text-sm" style="min-width:400px">
-                <thead>
-                    <tr class="border-b border-slate-200 bg-slate-50 text-left">
-                        @foreach($data['columns'] as $col)
-                            <th class="px-4 py-3 font-medium text-slate-600 whitespace-nowrap">{{ $col }}</th>
-                        @endforeach
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @foreach($data['table'] as $row)
-                        <tr class="hover:bg-slate-50/60">
-                            <td class="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">{{ $row['label'] }}</td>
+            <div class="divide-y divide-slate-100 md:hidden">
+                @foreach($data['table'] as $row)
+                    <div class="px-4 py-3">
+                        <p class="text-sm font-semibold text-slate-900">{{ $row['label'] }}</p>
+                        <div class="mt-2 grid grid-cols-1 gap-1.5 text-xs text-slate-600">
                             @foreach($customReport->metrics as $m)
-                                <td class="px-4 py-3 text-slate-700 whitespace-nowrap">{{ $row[$m] }}</td>
+                                <p>
+                                    <span class="text-slate-400">{{ \App\Models\CustomReport::metricLabels()[$m] ?? $m }}:</span>
+                                    <span class="font-medium text-slate-700">{{ $row[$m] }}</span>
+                                </p>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="hidden overflow-x-auto md:block">
+                <table class="w-full min-w-[720px] text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-200 bg-slate-50 text-left">
+                            @foreach($data['columns'] as $col)
+                                <th class="px-4 py-3 font-medium text-slate-600 whitespace-nowrap">{{ $col }}</th>
                             @endforeach
                         </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach($data['table'] as $row)
+                            <tr class="hover:bg-slate-50/60">
+                                <td class="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">{{ $row['label'] }}</td>
+                                @foreach($customReport->metrics as $m)
+                                    <td class="px-4 py-3 text-slate-700 whitespace-nowrap">{{ $row[$m] }}</td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
     @endif
 

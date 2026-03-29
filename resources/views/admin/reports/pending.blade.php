@@ -92,7 +92,7 @@
             <span class="text-xs text-slate-400">{{ $lines->count() }} satır</span>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="w-full min-w-[860px] text-xs sm:text-sm">
                 <thead>
                     <tr class="border-b border-slate-200 bg-slate-50 text-left">
                         <th class="px-4 py-3 font-medium text-slate-600">Sipariş No</th>

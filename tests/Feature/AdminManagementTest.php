@@ -78,4 +78,38 @@ class AdminManagementTest extends TestCase
             ->assertSee('Satın Alma')
             ->assertSee('Departman atanırsa');
     }
+
+    public function test_users_index_supports_department_filter_and_department_column(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        $planning = Department::query()->firstOrCreate(
+            ['name' => 'Planlama'],
+            ['permissions' => []]
+        );
+
+        $graphic = Department::query()->firstOrCreate(
+            ['name' => 'Grafik'],
+            ['permissions' => []]
+        );
+
+        User::factory()->create([
+            'name' => 'Planlama Kullanıcısı',
+            'role' => UserRole::PURCHASING,
+            'department_id' => $planning->id,
+        ]);
+
+        User::factory()->create([
+            'name' => 'Grafik Kullanıcısı',
+            'role' => UserRole::GRAPHIC,
+            'department_id' => $graphic->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.index', ['department_id' => $planning->id]))
+            ->assertOk()
+            ->assertSee('Departman')
+            ->assertSee('Planlama Kullanıcısı')
+            ->assertDontSee('Grafik Kullanıcısı');
+    }
 }

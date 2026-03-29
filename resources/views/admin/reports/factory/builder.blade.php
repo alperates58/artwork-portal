@@ -271,7 +271,7 @@ $combos = ((pow(2, $dimCount) - 1) * (pow(2, $metricCount) - 1) * $chartCount);
                     <h3 class="text-sm font-semibold text-slate-900">Veri Tablosu</h3>
                     <span class="text-xs text-slate-400" x-text="rowCount + ' kayıt'"></span>
                 </div>
-                <table class="w-full text-sm" style="min-width:380px">
+                    <table class="w-full min-w-[640px] text-xs sm:text-sm">
                     <thead>
                         <tr class="border-b border-slate-200 bg-slate-50 text-left">
                             <template x-for="col in tableColumns" :key="col">

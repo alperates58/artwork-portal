@@ -164,4 +164,43 @@ class DashboardMetricCacheInvalidationTest extends TestCase
             ->assertOk()
             ->assertViewHas('metrics', fn (array $metrics) => $metrics['pending_approval'] === 1);
     }
+
+    public function test_dashboard_exposes_operational_pressure_metrics(): void
+    {
+        $adminUser = User::factory()->create(['role' => UserRole::ADMIN]);
+        $supplier = Supplier::factory()->create();
+
+        $oldOrder = PurchaseOrder::factory()->create([
+            'supplier_id' => $supplier->id,
+            'created_by' => $adminUser->id,
+            'status' => 'active',
+            'order_date' => now()->subDays(10)->toDateString(),
+        ]);
+
+        $freshOrder = PurchaseOrder::factory()->create([
+            'supplier_id' => $supplier->id,
+            'created_by' => $adminUser->id,
+            'status' => 'active',
+            'order_date' => now()->subDays(1)->toDateString(),
+        ]);
+
+        PurchaseOrderLine::factory()->create([
+            'purchase_order_id' => $oldOrder->id,
+            'artwork_status' => 'pending',
+        ]);
+
+        PurchaseOrderLine::factory()->create([
+            'purchase_order_id' => $freshOrder->id,
+            'artwork_status' => 'uploaded',
+        ]);
+
+        $this->actingAs($adminUser)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertViewHas('metrics', fn (array $metrics) => $metrics['active_order_lines'] === 2)
+            ->assertViewHas('metrics', fn (array $metrics) => $metrics['pending_artwork'] === 1)
+            ->assertViewHas('metrics', fn (array $metrics) => (float) $metrics['flow_pressure_pct'] === 50.0)
+            ->assertViewHas('metrics', fn (array $metrics) => $metrics['stalled_pending_artwork'] === 1)
+            ->assertViewHas('metrics', fn (array $metrics) => $metrics['blocked_orders'] === 1);
+    }
 }

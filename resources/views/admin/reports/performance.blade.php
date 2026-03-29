@@ -83,7 +83,7 @@
             <span class="text-xs text-slate-400">{{ $suppliers->count() }} tedarikçi</span>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full" style="min-width:780px;font-size:12px">
+            <table class="w-full min-w-[860px] text-xs sm:text-sm">
                 <thead>
                     <tr class="border-b border-slate-200 bg-slate-50 text-left">
                         <th class="px-4 py-2.5 font-semibold text-slate-500">#</th>
@@ -178,7 +178,7 @@
             <p class="text-xs text-slate-400 mt-0.5">Artwork yükleme hızı ve onaylanma oranı</p>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full" style="min-width:520px;font-size:12px">
+            <table class="w-full min-w-[620px] text-xs sm:text-sm">
                 <thead>
                     <tr class="border-b border-slate-200 bg-slate-50 text-left">
                         <th class="px-4 py-2.5 font-semibold text-slate-500">Kullanıcı</th>

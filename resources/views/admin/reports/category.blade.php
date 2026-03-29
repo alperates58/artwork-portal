@@ -67,7 +67,7 @@
         <div class="px-5 py-4 border-b border-slate-100">
             <h2 class="text-sm font-semibold text-slate-900">Kategori Detayı</h2>
         </div>
-        <table class="w-full min-w-[400px] text-sm">
+        <table class="w-full min-w-[620px] text-xs sm:text-sm">
             <thead>
                 <tr class="border-b border-slate-200 bg-slate-50 text-left">
                     <th class="px-4 py-3 font-medium text-slate-600">Kategori</th>
@@ -100,7 +100,7 @@
         <div class="px-5 py-4 border-b border-slate-100">
             <h2 class="text-sm font-semibold text-slate-900">Etiket Detayı</h2>
         </div>
-        <table class="w-full min-w-[400px] text-sm">
+        <table class="w-full min-w-[620px] text-xs sm:text-sm">
             <thead>
                 <tr class="border-b border-slate-200 bg-slate-50 text-left">
                     <th class="px-4 py-3 font-medium text-slate-600">Etiket</th>
@@ -142,7 +142,7 @@
         <div class="px-5 py-4 border-b border-slate-100">
             <h2 class="text-sm font-semibold text-slate-900">Kategori Bazında Bekleyen Artwork Süreleri</h2>
         </div>
-        <table class="w-full min-w-[400px] text-sm">
+        <table class="w-full min-w-[620px] text-xs sm:text-sm">
             <thead>
                 <tr class="border-b border-slate-200 bg-slate-50 text-left">
                     <th class="px-4 py-3 font-medium text-slate-600">Kategori</th>

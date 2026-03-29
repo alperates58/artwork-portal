@@ -23,12 +23,40 @@ class DashboardController extends Controller
         }
 
         $metrics = $this->dashboardCache->rememberMetrics(function () {
+            $pendingArtwork = PurchaseOrderLine::query()
+                ->where('artwork_status', 'pending')
+                ->count();
+
+            $activeOrderLines = PurchaseOrderLine::query()
+                ->join('purchase_orders', 'purchase_orders.id', '=', 'purchase_order_lines.purchase_order_id')
+                ->where('purchase_orders.status', 'active')
+                ->count();
+
+            $stalledPendingArtwork = PurchaseOrderLine::query()
+                ->join('purchase_orders', 'purchase_orders.id', '=', 'purchase_order_lines.purchase_order_id')
+                ->where('purchase_orders.status', 'active')
+                ->where('purchase_order_lines.artwork_status', 'pending')
+                ->whereDate('purchase_orders.order_date', '<=', now()->subDays(7)->toDateString())
+                ->count();
+
+            $blockedOrders = PurchaseOrder::query()
+                ->where('status', 'active')
+                ->whereDate('order_date', '<=', now()->subDays(7)->toDateString())
+                ->whereHas('lines', fn ($query) => $query->where('artwork_status', 'pending'))
+                ->count();
+
             return [
-                'pending_artwork' => PurchaseOrderLine::where('artwork_status', 'pending')->count(),
+                'pending_artwork' => $pendingArtwork,
                 'uploaded_artwork' => PurchaseOrderLine::where('artwork_status', 'uploaded')->count(),
                 'pending_approval' => PurchaseOrderLine::where('artwork_status', 'revision')->count(),
                 'active_orders' => PurchaseOrder::where('status', 'active')->count(),
                 'total_revisions' => ArtworkRevision::count(),
+                'active_order_lines' => $activeOrderLines,
+                'flow_pressure_pct' => $activeOrderLines > 0
+                    ? round(($pendingArtwork / $activeOrderLines) * 100, 1)
+                    : 0.0,
+                'stalled_pending_artwork' => $stalledPendingArtwork,
+                'blocked_orders' => $blockedOrders,
             ];
         });
 
