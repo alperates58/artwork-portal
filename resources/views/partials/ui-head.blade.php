@@ -12,9 +12,7 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>{{ $title ? $title . ' — ' : '' }}{{ config('portal.brand_name') }}</title>
 
-@if($faviconUrl)
-    <link rel="icon" type="image/png" href="{{ $faviconUrl }}">
-@endif
+<link rel="icon" type="image/png" href="{{ asset('brand/logo2.png') }}?v=2">
 
 @include('partials.app-assets')
 

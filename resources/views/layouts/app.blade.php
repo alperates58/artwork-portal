@@ -185,7 +185,7 @@
                     <a href="{{ route('dashboard') }}" class="sb-logo-wrap group flex flex-col items-center gap-3">
                         {{-- Expanded: lotus + brand text --}}
                         <div class="sb-logo-expanded flex flex-col items-center gap-2">
-                            <img src="{{ asset('brand/logo2.png') }}" alt="Logo" class="h-20 w-20 object-contain drop-shadow-lg">
+                            <img src="{{ asset('brand/logo2.png') }}" alt="Logo" class="h-28 w-28 object-contain drop-shadow-lg">
                             <div class="sb-logo-text text-center space-y-0.5">
                                 <span class="block text-[11px] font-bold uppercase tracking-[0.20em] text-white/90">Lider Kozmetik</span>
                                 <span class="block text-[10px] font-semibold uppercase tracking-[0.18em]" style="color: rgba(167,139,250,0.8);">Portal</span>
@@ -193,7 +193,7 @@
                         </div>
                         {{-- Collapsed: lotus only --}}
                         <div class="sb-logo-collapsed hidden items-center justify-center">
-                            <img src="{{ asset('brand/logo2.png') }}" alt="Logo" class="h-12 w-12 object-contain">
+                            <img src="{{ asset('brand/logo2.png') }}" alt="Logo" class="h-16 w-16 object-contain">
                         </div>
                     </a>
                 </div>
