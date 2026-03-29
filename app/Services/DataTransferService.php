@@ -402,6 +402,21 @@ class DataTransferService
             ->exists();
     }
 
+    private function forgetTransferred(string $direction, string $entityType, string $entityKey, ?string $selectionHash, string $payloadHash): void
+    {
+        if (! $this->supportsTransferTracking() || $entityKey === '') {
+            return;
+        }
+
+        DataTransferRecord::query()
+            ->where('direction', $direction)
+            ->where('entity_type', $entityType)
+            ->where('entity_key', $entityKey)
+            ->where('selection_hash', $selectionHash)
+            ->where('payload_hash', $payloadHash)
+            ->delete();
+    }
+
     private function markTransferred(string $direction, string $entityType, string $entityKey, ?string $selectionHash, string $payloadHash, string $batchUuid): void
     {
         if (! $this->supportsTransferTracking()) {
@@ -841,24 +856,24 @@ class DataTransferService
             $payload = $this->nodePayload($node);
             $entityKey = (string) ($node['entity_key'] ?? '');
             $payloadHash = $this->payloadHash($payload);
-
-            if ($entityKey !== '' && $this->wasTransferred('import', 'suppliers', $entityKey, null, $payloadHash)) {
-                $stats['skipped']++;
-                $existing = Supplier::withTrashed()->where('code', $payload['code'] ?? null)->first();
-                if ($existing) {
-                    $supplierMap[$entityKey] = $existing->id;
-                }
-                continue;
-            }
-
             $existing = filled($payload['code'] ?? null)
                 ? Supplier::withTrashed()->where('code', $payload['code'])->first()
                 : null;
 
+            if ($entityKey !== '' && $this->wasTransferred('import', 'suppliers', $entityKey, null, $payloadHash)) {
+                if ($existing) {
+                    $stats['skipped']++;
+                    $supplierMap[$entityKey] = $existing->id;
+                    continue;
+                }
+
+                $this->forgetTransferred('import', 'suppliers', $entityKey, null, $payloadHash);
+            }
+
             if ($existing) {
+                $stats['skipped']++;
                 $supplierMap[$entityKey] = $existing->id;
                 $this->markTransferred('import', 'suppliers', $entityKey, null, $payloadHash, $batchUuid);
-                $stats['skipped']++;
                 continue;
             }
 
@@ -891,15 +906,21 @@ class DataTransferService
             $payload = $this->nodePayload($node);
             $entityKey = (string) ($node['entity_key'] ?? '');
             $payloadHash = $this->payloadHash($payload);
+            $email = (string) ($payload['email'] ?? '');
+            $existingUserId = $email !== ''
+                ? User::query()->where('email', $email)->value('id')
+                : null;
 
             if ($entityKey !== '' && $this->wasTransferred('import', 'users', $entityKey, null, $payloadHash)) {
-                $stats['skipped']++;
-                continue;
+                if ($existingUserId) {
+                    $stats['skipped']++;
+                    continue;
+                }
+
+                $this->forgetTransferred('import', 'users', $entityKey, null, $payloadHash);
             }
 
-            $email = (string) ($payload['email'] ?? '');
-
-            if ($email !== '' && User::query()->where('email', $email)->exists()) {
+            if ($existingUserId) {
                 $this->markTransferred('import', 'users', $entityKey ?: 'user:' . $email, null, $payloadHash, $batchUuid);
                 $stats['skipped']++;
                 continue;
@@ -994,25 +1015,30 @@ class DataTransferService
             $entityKey = (string) ($node['entity_key'] ?? '');
             $payloadHash = $this->payloadHash($payload);
 
-            if ($entityKey !== '' && $this->wasTransferred('import', 'purchase_orders', $entityKey, null, $payloadHash)) {
-                $stats['skipped']++;
-                continue;
-            }
-
             $supplierRef = $payload['supplier_ref'] ?? null;
             $supplierId = $supplierRef
                 ? ($supplierMap[$supplierRef] ?? Supplier::withTrashed()->where('code', $supplierRef)->value('id'))
                 : null;
+            $existing = $supplierId && filled($payload['order_no'] ?? null)
+                ? PurchaseOrder::query()
+                    ->where('supplier_id', $supplierId)
+                    ->where('order_no', $payload['order_no'])
+                    ->first()
+                : null;
+
+            if ($entityKey !== '' && $this->wasTransferred('import', 'purchase_orders', $entityKey, null, $payloadHash)) {
+                if ($existing) {
+                    $stats['skipped']++;
+                    continue;
+                }
+
+                $this->forgetTransferred('import', 'purchase_orders', $entityKey, null, $payloadHash);
+            }
 
             if (! $supplierId || blank($payload['order_no'] ?? null)) {
                 $stats['skipped']++;
                 continue;
             }
-
-            $existing = PurchaseOrder::query()
-                ->where('supplier_id', $supplierId)
-                ->where('order_no', $payload['order_no'])
-                ->first();
 
             if ($existing) {
                 $this->markTransferred('import', 'purchase_orders', $entityKey ?: $this->purchaseOrderNaturalKey($supplierRef, $payload['order_no']), null, $payloadHash, $batchUuid);
@@ -1066,17 +1092,18 @@ class DataTransferService
             $payload = $this->nodePayload($node);
             $entityKey = (string) ($node['entity_key'] ?? '');
             $payloadHash = $this->payloadHash($payload);
+            $existing = $this->findExistingGalleryItem($payload);
 
             if ($entityKey !== '' && $this->wasTransferred('import', 'artwork_gallery', $entityKey, null, $payloadHash)) {
-                $stats['skipped']++;
-                $existing = $this->findExistingGalleryItem($payload);
                 if ($existing) {
+                    $stats['skipped']++;
                     $galleryMap[$entityKey] = $existing;
+                    continue;
                 }
-                continue;
+
+                $this->forgetTransferred('import', 'artwork_gallery', $entityKey, null, $payloadHash);
             }
 
-            $existing = $this->findExistingGalleryItem($payload);
             if ($existing) {
                 $galleryMap[$entityKey] = $existing;
                 $this->markTransferred('import', 'artwork_gallery', $entityKey, null, $payloadHash, $batchUuid);
@@ -1148,11 +1175,6 @@ class DataTransferService
             $entityKey = (string) ($node['entity_key'] ?? '');
             $payloadHash = $this->payloadHash($payload);
 
-            if ($entityKey !== '' && $this->wasTransferred('import', 'artwork_revisions', $entityKey, null, $payloadHash)) {
-                $stats['skipped']++;
-                continue;
-            }
-
             $supplierRef = $payload['supplier_ref'] ?? null;
             $orderNo = $payload['order_no'] ?? null;
             $lineNo = (int) ($payload['line_no'] ?? 0);
@@ -1173,7 +1195,20 @@ class DataTransferService
                 continue;
             }
 
-            $artwork = $line->artwork ?? Artwork::create([
+            $revisionNo = (int) ($payload['revision_no'] ?? 0);
+            $artwork = $line->artwork;
+            $existing = $artwork?->revisions()->where('revision_no', $revisionNo)->first();
+
+            if ($entityKey !== '' && $this->wasTransferred('import', 'artwork_revisions', $entityKey, null, $payloadHash)) {
+                if ($existing) {
+                    $stats['skipped']++;
+                    continue;
+                }
+
+                $this->forgetTransferred('import', 'artwork_revisions', $entityKey, null, $payloadHash);
+            }
+
+            $artwork ??= Artwork::create([
                 'order_line_id' => $line->id,
                 'title' => pathinfo((string) ($payload['original_filename'] ?? ('Revizyon ' . ($payload['revision_no'] ?? ''))), PATHINFO_FILENAME),
             ]);
@@ -1181,9 +1216,6 @@ class DataTransferService
             if (! in_array($artwork->id, $importedIds['artworks'] ?? [], true)) {
                 $importedIds['artworks'][] = $artwork->id;
             }
-
-            $revisionNo = (int) ($payload['revision_no'] ?? 0);
-            $existing = $artwork->revisions()->where('revision_no', $revisionNo)->first();
 
             if ($existing) {
                 $this->markTransferred('import', 'artwork_revisions', $entityKey ?: $this->artworkRevisionNaturalKey($supplierRef, $orderNo, $lineNo, $revisionNo), null, $payloadHash, $batchUuid);
@@ -1272,11 +1304,6 @@ class DataTransferService
             $entityKey   = (string) ($node['entity_key'] ?? '');
             $payloadHash = $this->payloadHash($payload);
 
-            if ($entityKey !== '' && $this->wasTransferred('import', 'download_logs', $entityKey, null, $payloadHash)) {
-                $stats['skipped']++;
-                continue;
-            }
-
             $revisionRef  = $payload['revision_ref'] ?? null;
             $downloadedAt = $payload['downloaded_at'] ?? null;
 
@@ -1331,6 +1358,27 @@ class DataTransferService
             $supplierId   = $supplierCode
                 ? Supplier::withTrashed()->where('code', $supplierCode)->value('id')
                 : $revision->artwork?->orderLine?->purchaseOrder?->supplier_id;
+            $existingDownloadLogId = DB::table('artwork_download_logs')
+                ->where('artwork_revision_id', $revision->id)
+                ->where('downloaded_at', $downloadedAt)
+                ->when($userId, fn ($query) => $query->where('user_id', $userId), fn ($query) => $query->whereNull('user_id'))
+                ->when($supplierId, fn ($query) => $query->where('supplier_id', $supplierId), fn ($query) => $query->whereNull('supplier_id'))
+                ->value('id');
+
+            if ($entityKey !== '' && $this->wasTransferred('import', 'download_logs', $entityKey, null, $payloadHash)) {
+                if ($existingDownloadLogId) {
+                    $stats['skipped']++;
+                    continue;
+                }
+
+                $this->forgetTransferred('import', 'download_logs', $entityKey, null, $payloadHash);
+            }
+
+            if ($existingDownloadLogId) {
+                $this->markTransferred('import', 'download_logs', $entityKey, null, $payloadHash, $batchUuid);
+                $stats['skipped']++;
+                continue;
+            }
 
             $downloadLogId = DB::table('artwork_download_logs')->insertGetId([
                 'artwork_revision_id' => $revision->id,

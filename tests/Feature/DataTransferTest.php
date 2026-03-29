@@ -245,4 +245,79 @@ XML;
         $this->assertSame(1, $importedCount['users']);
         $this->assertSame(1, $importedCount['purchase_orders']);
     }
+
+    public function test_import_recreates_missing_records_even_when_old_import_tracking_exists(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<portal_export exported_at="2026-03-29T22:00:00+03:00" version="3" include_media="0">
+    <selection_hash>demo</selection_hash>
+    <suppliers>
+        <supplier entity_key="supplier:TED-901">
+            <name>Yeniden Oluşacak Tedarikçi</name>
+            <code>TED-901</code>
+            <email>yeniden@example.com</email>
+            <is_active>1</is_active>
+        </supplier>
+    </suppliers>
+    <users>
+        <user entity_key="user:yeniden-kullanici@example.com">
+            <name>Yeniden Kullanıcı</name>
+            <email>yeniden-kullanici@example.com</email>
+            <role>supplier</role>
+            <is_active>1</is_active>
+            <supplier_ref>TED-901</supplier_ref>
+        </user>
+    </users>
+    <purchase_orders>
+        <purchase_order entity_key="order:TED-901|PO-2026-0901">
+            <supplier_ref>TED-901</supplier_ref>
+            <order_no>PO-2026-0901</order_no>
+            <status>active</status>
+            <lines type="json">[{"line_no":1,"product_code":"STK-901","description":"Tekrar import","quantity":5,"shipped_quantity":0,"unit":"Adet","artwork_status":"pending","notes":null}]</lines>
+        </purchase_order>
+    </purchase_orders>
+</portal_export>
+XML;
+
+        $firstFile = UploadedFile::fake()->createWithContent('stale-tracking.xml', $xml);
+
+        $firstImportResponse = $this->actingAs($admin)->post(route('admin.data-transfer.import'), [
+            'xml_file' => $firstFile,
+        ]);
+
+        $firstImportResponse->assertSessionHasNoErrors();
+        $firstImportResponse->assertSessionHas('success');
+        $this->assertGreaterThan(0, DataTransferRecord::query()->where('direction', 'import')->count());
+
+        PurchaseOrderLine::query()->delete();
+        PurchaseOrder::query()->delete();
+        User::query()->where('email', 'yeniden-kullanici@example.com')->delete();
+        Supplier::query()->where('code', 'TED-901')->forceDelete();
+        SystemSetting::query()
+            ->where('group', 'data_transfer')
+            ->where('key', 'imported_ids')
+            ->delete();
+
+        $secondFile = UploadedFile::fake()->createWithContent('stale-tracking.xml', $xml);
+
+        $secondImportResponse = $this->actingAs($admin)->post(route('admin.data-transfer.import'), [
+            'xml_file' => $secondFile,
+        ]);
+
+        $secondImportResponse->assertSessionHasNoErrors();
+        $secondImportResponse->assertSessionHas('success');
+
+        $this->assertDatabaseHas('suppliers', ['code' => 'TED-901']);
+        $this->assertDatabaseHas('users', ['email' => 'yeniden-kullanici@example.com']);
+        $this->assertDatabaseHas('purchase_orders', ['order_no' => 'PO-2026-0901']);
+
+        $importedCount = app(DataTransferService::class)->buildExportOptions()['imported_count'];
+
+        $this->assertSame(1, $importedCount['suppliers']);
+        $this->assertSame(1, $importedCount['users']);
+        $this->assertSame(1, $importedCount['purchase_orders']);
+    }
 }
