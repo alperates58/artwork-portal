@@ -1075,8 +1075,8 @@ class DataTransferService
                 'supplier_id' => $supplierId,
                 'order_no' => $payload['order_no'],
                 'status' => $payload['status'] ?? 'active',
-                'order_date' => $payload['order_date'] ?? now()->toDateString(),
-                'due_date' => $payload['due_date'] ?? null,
+                'order_date' => $this->nullIfBlank($payload['order_date'] ?? null) ?? now()->toDateString(),
+                'due_date' => $this->nullIfBlank($payload['due_date'] ?? null),
                 'notes' => $payload['notes'] ?? null,
                 'created_by' => $createdBy,
             ]));
@@ -1288,7 +1288,7 @@ class DataTransferService
                 ? User::query()->where('email', $payload['uploaded_by_email'])->value('id')
                 : auth()->id();
 
-            $approvalStatus = $payload['approval_status'] ?? 'pending';
+            $approvalStatus = $this->nullIfBlank($payload['approval_status'] ?? null) ?? 'pending';
             $isActive       = $this->toBool($payload['is_active'] ?? false);
             $storedFilename = $spacesPath ? basename($spacesPath) : ($payload['original_filename'] ?? 'imported-file');
             $revisionPath = $spacesPath ?: 'metadata-only/' . Str::uuid();
@@ -1306,8 +1306,8 @@ class DataTransferService
                 'uploaded_by'       => $uploadedBy,
                 'notes'             => $payload['notes'] ?? null,
                 'approval_status'   => $approvalStatus,
-                'approved_at'       => $payload['approved_at'] ?? null,
-                'archived_at'       => $payload['archived_at'] ?? null,
+                'approved_at'       => $this->nullIfBlank($payload['approved_at'] ?? null),
+                'archived_at'       => $this->nullIfBlank($payload['archived_at'] ?? null),
             ]));
 
             $this->syncTimestamps($revision->getTable(), $revision->id, $payload['created_at'] ?? null, $payload['created_at'] ?? null);
@@ -1584,6 +1584,11 @@ class DataTransferService
     private function defaultImportedIpAddress(): string
     {
         return '0.0.0.0';
+    }
+
+    private function nullIfBlank(mixed $value): mixed
+    {
+        return blank($value) ? null : $value;
     }
 
     private function supportsTable(string $table): bool

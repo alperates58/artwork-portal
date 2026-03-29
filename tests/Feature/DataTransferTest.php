@@ -393,6 +393,8 @@ XML;
             <is_active>1</is_active>
             <approval_status>pending</approval_status>
             <notes>Medya olmadan içe aktarma</notes>
+            <approved_at></approved_at>
+            <archived_at></archived_at>
         </revision>
     </artwork_revisions>
 </portal_export>
@@ -418,5 +420,7 @@ XML;
             'metadata-only/',
             (string) ArtworkRevision::query()->value('spaces_path')
         );
+        $this->assertNull(ArtworkRevision::query()->value('approved_at'));
+        $this->assertNull(ArtworkRevision::query()->value('archived_at'));
     }
 }
