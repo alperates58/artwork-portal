@@ -3,99 +3,170 @@
 @section('page-title', 'Dashboard')
 
 @section('content')
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <x-ui.card padding="p-5">
-        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Artwork Bekliyor</p>
-        <a href="{{ route('orders.index', ['artwork_status' => 'pending']) }}"
-           class="text-2xl font-semibold text-slate-900 hover:text-brand-700 transition-colors">{{ number_format($metrics['pending_artwork']) }}</a>
-        <p class="text-xs text-amber-600 mt-1">Yüklenmemiş satır</p>
-    </x-ui.card>
-    <x-ui.card padding="p-5">
-        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Artwork Yüklendi</p>
-        <a href="{{ route('orders.index', ['artwork_status' => 'uploaded']) }}"
-           class="text-2xl font-semibold text-slate-900 hover:text-brand-700 transition-colors">{{ number_format($metrics['uploaded_artwork']) }}</a>
-        <p class="text-xs text-emerald-600 mt-1">Aktif revizyonu olan</p>
-    </x-ui.card>
-    <x-ui.card padding="p-5">
-        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Onay Bekliyor</p>
-        <a href="{{ route('orders.index', ['artwork_status' => 'revision']) }}"
-           class="text-2xl font-semibold text-slate-900 hover:text-brand-700 transition-colors">{{ number_format($metrics['pending_approval'] ?? 0) }}</a>
-        <p class="text-xs text-blue-600 mt-1">Tedarikçi onayı beklenen</p>
-    </x-ui.card>
-    <x-ui.card padding="p-5">
-        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Aktif Siparişler</p>
-        <a href="{{ route('orders.index', ['status' => 'active']) }}"
-           class="text-2xl font-semibold text-slate-900 hover:text-brand-700 transition-colors">{{ number_format($metrics['active_orders']) }}</a>
-        <p class="text-xs text-slate-400 mt-1">Toplam aktif PO</p>
-    </x-ui.card>
-</div>
-
 @php
-    $flowPressure = (float) ($metrics['flow_pressure_pct'] ?? 0);
-    $flowTone = match (true) {
-        $flowPressure >= 55 => [
-            'label' => 'Kritik birikme',
-            'desc' => 'Açık sipariş satırlarına göre bekleyen artwork yoğunluğu çok yüksek.',
-            'class' => 'bg-red-50 border-red-200 text-red-700',
+    $activeOrderLines = (int) ($metrics['active_order_lines'] ?? 0);
+    $uploadedArtwork = (int) ($metrics['uploaded_artwork'] ?? 0);
+    $pendingArtwork = (int) ($metrics['pending_artwork'] ?? 0);
+    $pendingApproval = (int) ($metrics['pending_approval'] ?? 0);
+    $stalledPending = (int) ($metrics['stalled_pending_artwork'] ?? 0);
+    $blockedOrders = (int) ($metrics['blocked_orders'] ?? 0);
+
+    $uploadCompletionPct = (float) ($metrics['upload_completion_pct'] ?? 0);
+    $flowPressurePct = (float) ($metrics['flow_pressure_pct'] ?? 0);
+    $approvalCompletionPct = (float) ($metrics['approval_completion_pct'] ?? 0);
+
+    $uploadedPctForChart = max(0.0, min(100.0, $uploadCompletionPct));
+    $pendingPctForChart = max(0.0, 100.0 - $uploadedPctForChart);
+
+    $approvalQueuePct = $activeOrderLines > 0 ? round(($pendingApproval / $activeOrderLines) * 100, 1) : 0.0;
+    $stalledQueuePct = $activeOrderLines > 0 ? round(($stalledPending / $activeOrderLines) * 100, 1) : 0.0;
+
+    $alarm = match (true) {
+        $flowPressurePct >= 55 || $blockedOrders >= 10 => [
+            'title' => 'Kritik seviye',
+            'desc' => 'Bekleyen yük kritik eşiği geçmiş durumda. İş akışında tıkanma var.',
+            'class' => 'bg-red-50 text-red-700 border-red-200',
             'dot' => 'bg-red-500',
         ],
-        $flowPressure >= 35 => [
-            'label' => 'Yüksek yoğunluk',
-            'desc' => 'Operasyonda birikme artıyor, yakın takip önerilir.',
-            'class' => 'bg-amber-50 border-amber-200 text-amber-700',
+        $flowPressurePct >= 35 || $blockedOrders >= 4 => [
+            'title' => 'Dikkat seviyesi',
+            'desc' => 'Yük artıyor. Yakın takip edilmezse darboğaz büyüyebilir.',
+            'class' => 'bg-amber-50 text-amber-700 border-amber-200',
             'dot' => 'bg-amber-500',
         ],
         default => [
-            'label' => 'Akış dengede',
-            'desc' => 'Bekleyen yük, açık satır hacmine göre yönetilebilir seviyede.',
-            'class' => 'bg-emerald-50 border-emerald-200 text-emerald-700',
+            'title' => 'Kontrol altında',
+            'desc' => 'Mevcut yük dengeli. Süreç normal akışta ilerliyor.',
+            'class' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
             'dot' => 'bg-emerald-500',
         ],
     };
-
-    $stalledCount = (int) ($metrics['stalled_pending_artwork'] ?? 0);
-    $stalledTone = match (true) {
-        $stalledCount >= 30 => 'text-red-600',
-        $stalledCount >= 10 => 'text-amber-600',
-        default => 'text-emerald-600',
-    };
 @endphp
 
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
+<div class="grid grid-cols-2 gap-4 xl:grid-cols-4 mb-6">
     <x-ui.card padding="p-5">
-        <div class="flex items-start justify-between gap-4">
+        <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Aktif Sipariş</p>
+        <a href="{{ route('orders.index', ['status' => 'active']) }}" class="text-2xl font-semibold text-slate-900 hover:text-brand-700 transition-colors">
+            {{ number_format($metrics['active_orders'] ?? 0) }}
+        </a>
+        <p class="mt-1 text-xs text-slate-500">Şu anda işlemde olan sipariş</p>
+    </x-ui.card>
+
+    <x-ui.card padding="p-5">
+        <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Toplam Aktif Satır</p>
+        <a href="{{ route('orders.index', ['status' => 'active']) }}" class="text-2xl font-semibold text-slate-900 hover:text-brand-700 transition-colors">
+            {{ number_format($activeOrderLines) }}
+        </a>
+        <p class="mt-1 text-xs text-slate-500">Aktif siparişlerin toplam satırı</p>
+    </x-ui.card>
+
+    <x-ui.card padding="p-5">
+        <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Artwork Yüklenen Satır</p>
+        <a href="{{ route('orders.index', ['artwork_status' => 'uploaded']) }}" class="text-2xl font-semibold text-slate-900 hover:text-brand-700 transition-colors">
+            {{ number_format($uploadedArtwork) }}
+        </a>
+        <p class="mt-1 text-xs text-emerald-600">Tamamlanma: {{ number_format($uploadCompletionPct, 1, ',', '.') }}%</p>
+    </x-ui.card>
+
+    <x-ui.card padding="p-5">
+        <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Henüz Artwork Bekleyen</p>
+        <a href="{{ route('orders.index', ['artwork_status' => 'pending']) }}" class="text-2xl font-semibold text-slate-900 hover:text-brand-700 transition-colors">
+            {{ number_format($pendingArtwork) }}
+        </a>
+        <p class="mt-1 text-xs text-amber-600">Basınç: {{ number_format($flowPressurePct, 1, ',', '.') }}%</p>
+    </x-ui.card>
+</div>
+
+<div class="grid grid-cols-1 gap-5 xl:grid-cols-2 mb-6">
+    <x-ui.card padding="p-5">
+        <div class="flex items-start justify-between gap-3">
             <div>
-                <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Operasyon Nabzı</p>
-                <p class="mt-2 text-lg font-semibold text-slate-900">{{ $flowTone['label'] }}</p>
-                <p class="mt-1 text-xs text-slate-500">{{ $flowTone['desc'] }}</p>
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">İş Akışı Görünümü</p>
+                <h2 class="mt-2 text-lg font-semibold text-slate-900">Toplam satıra göre yükleme ilerlemesi</h2>
+                <p class="mt-1 text-xs text-slate-500">Bu grafik, aktif sipariş satırlarının ne kadarının artwork yükleme adımını geçtiğini doğrudan gösterir.</p>
             </div>
-            <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold {{ $flowTone['class'] }}">
-                <span class="h-2 w-2 rounded-full {{ $flowTone['dot'] }}"></span>
-                {{ number_format($flowPressure, 1, ',', '.') }}%
+            <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold {{ $alarm['class'] }}">
+                <span class="h-2 w-2 rounded-full {{ $alarm['dot'] }}"></span>
+                {{ $alarm['title'] }}
             </span>
         </div>
-        <div class="mt-4 grid grid-cols-3 gap-3 text-xs">
-            <div class="rounded-xl bg-slate-50 px-3 py-2">
-                <p class="text-slate-400">Açık satır</p>
-                <p class="mt-1 text-sm font-semibold text-slate-800">{{ number_format($metrics['active_order_lines'] ?? 0) }}</p>
+
+        <div class="mt-5 grid grid-cols-1 items-center gap-6 sm:grid-cols-[220px_minmax(0,1fr)]">
+            <div class="mx-auto">
+                <div class="relative h-44 w-44 rounded-full" style="background: conic-gradient(#10b981 0% {{ $uploadedPctForChart }}%, #f59e0b {{ $uploadedPctForChart }}% 100%);">
+                    <div class="absolute inset-4 rounded-full border border-slate-100 bg-white flex flex-col items-center justify-center text-center">
+                        <p class="text-[11px] text-slate-400">Yükleme</p>
+                        <p class="text-2xl font-semibold text-slate-900">{{ number_format($uploadCompletionPct, 1, ',', '.') }}%</p>
+                        <p class="text-[11px] text-slate-400">tamamlandı</p>
+                    </div>
+                </div>
             </div>
-            <div class="rounded-xl bg-slate-50 px-3 py-2">
-                <p class="text-slate-400">Bekleyen</p>
-                <p class="mt-1 text-sm font-semibold text-slate-800">{{ number_format($metrics['pending_artwork'] ?? 0) }}</p>
-            </div>
-            <div class="rounded-xl bg-slate-50 px-3 py-2">
-                <p class="text-slate-400">7+ gün bekleyen</p>
-                <p class="mt-1 text-sm font-semibold {{ $stalledTone }}">{{ number_format($stalledCount) }}</p>
+
+            <div class="space-y-3">
+                <div class="rounded-xl bg-slate-50 px-4 py-3">
+                    <p class="text-xs text-slate-400">Yüklenen satır</p>
+                    <p class="mt-1 text-lg font-semibold text-emerald-700">{{ number_format($uploadedArtwork) }}</p>
+                </div>
+                <div class="rounded-xl bg-slate-50 px-4 py-3">
+                    <p class="text-xs text-slate-400">Bekleyen satır</p>
+                    <p class="mt-1 text-lg font-semibold text-amber-700">{{ number_format($pendingArtwork) }}</p>
+                </div>
+                <div class="rounded-xl bg-slate-50 px-4 py-3">
+                    <p class="text-xs text-slate-400">Toplam aktif satır</p>
+                    <p class="mt-1 text-lg font-semibold text-slate-800">{{ number_format($activeOrderLines) }}</p>
+                </div>
             </div>
         </div>
     </x-ui.card>
 
     <x-ui.card padding="p-5">
-        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Darboğaz Alarmı</p>
-        <div class="mt-2 flex items-end justify-between gap-3">
-            <p class="text-3xl font-semibold text-slate-900">{{ number_format($metrics['blocked_orders'] ?? 0) }}</p>
-            <p class="text-xs text-slate-500 text-right">7 günden eski ve hâlâ bekleyen satırı olan aktif sipariş</p>
+        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Alarm Grafiği</p>
+        <h2 class="mt-2 text-lg font-semibold text-slate-900">İşler nerede sıkışıyor?</h2>
+        <p class="mt-1 text-xs text-slate-500">{{ $alarm['desc'] }}</p>
+
+        <div class="mt-5 space-y-4">
+            <div>
+                <div class="mb-1 flex items-center justify-between text-xs">
+                    <span class="text-slate-500">Bekleyen oranı</span>
+                    <span class="font-semibold text-slate-700">{{ number_format($flowPressurePct, 1, ',', '.') }}%</span>
+                </div>
+                <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div class="h-full rounded-full bg-amber-500" style="width: {{ max(0, min(100, $flowPressurePct)) }}%"></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="mb-1 flex items-center justify-between text-xs">
+                    <span class="text-slate-500">Onay kuyruğu oranı</span>
+                    <span class="font-semibold text-slate-700">{{ number_format($approvalQueuePct, 1, ',', '.') }}%</span>
+                </div>
+                <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div class="h-full rounded-full bg-indigo-500" style="width: {{ max(0, min(100, $approvalQueuePct)) }}%"></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="mb-1 flex items-center justify-between text-xs">
+                    <span class="text-slate-500">7+ gün bekleyen oranı</span>
+                    <span class="font-semibold text-slate-700">{{ number_format($stalledQueuePct, 1, ',', '.') }}%</span>
+                </div>
+                <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div class="h-full rounded-full bg-red-500" style="width: {{ max(0, min(100, $stalledQueuePct)) }}%"></div>
+                </div>
+            </div>
         </div>
+
+        <div class="mt-5 grid grid-cols-2 gap-3 text-xs">
+            <div class="rounded-xl bg-slate-50 px-3 py-2">
+                <p class="text-slate-400">Darboğaz sipariş</p>
+                <p class="mt-1 text-lg font-semibold text-slate-900">{{ number_format($blockedOrders) }}</p>
+            </div>
+            <div class="rounded-xl bg-slate-50 px-3 py-2">
+                <p class="text-slate-400">7+ gün bekleyen satır</p>
+                <p class="mt-1 text-lg font-semibold text-slate-900">{{ number_format($stalledPending) }}</p>
+            </div>
+        </div>
+
         <div class="mt-4 flex flex-wrap gap-2">
             <a href="{{ route('orders.index', ['status' => 'active', 'artwork_status' => 'pending']) }}" class="btn btn-secondary text-xs">Bekleyen siparişleri aç</a>
             @if(auth()->user()->isAdmin() || auth()->user()->hasPermission('reports', 'view'))
@@ -103,55 +174,5 @@
             @endif
         </div>
     </x-ui.card>
-</div>
-
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div class="card">
-        <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
-            <h2 class="text-sm font-semibold text-slate-900">Son Yüklenen Artwork</h2>
-            <a href="{{ route('orders.index') }}" class="text-xs text-brand-700 hover:underline">Tümü</a>
-        </div>
-        <div class="divide-y divide-slate-100">
-            @forelse($panels['recent_revisions'] as $revision)
-                <div class="px-5 py-3 flex items-center gap-3">
-                    <div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span class="text-xs font-bold text-slate-500">{{ $revision['extension'] }}</span>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-slate-900 truncate">{{ $revision['filename'] }}</p>
-                        <p class="text-xs text-slate-500">{{ $revision['order_no'] }} · Rev.{{ $revision['revision_no'] }}</p>
-                    </div>
-                    <p class="text-xs text-slate-400 flex-shrink-0">{{ $revision['created_at_human'] }}</p>
-                </div>
-            @empty
-                <div class="px-5 py-8 text-center text-sm text-slate-400">Henüz artwork yüklenmemiş.</div>
-            @endforelse
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
-            <h2 class="text-sm font-semibold text-slate-900">Son İndirmeler</h2>
-            @if(auth()->user()->isAdmin())
-                <a href="{{ route('admin.logs.index') }}" class="text-xs text-brand-700 hover:underline">Loglar</a>
-            @endif
-        </div>
-        <div class="divide-y divide-slate-100">
-            @forelse($panels['recent_downloads'] as $download)
-                <div class="px-5 py-3 flex items-center gap-3">
-                    <div class="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span class="text-xs font-semibold text-blue-600">{{ strtoupper(substr($download['user_name'] ?: '?', 0, 2)) }}</span>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm text-slate-900 truncate">{{ $download['user_name'] }}</p>
-                        <p class="text-xs text-slate-500">{{ $download['filename'] }}</p>
-                    </div>
-                    <p class="text-xs text-slate-400 flex-shrink-0">{{ $download['created_at_human'] }}</p>
-                </div>
-            @empty
-                <div class="px-5 py-8 text-center text-sm text-slate-400">Henüz indirme yok.</div>
-            @endforelse
-        </div>
-    </div>
 </div>
 @endsection

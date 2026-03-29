@@ -203,4 +203,17 @@ class DashboardMetricCacheInvalidationTest extends TestCase
             ->assertViewHas('metrics', fn (array $metrics) => $metrics['stalled_pending_artwork'] === 1)
             ->assertViewHas('metrics', fn (array $metrics) => $metrics['blocked_orders'] === 1);
     }
+
+    public function test_dashboard_replaces_recent_lists_with_flow_graph_sections(): void
+    {
+        $adminUser = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        $this->actingAs($adminUser)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee('Son Yüklenen Artwork')
+            ->assertDontSee('Son İndirmeler')
+            ->assertSee('İş Akışı Görünümü')
+            ->assertSee('Alarm Grafiği');
+    }
 }
