@@ -320,4 +320,103 @@ XML;
         $this->assertSame(1, $importedCount['users']);
         $this->assertSame(1, $importedCount['purchase_orders']);
     }
+
+    public function test_import_restores_soft_deleted_supplier_instead_of_skipping_it(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $supplier = Supplier::factory()->create([
+            'name' => 'Silinmiş Tedarikçi',
+            'code' => 'TED-950',
+        ]);
+        $supplier->delete();
+
+        $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<portal_export exported_at="2026-03-29T22:15:00+03:00" version="3" include_media="0">
+    <selection_hash>demo</selection_hash>
+    <suppliers>
+        <supplier entity_key="supplier:TED-950">
+            <name>Geri Gelen Tedarikçi</name>
+            <code>TED-950</code>
+            <email>ted950@example.com</email>
+            <is_active>1</is_active>
+        </supplier>
+    </suppliers>
+</portal_export>
+XML;
+
+        $file = UploadedFile::fake()->createWithContent('restore-supplier.xml', $xml);
+
+        $response = $this->actingAs($admin)->post(route('admin.data-transfer.import'), [
+            'xml_file' => $file,
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('suppliers', [
+            'code' => 'TED-950',
+            'name' => 'Geri Gelen Tedarikçi',
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_import_artwork_revision_without_media_uses_metadata_placeholder_path(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $supplier = Supplier::factory()->create([
+            'code' => 'TED-960',
+        ]);
+        $order = PurchaseOrder::factory()->create([
+            'supplier_id' => $supplier->id,
+            'order_no' => 'PO-2026-0960',
+            'created_by' => $admin->id,
+        ]);
+        PurchaseOrderLine::factory()->create([
+            'purchase_order_id' => $order->id,
+            'line_no' => 1,
+        ]);
+
+        $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<portal_export exported_at="2026-03-29T22:30:00+03:00" version="3" include_media="0">
+    <selection_hash>demo</selection_hash>
+    <artwork_revisions>
+        <revision entity_key="revision:TED-960|PO-2026-0960|1|1">
+            <supplier_ref>TED-960</supplier_ref>
+            <order_no>PO-2026-0960</order_no>
+            <line_no>1</line_no>
+            <revision_no>1</revision_no>
+            <original_filename>etiket.pdf</original_filename>
+            <mime_type>application/pdf</mime_type>
+            <file_size>12345</file_size>
+            <is_active>1</is_active>
+            <approval_status>pending</approval_status>
+            <notes>Medya olmadan içe aktarma</notes>
+        </revision>
+    </artwork_revisions>
+</portal_export>
+XML;
+
+        $file = UploadedFile::fake()->createWithContent('metadata-revision.xml', $xml);
+
+        $response = $this->actingAs($admin)->post(route('admin.data-transfer.import'), [
+            'xml_file' => $file,
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('artwork_revisions', [
+            'revision_no' => 1,
+            'original_filename' => 'etiket.pdf',
+            'stored_filename' => 'etiket.pdf',
+        ]);
+
+        $this->assertDatabaseCount('artwork_revisions', 1);
+        $this->assertStringStartsWith(
+            'metadata-only/',
+            (string) ArtworkRevision::query()->value('spaces_path')
+        );
+    }
 }

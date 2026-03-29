@@ -72,7 +72,7 @@ class DataTransferController extends Controller
             report($exception);
 
             return back()->withErrors([
-                'xml_file' => 'İçe aktarma sırasında bir hata oluştu. Son migrationların çalıştığından emin olun ve tekrar deneyin.',
+                'xml_file' => 'İçe aktarma hatası: ' . ($exception->getMessage() ?: 'Bilinmeyen hata'),
             ]);
         }
 

@@ -30,6 +30,7 @@ class DataTransferService
     private const LAST_EXPORT_AT_KEY = 'last_export_at';
     private const SETTING_GROUP = 'data_transfer';
     private const MEDIA_EXPORT_LIMIT_BYTES = 52428800; // 50 MB
+    private array $tableColumnsCache = [];
 
     public function __construct(
         private PortalSettings $settings,
@@ -293,7 +294,7 @@ class DataTransferService
 
         DB::transaction(function () use ($importedIds): void {
             $downloadLogIds = $importedIds['download_logs'] ?? [];
-            if ($downloadLogIds !== []) {
+            if ($downloadLogIds !== [] && $this->supportsTable('artwork_download_logs')) {
                 DB::table('artwork_download_logs')->whereIn('id', $downloadLogIds)->delete();
             }
 
@@ -377,12 +378,12 @@ class DataTransferService
     private function totalCountForSection(string $section): int
     {
         return match ($section) {
-            'suppliers'        => Supplier::withTrashed()->count(),
-            'users'            => User::query()->where('role', '!=', 'admin')->count(),
-            'purchase_orders'  => PurchaseOrder::query()->count(),
-            'artwork_gallery'  => ArtworkGallery::query()->count(),
-            'artwork_revisions'=> ArtworkRevision::query()->count(),
-            'download_logs'    => \App\Models\ArtworkDownloadLog::query()->count(),
+            'suppliers'        => $this->supportsTable('suppliers') ? Supplier::withTrashed()->count() : 0,
+            'users'            => $this->supportsTable('users') ? User::query()->where('role', '!=', 'admin')->count() : 0,
+            'purchase_orders'  => $this->supportsTable('purchase_orders') ? PurchaseOrder::query()->count() : 0,
+            'artwork_gallery'  => $this->supportsTable('artwork_gallery') ? ArtworkGallery::query()->count() : 0,
+            'artwork_revisions'=> $this->supportsTable('artwork_revisions') ? ArtworkRevision::query()->count() : 0,
+            'download_logs'    => $this->supportsTable('artwork_download_logs') ? \App\Models\ArtworkDownloadLog::query()->count() : 0,
             default            => 0,
         };
     }
@@ -861,7 +862,7 @@ class DataTransferService
                 : null;
 
             if ($entityKey !== '' && $this->wasTransferred('import', 'suppliers', $entityKey, null, $payloadHash)) {
-                if ($existing) {
+                if ($existing && ! $existing->trashed()) {
                     $stats['skipped']++;
                     $supplierMap[$entityKey] = $existing->id;
                     continue;
@@ -871,13 +872,33 @@ class DataTransferService
             }
 
             if ($existing) {
+                if ($existing->trashed()) {
+                    $existing->restore();
+                    $existing->fill($this->filterTableAttributes('suppliers', [
+                        'name' => $payload['name'] ?? $existing->name,
+                        'email' => $payload['email'] ?? $existing->email,
+                        'phone' => $payload['phone'] ?? $existing->phone,
+                        'address' => $payload['address'] ?? $existing->address,
+                        'is_active' => $this->toBool($payload['is_active'] ?? true),
+                        'notes' => $payload['notes'] ?? $existing->notes,
+                    ]));
+                    $existing->save();
+
+                    $importedIds['suppliers'][] = $existing->id;
+                    $supplierMap[$entityKey] = $existing->id;
+                    $this->markTransferred('import', 'suppliers', $entityKey, null, $payloadHash, $batchUuid);
+                    $stats['suppliers']++;
+
+                    continue;
+                }
+
                 $stats['skipped']++;
                 $supplierMap[$entityKey] = $existing->id;
                 $this->markTransferred('import', 'suppliers', $entityKey, null, $payloadHash, $batchUuid);
                 continue;
             }
 
-            $supplier = Supplier::create([
+            $supplier = Supplier::create($this->filterTableAttributes('suppliers', [
                 'name' => $payload['name'] ?? 'Tedarikçi',
                 'code' => $payload['code'] ?? null,
                 'email' => $payload['email'] ?? null,
@@ -885,7 +906,7 @@ class DataTransferService
                 'address' => $payload['address'] ?? null,
                 'is_active' => $this->toBool($payload['is_active'] ?? true),
                 'notes' => $payload['notes'] ?? null,
-            ]);
+            ]));
 
             $this->syncTimestamps($supplier->getTable(), $supplier->id, $payload['created_at'] ?? null, $payload['updated_at'] ?? null, $payload['deleted_at'] ?? null);
 
@@ -935,7 +956,7 @@ class DataTransferService
                 ? ($supplierMap[$payload['supplier_ref']] ?? Supplier::withTrashed()->where('code', $payload['supplier_ref'])->value('id'))
                 : null;
 
-            $user = new User([
+            $user = new User($this->filterTableAttributes('users', [
                 'name' => $payload['name'] ?? 'İçe Aktarılan Kullanıcı',
                 'email' => $email,
                 'password' => $defaultPassword,
@@ -947,7 +968,7 @@ class DataTransferService
                 'linkedin_url' => $payload['linkedin_url'] ?? null,
                 'contact_email' => $payload['contact_email'] ?? null,
                 'bio' => $payload['bio'] ?? null,
-            ]);
+            ]));
 
             if ($this->supportsDepartments()) {
                 $user->department_id = $departmentId;
@@ -1050,7 +1071,7 @@ class DataTransferService
                 ? User::query()->where('email', $payload['created_by_email'])->value('id')
                 : auth()->id();
 
-            $order = PurchaseOrder::create([
+            $order = PurchaseOrder::create($this->filterTableAttributes('purchase_orders', [
                 'supplier_id' => $supplierId,
                 'order_no' => $payload['order_no'],
                 'status' => $payload['status'] ?? 'active',
@@ -1058,12 +1079,12 @@ class DataTransferService
                 'due_date' => $payload['due_date'] ?? null,
                 'notes' => $payload['notes'] ?? null,
                 'created_by' => $createdBy,
-            ]);
+            ]));
 
             $this->syncTimestamps($order->getTable(), $order->id, $payload['created_at'] ?? null, $payload['updated_at'] ?? null);
 
             foreach (($payload['lines'] ?? []) as $linePayload) {
-                $line = PurchaseOrderLine::create([
+                $line = PurchaseOrderLine::create($this->filterTableAttributes('purchase_order_lines', [
                     'purchase_order_id' => $order->id,
                     'line_no' => (int) ($linePayload['line_no'] ?? 0),
                     'product_code' => $linePayload['product_code'] ?? null,
@@ -1073,7 +1094,7 @@ class DataTransferService
                     'unit' => $linePayload['unit'] ?? null,
                     'artwork_status' => $linePayload['artwork_status'] ?? 'pending',
                     'notes' => $linePayload['notes'] ?? null,
-                ]);
+                ]));
 
                 $this->syncTimestamps($line->getTable(), $line->id, $linePayload['created_at'] ?? null, $linePayload['updated_at'] ?? null);
             }
@@ -1086,6 +1107,12 @@ class DataTransferService
 
     private function importArtworkGallery(SimpleXMLElement $xml, string $batchUuid, array &$importedIds, array &$stats): array
     {
+        if (! $this->supportsTable('artwork_gallery')) {
+            $stats['skipped'] += count($xml->artwork_gallery->item ?? []);
+
+            return [];
+        }
+
         $galleryMap = [];
 
         foreach ($xml->artwork_gallery->item ?? [] as $node) {
@@ -1128,7 +1155,7 @@ class DataTransferService
             Storage::disk($disk)->put($path, $binary, ['visibility' => 'private']);
 
             $categoryId = null;
-            if (filled($payload['category_name'] ?? null)) {
+            if ($this->supportsTable('artwork_categories') && filled($payload['category_name'] ?? null)) {
                 $categoryId = ArtworkCategory::query()->firstOrCreate(['name' => $payload['category_name']])->id;
             }
 
@@ -1136,7 +1163,7 @@ class DataTransferService
                 ? User::query()->where('email', $payload['uploaded_by_email'])->value('id')
                 : null;
 
-            $galleryItem = ArtworkGallery::create([
+            $galleryItem = ArtworkGallery::create($this->filterTableAttributes('artwork_gallery', [
                 'name' => $payload['name'] ?? ($payload['media']['filename'] ?? 'İçe Aktarılan Dosya'),
                 'stock_code' => $payload['stock_code'] ?? null,
                 'category_id' => $categoryId,
@@ -1146,9 +1173,9 @@ class DataTransferService
                 'file_type' => $payload['file_type'] ?? null,
                 'uploaded_by' => $uploadedBy,
                 'revision_note' => $payload['revision_note'] ?? null,
-            ]);
+            ]));
 
-            if (is_array($payload['tag_names'] ?? null)) {
+            if ($this->supportsTable('artwork_tags') && $this->supportsTable('artwork_gallery_tag') && is_array($payload['tag_names'] ?? null)) {
                 $tagIds = collect($payload['tag_names'])
                     ->filter()
                     ->map(fn ($name) => ArtworkTag::query()->firstOrCreate(['name' => $name])->id)
@@ -1170,6 +1197,12 @@ class DataTransferService
 
     private function importArtworkRevisions(SimpleXMLElement $xml, array $galleryMap, string $batchUuid, array &$importedIds, array &$stats): void
     {
+        if (! $this->supportsTable('artwork_revisions')) {
+            $stats['skipped'] += count($xml->artwork_revisions->revision ?? []);
+
+            return;
+        }
+
         foreach ($xml->artwork_revisions->revision ?? [] as $node) {
             $payload = $this->nodePayload($node);
             $entityKey = (string) ($node['entity_key'] ?? '');
@@ -1257,14 +1290,16 @@ class DataTransferService
 
             $approvalStatus = $payload['approval_status'] ?? 'pending';
             $isActive       = $this->toBool($payload['is_active'] ?? false);
+            $storedFilename = $spacesPath ? basename($spacesPath) : ($payload['original_filename'] ?? 'imported-file');
+            $revisionPath = $spacesPath ?: 'metadata-only/' . Str::uuid();
 
-            $revision = ArtworkRevision::create([
+            $revision = ArtworkRevision::create($this->filterTableAttributes('artwork_revisions', [
                 'artwork_id'        => $artwork->id,
                 'artwork_gallery_id' => $galleryItem?->id,
                 'revision_no'       => $revisionNo,
-                'original_filename' => $payload['original_filename'] ?? ($spacesPath ? basename($spacesPath) : 'imported-file'),
-                'stored_filename'   => $spacesPath ? basename($spacesPath) : null,
-                'spaces_path'       => $spacesPath ?: null,
+                'original_filename' => $payload['original_filename'] ?? $storedFilename,
+                'stored_filename'   => $storedFilename,
+                'spaces_path'       => $revisionPath,
                 'mime_type'         => $mimeType,
                 'file_size'         => $fileSize,
                 'is_active'         => $isActive,
@@ -1273,7 +1308,7 @@ class DataTransferService
                 'approval_status'   => $approvalStatus,
                 'approved_at'       => $payload['approved_at'] ?? null,
                 'archived_at'       => $payload['archived_at'] ?? null,
-            ]);
+            ]));
 
             $this->syncTimestamps($revision->getTable(), $revision->id, $payload['created_at'] ?? null, $payload['created_at'] ?? null);
 
@@ -1299,6 +1334,12 @@ class DataTransferService
 
     private function importDownloadLogs(SimpleXMLElement $xml, string $batchUuid, array &$importedIds, array &$stats): void
     {
+        if (! $this->supportsTable('artwork_download_logs')) {
+            $stats['skipped'] += count($xml->download_logs->log ?? []);
+
+            return;
+        }
+
         foreach ($xml->download_logs->log ?? [] as $node) {
             $payload     = $this->nodePayload($node);
             $entityKey   = (string) ($node['entity_key'] ?? '');
@@ -1380,7 +1421,7 @@ class DataTransferService
                 continue;
             }
 
-            $downloadLogId = DB::table('artwork_download_logs')->insertGetId([
+            $downloadLogId = DB::table('artwork_download_logs')->insertGetId($this->filterTableAttributes('artwork_download_logs', [
                 'artwork_revision_id' => $revision->id,
                 'user_id'             => $userId,
                 'supplier_id'         => $supplierId,
@@ -1388,7 +1429,7 @@ class DataTransferService
                 'user_agent'          => $payload['user_agent'] ?? 'DataTransfer/Import',
                 'download_token'      => $payload['download_token'] ?? null,
                 'downloaded_at'       => $downloadedAt,
-            ]);
+            ]));
 
             $importedIds['download_logs'][] = (int) $downloadLogId;
             $this->markTransferred('import', 'download_logs', $entityKey, null, $payloadHash, $batchUuid);
@@ -1418,6 +1459,10 @@ class DataTransferService
 
     private function findExistingGalleryItem(array $payload): ?ArtworkGallery
     {
+        if (! $this->supportsTable('artwork_gallery')) {
+            return null;
+        }
+
         $stockCode = $payload['stock_code'] ?? null;
         $name = $payload['name'] ?? null;
 
@@ -1539,6 +1584,24 @@ class DataTransferService
     private function defaultImportedIpAddress(): string
     {
         return '0.0.0.0';
+    }
+
+    private function supportsTable(string $table): bool
+    {
+        return Schema::hasTable($table);
+    }
+
+    private function filterTableAttributes(string $table, array $attributes): array
+    {
+        if (! $this->supportsTable($table)) {
+            return [];
+        }
+
+        if (! array_key_exists($table, $this->tableColumnsCache)) {
+            $this->tableColumnsCache[$table] = array_flip(Schema::getColumnListing($table));
+        }
+
+        return Arr::only($attributes, array_keys($this->tableColumnsCache[$table]));
     }
 
     private function supportsDepartments(): bool
