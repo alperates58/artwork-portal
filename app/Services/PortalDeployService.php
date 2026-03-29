@@ -119,7 +119,22 @@ class PortalDeployService
             $steps[] = $installStep;
 
             if (! $installStep['ok']) {
-                return ['ok' => false, 'steps' => $steps];
+                // Bazı ortamlarda lock dosyası eski olabilir; npm install ile ikinci deneme yap.
+                if ($hasLock) {
+                    $fallbackInstall = $this->runProcessCommand(
+                        'npm install --no-audit --no-fund (fallback)',
+                        ['npm', 'install', '--no-audit', '--no-fund'],
+                        $base,
+                        1200
+                    );
+                    $steps[] = $fallbackInstall;
+
+                    if (! $fallbackInstall['ok']) {
+                        return ['ok' => false, 'steps' => $steps];
+                    }
+                } else {
+                    return ['ok' => false, 'steps' => $steps];
+                }
             }
 
             $buildStep = $this->runProcessCommand('npm run build', ['npm', 'run', 'build'], $base, 1200);
@@ -142,7 +157,21 @@ class PortalDeployService
             $steps[] = $installStep;
 
             if (! $installStep['ok']) {
-                return ['ok' => false, 'steps' => $steps];
+                if ($hasLock) {
+                    $fallbackInstall = $this->runProcessCommand(
+                        'docker compose run --rm node npm install --no-audit --no-fund (fallback)',
+                        ['docker', 'compose', 'run', '--rm', 'node', 'npm', 'install', '--no-audit', '--no-fund'],
+                        $base,
+                        1800
+                    );
+                    $steps[] = $fallbackInstall;
+
+                    if (! $fallbackInstall['ok']) {
+                        return ['ok' => false, 'steps' => $steps];
+                    }
+                } else {
+                    return ['ok' => false, 'steps' => $steps];
+                }
             }
 
             $buildStep = $this->runProcessCommand(
