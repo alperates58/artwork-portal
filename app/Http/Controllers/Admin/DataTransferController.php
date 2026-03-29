@@ -58,7 +58,15 @@ class DataTransferController extends Controller
             'xml_file' => ['required', 'file', 'mimetypes:application/xml,text/xml,text/plain', 'max:51200'],
         ]);
 
-        $result = $this->dataTransfer->import($request->file('xml_file'));
+        try {
+            $result = $this->dataTransfer->import($request->file('xml_file'));
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors([
+                'xml_file' => 'İçe aktarma sırasında bir hata oluştu. Son migrationların çalıştığından emin olun ve tekrar deneyin.',
+            ]);
+        }
 
         if (! $result['ok']) {
             return back()->withErrors(['xml_file' => $result['message']]);

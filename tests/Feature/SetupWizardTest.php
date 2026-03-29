@@ -14,6 +14,7 @@ class SetupWizardTest extends TestCase
         putenv('APP_INSTALLED=false');
         $_ENV['APP_INSTALLED'] = 'false';
         $_SERVER['APP_INSTALLED'] = 'false';
+        config()->set('app.installed', false);
     }
 
     protected function tearDown(): void
@@ -21,6 +22,7 @@ class SetupWizardTest extends TestCase
         putenv('APP_INSTALLED=true');
         $_ENV['APP_INSTALLED'] = 'true';
         $_SERVER['APP_INSTALLED'] = 'true';
+        config()->set('app.installed', true);
 
         parent::tearDown();
     }

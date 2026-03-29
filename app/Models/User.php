@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -78,7 +79,14 @@ class User extends Authenticatable
         }
 
         // Department permissions (middle priority between custom and role defaults)
-        $dept = $this->relationLoaded('department') ? $this->department : $this->department()->first();
+        $dept = null;
+
+        if (self::supportsDepartmentPermissions()) {
+            $dept = $this->relationLoaded('department')
+                ? $this->department
+                : $this->department()->first();
+        }
+
         if ($dept && ! empty($dept->permissions)) {
             return ($dept->permissions[$screen][$action] ?? false) === true;
         }
@@ -104,6 +112,18 @@ class User extends Authenticatable
         ];
 
         return in_array($action, $defaults[$this->role->value][$screen] ?? [], true);
+    }
+
+    private static function supportsDepartmentPermissions(): bool
+    {
+        static $supportsDepartments;
+
+        if ($supportsDepartments === null) {
+            $supportsDepartments = Schema::hasTable('departments')
+                && Schema::hasColumn('users', 'department_id');
+        }
+
+        return $supportsDepartments;
     }
 
     /**

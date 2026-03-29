@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class PermissionsController extends Controller
@@ -77,13 +78,23 @@ class PermissionsController extends Controller
 
     public function index(): View
     {
-        $users = User::with('department')
+        $supportsDepartments = Schema::hasTable('departments')
+            && Schema::hasColumn('users', 'department_id');
+
+        $users = User::query()
+            ->when($supportsDepartments, fn ($query) => $query->with('department'))
             ->where('role', '!=', UserRole::SUPPLIER->value)
             ->where('role', '!=', UserRole::ADMIN->value)
             ->orderBy('name')
             ->get();
 
-        $departments = \App\Models\Department::orderBy('name')->get();
+        if (! $supportsDepartments) {
+            $users->each(fn (User $user) => $user->setRelation('department', null));
+        }
+
+        $departments = $supportsDepartments
+            ? \App\Models\Department::orderBy('name')->get()
+            : collect();
 
         return view('admin.permissions.index', [
             'users'       => $users,

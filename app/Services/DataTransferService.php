@@ -155,17 +155,21 @@ class DataTransferService
     public function buildExportOptions(): array
     {
         $definitions = $this->sectionDefinitions();
-        $lastExportAt = DataTransferRecord::query()
-            ->where('direction', 'export')
-            ->max('transferred_at');
+        $lastExportAt = $this->supportsTransferTracking()
+            ? DataTransferRecord::query()
+                ->where('direction', 'export')
+                ->max('transferred_at')
+            : null;
 
         return [
             'sections' => collect($definitions)->map(function (array $definition, string $section): array {
-                $tracked = DataTransferRecord::query()
-                    ->where('direction', 'export')
-                    ->where('entity_type', $section)
-                    ->distinct()
-                    ->count('entity_key');
+                $tracked = $this->supportsTransferTracking()
+                    ? DataTransferRecord::query()
+                        ->where('direction', 'export')
+                        ->where('entity_type', $section)
+                        ->distinct()
+                        ->count('entity_key')
+                    : 0;
 
                 return [
                     ...$definition,
@@ -381,6 +385,10 @@ class DataTransferService
 
     private function wasTransferred(string $direction, string $entityType, string $entityKey, ?string $selectionHash, string $payloadHash): bool
     {
+        if (! $this->supportsTransferTracking()) {
+            return false;
+        }
+
         return DataTransferRecord::query()
             ->where('direction', $direction)
             ->where('entity_type', $entityType)
@@ -392,6 +400,10 @@ class DataTransferService
 
     private function markTransferred(string $direction, string $entityType, string $entityKey, ?string $selectionHash, string $payloadHash, string $batchUuid): void
     {
+        if (! $this->supportsTransferTracking()) {
+            return;
+        }
+
         DataTransferRecord::query()->firstOrCreate([
             'direction' => $direction,
             'entity_type' => $entityType,
@@ -459,7 +471,16 @@ class DataTransferService
         $usersNode->addAttribute('fields', implode(',', $fields));
         $exported = 0;
 
-        foreach (User::query()->where('role', '!=', 'admin')->with('department:id,name')->get() as $user) {
+        $users = User::query()
+            ->where('role', '!=', 'admin')
+            ->when($this->supportsDepartments(), fn ($query) => $query->with('department:id,name'))
+            ->get();
+
+        if (! $this->supportsDepartments()) {
+            $users->each(fn (User $user) => $user->setRelation('department', null));
+        }
+
+        foreach ($users as $user) {
             $payload = $this->userPayload($user, $fields);
             $entityKey = $this->userEntityKey($user);
             $payloadHash = $this->payloadHash($payload);
@@ -903,7 +924,7 @@ class DataTransferService
             }
 
             $departmentId = null;
-            if (filled($payload['department_name'] ?? null)) {
+            if ($this->supportsDepartments() && filled($payload['department_name'] ?? null)) {
                 $departmentId = Department::query()->firstOrCreate(['name' => $payload['department_name']])->id;
             }
 
@@ -918,13 +939,17 @@ class DataTransferService
                 'role' => $payload['role'] ?? 'supplier',
                 'is_active' => $this->toBool($payload['is_active'] ?? true),
                 'supplier_id' => $supplierId,
-                'department_id' => $departmentId,
                 'permissions' => is_array($payload['permissions'] ?? null) ? $payload['permissions'] : null,
                 'phone' => $payload['phone'] ?? null,
                 'linkedin_url' => $payload['linkedin_url'] ?? null,
                 'contact_email' => $payload['contact_email'] ?? null,
                 'bio' => $payload['bio'] ?? null,
             ]);
+
+            if ($this->supportsDepartments()) {
+                $user->department_id = $departmentId;
+            }
+
             $user->save();
 
             $this->syncTimestamps($user->getTable(), $user->id, $payload['created_at'] ?? null, $payload['updated_at'] ?? null);
@@ -1478,5 +1503,27 @@ class DataTransferService
         if ($totalBytes > self::MEDIA_EXPORT_LIMIT_BYTES) {
             throw new \RuntimeException('Medya dahil dışa aktarım paketi 50 MB sınırını aşıyor. Lütfen medya seçimini kaldırın veya aktarımı bölüm bölüm yapın.');
         }
+    }
+    private function supportsDepartments(): bool
+    {
+        static $supportsDepartments;
+
+        if ($supportsDepartments === null) {
+            $supportsDepartments = Schema::hasTable('departments')
+                && Schema::hasColumn('users', 'department_id');
+        }
+
+        return $supportsDepartments;
+    }
+
+    private function supportsTransferTracking(): bool
+    {
+        static $supportsTracking;
+
+        if ($supportsTracking === null) {
+            $supportsTracking = Schema::hasTable('data_transfer_records');
+        }
+
+        return $supportsTracking;
     }
 }

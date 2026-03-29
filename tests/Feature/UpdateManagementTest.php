@@ -167,10 +167,8 @@ class UpdateManagementTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.settings.edit'))
             ->assertOk()
-            ->assertSee('GitHub Kontrolu Yap')
-            ->assertSee('Gelen Degisiklikler')
-            ->assertSee('Update Gecmisi')
-            ->assertSee('Yeni release');
+            ->assertSee('Commit Geçmişini Yükle')
+            ->assertSee("GitHub'dan Güncelle", false);
     }
 
     public function test_settings_page_supports_deep_linked_tabs(): void
@@ -181,8 +179,19 @@ class UpdateManagementTest extends TestCase
             ->get(route('admin.settings.edit', ['tab' => 'mail']))
             ->assertOk()
             ->assertSee('Mail Sunucusu')
-            ->assertSee('Ayarlar alt navigasyonu')
-            ->assertSee('Yardimci Panel');
+            ->assertSee('Mail / Exchange')
+            ->assertSee('Mail Sunucusu Aksiyonları');
+    }
+
+    public function test_settings_page_supports_portal_tab(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.settings.edit', ['tab' => 'portal']))
+            ->assertOk()
+            ->assertSee('Portal Ayarları')
+            ->assertSee('Portal İşletim Parametreleri');
     }
 
     public function test_update_actions_redirect_back_to_updates_tab(): void

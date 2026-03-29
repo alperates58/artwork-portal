@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Models\Department;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Models\User;
@@ -43,5 +44,25 @@ class AdminManagementTest extends TestCase
             ->assertRedirect(route('orders.index'));
 
         $this->assertDatabaseMissing('purchase_orders', ['id' => $order->id]);
+    }
+
+    public function test_permissions_index_supports_department_names_when_filtering_cards(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        $department = Department::query()->firstOrCreate(
+            ['name' => 'Ar-Ge'],
+            ['permissions' => []]
+        );
+
+        User::factory()->create([
+            'role' => UserRole::GRAPHIC,
+            'department_id' => $department->id,
+            'permissions' => null,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.permissions.index'))
+            ->assertOk()
+            ->assertSee('Ar-Ge');
     }
 }

@@ -122,6 +122,19 @@
                 ['label' => 'Grup seçenekleri', 'value' => 'PDF, Görsel, Tasarım, Diğer'],
             ],
         ],
+        'portal' => [
+            'title' => 'Portal işletim özeti',
+            'summary' => 'Sipariş açma, tedarikçi erişimi, veri aktarımı ve upload limitleri bu sekmeden merkezi olarak yönetilir.',
+            'points' => [
+                'Açma/kapama anahtarları portal davranışını runtime ayarları üzerinden kontrol eder.',
+                'Sayfalama, revizyon ve oturum limitleri tedarikçi deneyimini doğrudan etkiler.',
+                'Bakım modu ve veri aktarımı izinleri operasyon güvenliği için tek yerden yönetilir.',
+            ],
+            'meta' => [
+                ['label' => 'Tedarikçi portalı', 'value' => ($portalConfig['supplier_portal_enabled'] ?? false) ? 'Açık' : 'Kapalı'],
+                ['label' => 'Upload limiti', 'value' => ($portalConfig['max_upload_size_mb'] ?? 0) . ' MB'],
+            ],
+        ],
         'general' => [
             'title' => 'Read-only sistem özeti',
             'summary' => 'Bu alan uygulama davranışını değiştirmez; mevcut environment, queue ve storage seçimini hızlı kontrol için gösterir.',
@@ -137,8 +150,8 @@
         ],
     ];
 
-    $activeSection = $tabs[$activeTab];
-    $activeAside = $sectionHighlights[$activeTab];
+    $activeSection = $tabs[$activeTab] ?? $tabs['updates'];
+    $activeAside = $sectionHighlights[$activeTab] ?? $sectionHighlights['updates'];
 @endphp
 
 @section('content')

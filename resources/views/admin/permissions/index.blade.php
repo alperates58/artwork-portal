@@ -48,7 +48,7 @@
             <span class="rounded-full px-1.5 py-0.5 text-[10px] {{ !$filterDept ? 'bg-white/25' : 'bg-slate-100' }}">{{ $users->count() }}</span>
         </a>
         @foreach($departments as $dept)
-            @php $deptCount = $grouped[$dept->name]?->count() ?? 0; @endphp
+            @php $deptCount = $grouped->get($dept->name)?->count() ?? 0; @endphp
             @if($deptCount > 0)
                 <a href="{{ route('admin.permissions.index', ['dept' => $dept->name]) }}"
                    class="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition
@@ -71,7 +71,7 @@
     {{-- User cards --}}
     @php
         $displayUsers = $filterDept
-            ? ($grouped[$filterDept] ?? collect())
+            ? ($grouped->get($filterDept) ?? collect())
             : $users;
         $displayGrouped = $filterDept
             ? collect([$filterDept => $displayUsers])
