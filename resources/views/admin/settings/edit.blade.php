@@ -849,7 +849,8 @@
                                                         aria-label="{{ $t['label'] }}"
                                                         data-portal-toggle-button>
                                                     <span aria-hidden="true"
-                                                          class="pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 {{ $toggleChecked ? 'translate-x-5' : '' }}"
+                                                          class="pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200"
+                                                          style="transform: translateX({{ $toggleChecked ? '1.25rem' : '0' }});"
                                                           data-portal-toggle-thumb></span>
                                                 </button>
                                             </div>
@@ -1314,7 +1315,7 @@
             button.setAttribute('aria-pressed', checked ? 'true' : 'false');
             button.classList.toggle('bg-brand-500', checked);
             button.classList.toggle('bg-slate-200', !checked);
-            thumb.classList.toggle('translate-x-5', checked);
+            thumb.style.transform = checked ? 'translateX(1.25rem)' : 'translateX(0)';
 
             debugToggle(`${input.name} => ${checked ? '1' : '0'} (${reason})`);
         }

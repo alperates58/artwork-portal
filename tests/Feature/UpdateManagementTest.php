@@ -197,6 +197,22 @@ class UpdateManagementTest extends TestCase
             ->assertSee('data-portal-toggle-button', false);
     }
 
+    public function test_portal_tab_renders_active_toggle_thumb_on_right_side(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        SystemSetting::query()->create([
+            'group' => 'portal',
+            'key' => 'portal.order_creation_enabled',
+            'value' => '1',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.settings.edit', ['tab' => 'portal']))
+            ->assertOk()
+            ->assertSee('style="transform: translateX(1.25rem);"', false);
+    }
+
     public function test_admin_can_store_portal_upload_limit_up_to_system_cap(): void
     {
         $admin = User::factory()->create(['role' => UserRole::ADMIN]);

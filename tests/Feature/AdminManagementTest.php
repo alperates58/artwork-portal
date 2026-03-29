@@ -65,4 +65,17 @@ class AdminManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Ar-Ge');
     }
+
+    public function test_user_create_form_explains_system_role_and_department_usage(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.create'))
+            ->assertOk()
+            ->assertSee('Sistem Rolü')
+            ->assertSee('Planlama, operasyon veya kalite gibi iç ekipler için ayrı bir sistem rolü yoktur.')
+            ->assertSee('Satın Alma')
+            ->assertSee('Departman atanırsa');
+    }
 }

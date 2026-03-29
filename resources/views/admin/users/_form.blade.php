@@ -9,7 +9,7 @@
     @error('email')<p class="err">{{ $message }}</p>@enderror
 </div>
 <div>
-    <label class="label">Rol *</label>
+    <label class="label">Sistem Rolü *</label>
     <select name="role" required class="input" id="roleSelect" onchange="toggleRoleFields()">
         @foreach($roles as $role)
             <option value="{{ $role->value }}"
@@ -19,6 +19,12 @@
         @endforeach
     </select>
     @error('role')<p class="err">{{ $message }}</p>@enderror
+    <p class="hint">Rol, kullanıcının sistemdeki erişim tabanını belirler. Departman ise organizasyon bilgisidir.</p>
+    <div class="mt-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">
+        <p><span class="font-semibold text-slate-700">Örnek:</span> Planlama, operasyon veya kalite gibi iç ekipler için ayrı bir sistem rolü yoktur.</p>
+        <p class="mt-1">Bu kullanıcı sipariş ve operasyon ekranlarını görecekse genelde <span class="font-semibold text-slate-700">Satın Alma</span> rolü seçilir, sonra doğru departman atanır.</p>
+        <p class="mt-1">Daha dar veya farklı erişim gerekiyorsa kullanıcı oluşturulduktan sonra <span class="font-semibold text-slate-700">Yetkiler</span> ekranından özel izin verilir.</p>
+    </div>
 </div>
 <div id="supplierField" style="display:none">
     <label class="label">Tedarikçi Firma *</label>
