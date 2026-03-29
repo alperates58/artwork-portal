@@ -162,29 +162,79 @@
 
                 <div class="p-6">
                     <div class="{{ $activeTab === 'updates' ? '' : 'hidden' }}">
-                        @php $localCommit = $updateStatus['current_commit']; @endphp
+                        @php
+                            $localCommit  = $updateStatus['current_commit'];
+                            $lastRunAt    = $updateStatus['last_run_at']
+                                ? \Illuminate\Support\Carbon::parse($updateStatus['last_run_at'])->timezone($displayTimezone)
+                                : null;
+                            $lastCheckAt  = $updateStatus['last_checked_at']
+                                ? \Illuminate\Support\Carbon::parse($updateStatus['last_checked_at'])->timezone($displayTimezone)
+                                : null;
+                            $updateAvailable = $updateStatus['update_available'];
+                        @endphp
                         <div class="space-y-5">
 
-                            {{-- Status bar --}}
-                            <div class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-                                <div class="flex flex-wrap gap-5 text-sm">
-                                    <div>
-                                        <span class="text-xs font-medium uppercase tracking-wide text-slate-400">Sunucu commit</span>
-                                        <p class="mt-0.5 font-mono font-semibold text-slate-800">{{ $localCommit ?: '—' }}</p>
-                                    </div>
-                                    <div>
-                                        <span class="text-xs font-medium uppercase tracking-wide text-slate-400">Branch</span>
-                                        <p class="mt-0.5 font-mono font-semibold text-slate-800">{{ $updateStatus['current_branch'] ?: 'main' }}</p>
-                                    </div>
-                                    <div>
-                                        <span class="text-xs font-medium uppercase tracking-wide text-slate-400">Son güncelleme</span>
-                                        <p class="mt-0.5 text-slate-700">
-                                            {{ $updateStatus['last_run_at']
-                                                ? \Illuminate\Support\Carbon::parse($updateStatus['last_run_at'])->timezone($displayTimezone)->format('d.m.Y H:i')
-                                                : 'Kayıt yok' }}
-                                        </p>
-                                    </div>
+                            {{-- ── Info kartları grid ── --}}
+                            <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+
+                                {{-- Kurulu commit --}}
+                                <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3.5 col-span-1">
+                                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Sunucu Commit</p>
+                                    <p class="mt-1.5 font-mono text-base font-bold text-slate-900 truncate">{{ $localCommit ?: '—' }}</p>
+                                    <p class="mt-0.5 text-[11px] text-slate-400">Aktif versiyon</p>
                                 </div>
+
+                                {{-- Branch --}}
+                                <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3.5">
+                                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Branch</p>
+                                    <p class="mt-1.5 font-mono text-base font-bold text-slate-900">{{ $updateStatus['current_branch'] ?: 'main' }}</p>
+                                    <p class="mt-0.5 text-[11px] text-slate-400">Aktif dal</p>
+                                </div>
+
+                                {{-- Uygulama sürümü --}}
+                                <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3.5">
+                                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Sürüm</p>
+                                    <p class="mt-1.5 text-base font-bold text-slate-900">{{ $updateStatus['current_version'] ?: ($updateStatus['app_version'] ?: '—') }}</p>
+                                    <p class="mt-0.5 text-[11px] text-slate-400">Portal sürümü</p>
+                                </div>
+
+                                {{-- Son güncelleme --}}
+                                <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3.5">
+                                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Son Güncelleme</p>
+                                    <p class="mt-1.5 text-sm font-bold text-slate-900">{{ $lastRunAt ? $lastRunAt->format('d.m.Y') : '—' }}</p>
+                                    <p class="mt-0.5 text-[11px] text-slate-400">{{ $lastRunAt ? $lastRunAt->format('H:i') : 'Kayıt yok' }}</p>
+                                </div>
+
+                                {{-- Son kontrol --}}
+                                <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3.5">
+                                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Son Kontrol</p>
+                                    <p class="mt-1.5 text-sm font-bold text-slate-900">{{ $lastCheckAt ? $lastCheckAt->format('d.m.Y') : '—' }}</p>
+                                    <p class="mt-0.5 text-[11px] text-slate-400">{{ $lastCheckAt ? $lastCheckAt->format('H:i') : 'Kontrol yok' }}</p>
+                                </div>
+
+                                {{-- Güncelleme durumu --}}
+                                @php
+                                    $upd = match(true) {
+                                        $updateAvailable === true  => ['label' => 'Güncelleme Var',  'sub' => 'Yeni sürüm mevcut', 'bg' => 'bg-amber-50',   'border' => 'border-amber-200',  'dot' => 'bg-amber-500',   'text' => 'text-amber-700'],
+                                        $updateAvailable === false => ['label' => 'Güncel',           'sub' => 'Sunucu en güncel',  'bg' => 'bg-emerald-50', 'border' => 'border-emerald-200','dot' => 'bg-emerald-500', 'text' => 'text-emerald-700'],
+                                        default                    => ['label' => 'Bilinmiyor',       'sub' => 'Kontrol yapılmadı', 'bg' => 'bg-slate-50',   'border' => 'border-slate-200',  'dot' => 'bg-slate-400',   'text' => 'text-slate-500'],
+                                    };
+                                @endphp
+                                <div class="rounded-2xl border {{ $upd['border'] }} {{ $upd['bg'] }} px-4 py-3.5">
+                                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Durum</p>
+                                    <div class="mt-1.5 flex items-center gap-1.5">
+                                        <span class="inline-block h-2 w-2 flex-shrink-0 rounded-full {{ $upd['dot'] }}"></span>
+                                        <p class="text-sm font-bold {{ $upd['text'] }}">{{ $upd['label'] }}</p>
+                                    </div>
+                                    <p class="mt-0.5 text-[11px] text-slate-400">{{ $upd['sub'] }}</p>
+                                </div>
+                            </div>
+
+                            {{-- ── Eylemler ── --}}
+                            <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 px-5 py-3">
+                                <p class="text-xs text-slate-500">
+                                    GitHub'dan commit geçmişini yükleyin veya sunucuyu güncelleyin.
+                                </p>
                                 <div class="flex flex-wrap gap-2">
                                     <button type="button" id="load-commits-btn" class="btn btn-secondary">
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -193,7 +243,7 @@
                                         Commit Geçmişini Yükle
                                     </button>
                                     <button type="button" class="btn btn-primary" data-dialog-open="deploy-dialog"
-                                        style="background:linear-gradient(180deg,#059669,#047857);box-shadow:0 10px 22px rgba(5,150,105,.2);">
+                                        style="background:linear-gradient(180deg,#059669,#047857);box-shadow:0 6px 16px rgba(5,150,105,.25);">
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                                         </svg>
@@ -202,11 +252,21 @@
                                 </div>
                             </div>
 
-                            {{-- Commit list --}}
-                            <div class="card">
-                                <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+                            {{-- ── Commit tablosu ── --}}
+                            <div class="card overflow-hidden">
+                                {{-- Tablo başlığı --}}
+                                <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-3">
                                     <h3 class="text-sm font-semibold text-slate-700">GitHub Commit Geçmişi</h3>
-                                    <span id="commits-branch-badge" class="hidden rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-mono text-slate-600"></span>
+                                    <span id="commits-branch-badge" class="hidden rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-mono text-slate-600"></span>
+                                </div>
+
+                                {{-- Sütun başlıkları --}}
+                                <div id="commits-header" class="hidden grid grid-cols-[20px_1fr_140px_110px_90px] gap-4 border-b border-slate-100 bg-slate-50/50 px-5 py-2">
+                                    <div></div>
+                                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Commit Mesajı</p>
+                                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Yazar</p>
+                                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Tarih</p>
+                                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">SHA</p>
                                 </div>
 
                                 <div id="commits-loading" class="hidden px-5 py-10 text-center">
@@ -216,11 +276,12 @@
 
                                 <div id="commits-error" class="hidden px-5 py-6 text-center text-sm text-red-600"></div>
 
-                                <div id="commits-empty" class="px-5 py-10 text-center text-sm text-slate-400">
-                                    <svg class="mx-auto mb-3 h-8 w-8 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M3 6h18M3 14h12M3 18h8"/>
+                                <div id="commits-empty" class="px-5 py-12 text-center">
+                                    <svg class="mx-auto mb-3 h-9 w-9 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                                     </svg>
-                                    "Commit Geçmişini Yükle" butonuna basarak GitHub'daki son commit'leri görüntüleyin.
+                                    <p class="text-sm text-slate-400">"Commit Geçmişini Yükle" butonuna basarak</p>
+                                    <p class="text-xs text-slate-300 mt-0.5">GitHub'daki son commit'leri görüntüleyin.</p>
                                 </div>
 
                                 <ol id="commits-list" class="hidden divide-y divide-slate-100"></ol>
@@ -623,6 +684,9 @@
             branchBadge.textContent = branch;
             branchBadge.classList.remove('hidden');
 
+            var headerEl = document.getElementById('commits-header');
+            if (headerEl) headerEl.classList.remove('hidden');
+
             // Find index of local commit → everything before = new, at = current, after = applied
             var localIdx = commits.findIndex(function (c) { return c.sha === localCommit; });
 
@@ -635,33 +699,44 @@
                 var timeStr   = date ? date.toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit' }) : '';
 
                 var dotColor  = isCurrent ? 'bg-emerald-500 ring-4 ring-emerald-100'
-                              : isNew     ? 'bg-blue-500 ring-4 ring-blue-100'
+                              : isNew     ? 'bg-violet-500 ring-4 ring-violet-100'
                               : 'bg-slate-300';
                 var shaColor  = isCurrent ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
-                              : isNew     ? 'text-blue-700 bg-blue-50 border-blue-200'
+                              : isNew     ? 'text-violet-700 bg-violet-50 border-violet-200'
                               : 'text-slate-500 bg-slate-50 border-slate-200';
-                var badge     = isCurrent ? '<span class="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Sunucuda kurulu</span>'
-                              : isNew     ? '<span class="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">Yeni</span>'
-                              : '';
+                var rowBg     = isCurrent ? 'bg-emerald-50/40' : isNew ? 'bg-violet-50/20' : '';
+                var badge     = isCurrent
+                    ? '<span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">✓ Sunucuda kurulu</span>'
+                    : isNew
+                    ? '<span class="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">↑ Yeni</span>'
+                    : '';
+
+                var shaEl = c.url
+                    ? '<a href="' + c.url + '" target="_blank" class="rounded-lg border px-2 py-1 font-mono text-[11px] ' + shaColor + ' hover:opacity-70 transition-opacity">' + escHtml(c.sha) + '</a>'
+                    : '<span class="rounded-lg border px-2 py-1 font-mono text-[11px] ' + shaColor + '">' + escHtml(c.sha) + '</span>';
 
                 var li = document.createElement('li');
-                li.className = 'flex items-start gap-4 px-5 py-3.5';
+                li.className = 'grid grid-cols-[20px_1fr_140px_110px_90px] gap-4 items-center px-5 py-3 hover:bg-slate-50/80 transition-colors ' + rowBg;
                 li.innerHTML =
-                    '<div class="mt-1.5 flex-shrink-0"><span class="inline-block h-2.5 w-2.5 rounded-full ' + dotColor + '"></span></div>' +
-                    '<div class="min-w-0 flex-1">' +
-                        '<p class="flex flex-wrap items-center gap-1 text-sm font-medium text-slate-800">' +
-                            escHtml(c.message) + badge +
-                        '</p>' +
-                        '<p class="mt-0.5 flex flex-wrap items-center gap-3 text-xs text-slate-400">' +
-                            '<span>' + escHtml(c.author) + '</span>' +
-                            '<span>' + dateStr + ' ' + timeStr + '</span>' +
+                    // Dot
+                    '<div class="flex justify-center"><span class="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full ' + dotColor + '"></span></div>' +
+                    // Message + badge
+                    '<div class="min-w-0">' +
+                        '<p class="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-800 leading-snug">' +
+                            '<span class="truncate">' + escHtml(c.message) + '</span>' + badge +
                         '</p>' +
                     '</div>' +
-                    '<div class="flex-shrink-0">' +
-                        (c.url
-                            ? '<a href="' + c.url + '" target="_blank" class="rounded-lg border px-2 py-0.5 font-mono text-[11px] ' + shaColor + ' hover:opacity-80">' + escHtml(c.sha) + '</a>'
-                            : '<span class="rounded-lg border px-2 py-0.5 font-mono text-[11px] ' + shaColor + '">' + escHtml(c.sha) + '</span>') +
-                    '</div>';
+                    // Author
+                    '<div class="min-w-0">' +
+                        '<p class="text-xs text-slate-500 truncate">' + escHtml(c.author) + '</p>' +
+                    '</div>' +
+                    // Date + time
+                    '<div>' +
+                        '<p class="text-xs font-medium text-slate-700">' + dateStr + '</p>' +
+                        '<p class="text-[11px] text-slate-400">' + timeStr + '</p>' +
+                    '</div>' +
+                    // SHA
+                    '<div class="flex justify-end">' + shaEl + '</div>';
                 listEl.appendChild(li);
             });
 
