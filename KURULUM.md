@@ -8,8 +8,9 @@ PHP, MySQL, Composer veya Node.js kurmanıza gerek yoktur. Docker her şeyi hall
 ## 1. Mimari Notlar
 
 - MySQL container veritabanını hazır getirir; ayrıca veritabanı oluşturmanız gerekmez.
-- `app` servisi yalnız PHP, Composer ve Artisan işleri içindir.
-- Ayrı `node` servisi `npm install` ve `npm run build` çalıştırır; PHP image'ına Node yüklenmez.
+- `app` servisi PHP, Composer, Artisan ve update akışındaki otomatik frontend build adımlarını çalıştırır.
+- `app` image içinde `nodejs` + `npm` bulunur; böylece Admin panelindeki "GitHub'dan Güncelle" aksiyonu `npm run build` çalıştırabilir.
+- Ayrı `node` servisi manuel frontend derleme işlemleri için kullanılmaya devam eder.
 - Redis zorunludur; cache, session ve queue için kullanılır.
 - Setup wizard (`/setup`) ilk admin kullanıcısını ve `.env` son ayarlarını yazar.
 
@@ -370,6 +371,19 @@ PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
 ---
 
 ## 5. Güvenli Update Akışı (Sunucu)
+
+> Not: `3b010a6` ve sonrası sürümlerde "GitHub'dan Güncelle" akışı frontend asset build adımını otomatik çalıştırır.
+> Bunun çalışabilmesi için app image'ın güncel olması gerekir.
+
+```bash
+cd /var/www/artwork-portal
+git pull origin main
+docker compose build app queue scheduler
+docker compose up -d app queue scheduler
+docker compose exec app npm -v
+```
+
+`npm -v` çıktı veriyorsa paneldeki update butonu frontend derlemeyi otomatik yapabilir.
 
 ```bash
 cd /var/www/artwork-portal

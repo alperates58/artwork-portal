@@ -16,6 +16,9 @@ docker compose exec app php artisan portal:update
 
 > **Önemli:** `portal:update` öncesi her zaman `config:clear` ve `cache:clear` çalıştırın.
 > Aksi halde config cache'de eski değerler kalır ve uygulama setup wizard'a yönlendirebilir.
+>
+> **Not:** Admin paneldeki "GitHub'dan Güncelle" butonu artık frontend asset build adımını da otomatik dener (`npm ci` + `npm run build`).
+> Bu adımın çalışması için app image'ın güncel olması gerekir.
 
 ---
 
@@ -43,6 +46,16 @@ docker compose exec app php artisan portal:update
 
 # 6. Container'ları yeniden başlat
 docker compose up -d --force-recreate app queue scheduler
+```
+
+Eğer update akışında `npm` bulunamadı hatası alırsanız bir defa şu adımları uygulayın:
+
+```bash
+cd /var/www/artwork-portal
+git pull origin main
+docker compose build app queue scheduler
+docker compose up -d app queue scheduler
+docker compose exec app npm -v
 ```
 
 ---
