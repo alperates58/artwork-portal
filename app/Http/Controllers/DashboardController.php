@@ -4,26 +4,28 @@ namespace App\Http\Controllers;
 
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
-use App\Services\DashboardCacheService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __construct(
-        private DashboardCacheService $dashboardCache
-    ) {}
-
     public function __invoke(): View|RedirectResponse
     {
         if (auth()->user()->isSupplier()) {
             return redirect()->route('portal.orders.index');
         }
 
-        $metrics = $this->dashboardCache->rememberMetrics(function (): array {
+        $metrics = (function (): array {
+            $trackedOrdersBase = PurchaseOrder::query()
+                ->where(fn ($query) => $query
+                    ->whereNull('status')
+                    ->orWhere('status', '!=', 'cancelled'));
+
             $trackedLinesBase = PurchaseOrderLine::query()
                 ->join('purchase_orders', 'purchase_orders.id', '=', 'purchase_order_lines.purchase_order_id')
-                ->where('purchase_orders.status', '!=', 'cancelled');
+                ->where(fn ($query) => $query
+                    ->whereNull('purchase_orders.status')
+                    ->orWhere('purchase_orders.status', '!=', 'cancelled'));
 
             $totalOrderLines = (clone $trackedLinesBase)->count();
             $pendingArtwork = (clone $trackedLinesBase)
@@ -44,14 +46,13 @@ class DashboardController extends Controller
                 ->whereDate('purchase_orders.order_date', '<=', now()->subDays(7)->toDateString())
                 ->count();
 
-            $blockedOrders = PurchaseOrder::query()
-                ->where('status', '!=', 'cancelled')
+            $blockedOrders = (clone $trackedOrdersBase)
                 ->whereDate('order_date', '<=', now()->subDays(7)->toDateString())
                 ->whereHas('lines', fn ($query) => $query->where('artwork_status', 'pending'))
                 ->count();
 
             return [
-                'tracked_orders' => PurchaseOrder::query()->where('status', '!=', 'cancelled')->count(),
+                'tracked_orders' => (clone $trackedOrdersBase)->count(),
                 'active_orders' => PurchaseOrder::query()->where('status', 'active')->count(),
                 'active_order_lines' => $totalOrderLines,
                 'pending_artwork' => $pendingArtwork,
@@ -70,7 +71,7 @@ class DashboardController extends Controller
                     ? round(($approvedArtwork / $totalOrderLines) * 100, 1)
                     : 0.0,
             ];
-        });
+        })();
 
         return view('dashboard', compact('metrics'));
     }

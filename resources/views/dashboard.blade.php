@@ -13,10 +13,7 @@
 
     $uploadCompletionPct = (float) ($metrics['upload_completion_pct'] ?? 0);
     $flowPressurePct = (float) ($metrics['flow_pressure_pct'] ?? 0);
-    $approvalCompletionPct = (float) ($metrics['approval_completion_pct'] ?? 0);
-
     $uploadedPctForChart = max(0.0, min(100.0, $uploadCompletionPct));
-    $pendingPctForChart = max(0.0, 100.0 - $uploadedPctForChart);
 
     $approvalQueuePct = $activeOrderLines > 0 ? round(($pendingApproval / $activeOrderLines) * 100, 1) : 0.0;
     $stalledQueuePct = $activeOrderLines > 0 ? round(($stalledPending / $activeOrderLines) * 100, 1) : 0.0;
@@ -65,7 +62,9 @@
         <a href="{{ route('orders.index', ['artwork_status' => 'uploaded']) }}" class="text-2xl font-semibold text-slate-900 hover:text-brand-700 transition-colors">
             {{ number_format($uploadedArtwork) }}
         </a>
-        <p class="mt-1 text-xs text-emerald-600">Tamamlanma: {{ number_format($uploadCompletionPct, 1, ',', '.') }}%</p>
+        <p class="mt-1 text-xs text-emerald-600">
+            Tamamlanma: {{ number_format($uploadedArtwork) }} / {{ number_format($activeOrderLines) }} (%{{ number_format($uploadCompletionPct, 1, ',', '.') }})
+        </p>
     </x-ui.card>
 
     <x-ui.card padding="p-5">
@@ -73,7 +72,9 @@
         <a href="{{ route('orders.index', ['artwork_status' => 'pending']) }}" class="text-2xl font-semibold text-slate-900 hover:text-brand-700 transition-colors">
             {{ number_format($pendingArtwork) }}
         </a>
-        <p class="mt-1 text-xs text-amber-600">Basınç: {{ number_format($flowPressurePct, 1, ',', '.') }}%</p>
+        <p class="mt-1 text-xs text-amber-600">
+            Basınç: {{ number_format($pendingArtwork) }} / {{ number_format($activeOrderLines) }} (%{{ number_format($flowPressurePct, 1, ',', '.') }})
+        </p>
     </x-ui.card>
 </div>
 
@@ -127,38 +128,47 @@
         <div class="mt-5 space-y-4">
             <div>
                 <div class="mb-1 flex items-center justify-between text-xs">
-                    <span class="text-slate-500">Bekleyen oranı</span>
-                    <span class="font-semibold text-slate-700">{{ number_format($flowPressurePct, 1, ',', '.') }}%</span>
+                    <span class="text-slate-500">Bekleyen satır oranı</span>
+                    <span class="font-semibold text-slate-700">
+                        {{ number_format($pendingArtwork) }} satır / {{ number_format($activeOrderLines) }} toplam (%{{ number_format($flowPressurePct, 1, ',', '.') }})
+                    </span>
                 </div>
                 <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
                     <div class="h-full rounded-full bg-amber-500" style="width: {{ max(0, min(100, $flowPressurePct)) }}%"></div>
                 </div>
+                <p class="mt-1 text-[11px] text-slate-400">Henüz artwork yüklenmemiş satırların toplam satıra oranı.</p>
             </div>
 
             <div>
                 <div class="mb-1 flex items-center justify-between text-xs">
-                    <span class="text-slate-500">Onay kuyruğu oranı</span>
-                    <span class="font-semibold text-slate-700">{{ number_format($approvalQueuePct, 1, ',', '.') }}%</span>
+                    <span class="text-slate-500">Onay bekleyen satır oranı</span>
+                    <span class="font-semibold text-slate-700">
+                        {{ number_format($pendingApproval) }} satır / {{ number_format($activeOrderLines) }} toplam (%{{ number_format($approvalQueuePct, 1, ',', '.') }})
+                    </span>
                 </div>
                 <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
                     <div class="h-full rounded-full bg-indigo-500" style="width: {{ max(0, min(100, $approvalQueuePct)) }}%"></div>
                 </div>
+                <p class="mt-1 text-[11px] text-slate-400">Revizyon durumunda olup tedarikçi onayı bekleyen satırlar.</p>
             </div>
 
             <div>
                 <div class="mb-1 flex items-center justify-between text-xs">
-                    <span class="text-slate-500">7+ gün bekleyen oranı</span>
-                    <span class="font-semibold text-slate-700">{{ number_format($stalledQueuePct, 1, ',', '.') }}%</span>
+                    <span class="text-slate-500">7+ gün bekleyen satır oranı</span>
+                    <span class="font-semibold text-slate-700">
+                        {{ number_format($stalledPending) }} satır / {{ number_format($activeOrderLines) }} toplam (%{{ number_format($stalledQueuePct, 1, ',', '.') }})
+                    </span>
                 </div>
                 <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
                     <div class="h-full rounded-full bg-red-500" style="width: {{ max(0, min(100, $stalledQueuePct)) }}%"></div>
                 </div>
+                <p class="mt-1 text-[11px] text-slate-400">Sipariş tarihi en az 7 gün eski olan ve hâlâ bekleyen satırlar.</p>
             </div>
         </div>
 
         <div class="mt-5 grid grid-cols-2 gap-3 text-xs">
             <div class="rounded-xl bg-slate-50 px-3 py-2">
-                <p class="text-slate-400">Darboğaz sipariş</p>
+                <p class="text-slate-400">Riskli sipariş (7+ gün bekleyen satır var)</p>
                 <p class="mt-1 text-lg font-semibold text-slate-900">{{ number_format($blockedOrders) }}</p>
             </div>
             <div class="rounded-xl bg-slate-50 px-3 py-2">
