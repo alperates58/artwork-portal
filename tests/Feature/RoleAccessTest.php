@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Models\SystemSetting;
 use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -88,6 +89,49 @@ class RoleAccessTest extends TestCase
         $this->actingAs($user)->get(route('orders.index'))->assertOk();
         $this->actingAs($user)->get(route('admin.users.index'))->assertOk();
         $this->actingAs($user)->get(route('admin.suppliers.index'))->assertOk();
+    }
+
+    public function test_order_creation_setting_overrides_custom_order_create_permission(): void
+    {
+        SystemSetting::query()->create([
+            'group' => 'portal',
+            'key' => 'portal.order_creation_enabled',
+            'value' => '0',
+        ]);
+
+        $supplier = Supplier::factory()->create();
+        $user = User::factory()->create([
+            'role' => UserRole::GRAPHIC,
+            'permissions' => [
+                'orders' => [
+                    'view' => true,
+                    'create' => true,
+                ],
+            ],
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('orders.create'))
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->post(route('orders.store'), [
+                'supplier_id' => $supplier->id,
+                'order_no' => 'PO-SETTING-001',
+                'order_date' => now()->toDateString(),
+                'due_date' => now()->addDay()->toDateString(),
+                'notes' => 'Test siparişi',
+                'lines' => [
+                    [
+                        'line_no' => '1',
+                        'product_code' => 'STK-001',
+                        'description' => 'Deneme ürün',
+                        'quantity' => 10,
+                        'unit' => 'Adet',
+                    ],
+                ],
+            ])
+            ->assertForbidden();
     }
 
     public function test_supplier_cannot_see_other_suppliers_orders(): void

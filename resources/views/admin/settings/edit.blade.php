@@ -55,6 +55,14 @@
     if ($selectedEncryption === null || $selectedEncryption === '') {
         $selectedEncryption = 'none';
     }
+    $portalUploadLimitMb = (int) ($portalConfig['max_upload_size_mb'] ?? config('artwork.max_file_size_mb', 1200));
+    $portalUploadLimitSystemMaxMb = max(1, (int) config('artwork.max_file_size_mb', 1200));
+    $portalUploadLimitSummary = number_format($portalUploadLimitMb, 0, ',', '.') . ' MB';
+    if ($portalUploadLimitMb >= 1000) {
+        $portalUploadLimitSummary .= ' / ' . number_format($portalUploadLimitMb / 1000, 1, ',', '.') . ' GB';
+    }
+    $artworkStorageDisk = old('portal.artwork_storage_disk', $artworkStorage['disk'] ?? 'local');
+    $artworkStorageSummary = $artworkStorageDisk === 'spaces' ? 'Spaces' : 'Yerel';
 
     $sectionHighlights = [
         'updates' => [
@@ -132,7 +140,8 @@
             ],
             'meta' => [
                 ['label' => 'Tedarikçi portalı', 'value' => ($portalConfig['supplier_portal_enabled'] ?? false) ? 'Açık' : 'Kapalı'],
-                ['label' => 'Upload limiti', 'value' => ($portalConfig['max_upload_size_mb'] ?? 0) . ' MB'],
+                ['label' => 'Upload limiti', 'value' => $portalUploadLimitSummary],
+                ['label' => 'Artwork depolama', 'value' => $artworkStorageSummary],
             ],
         ],
         'general' => [
@@ -813,8 +822,8 @@
                                             ['key' => 'require_2fa_for_admin', 'label' => '2FA Admin Zorunluluğu', 'desc' => 'Admin hesapları için iki faktörlü doğrulama zorunlu olur (geliştirme planında).', 'warn' => false],
                                         ];
                                     @endphp
-                                    @foreach($toggles as $t)
-                                        <label class="flex items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50/60 cursor-pointer">
+                                @foreach($toggles as $t)
+                                        <label class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 hover:bg-slate-50/60 cursor-pointer">
                                             <div>
                                                 <p class="text-sm font-semibold text-slate-800 flex items-center gap-2">
                                                     {{ $t['label'] }}
@@ -824,16 +833,50 @@
                                                 </p>
                                                 <p class="text-xs text-slate-500 mt-0.5">{{ $t['desc'] }}</p>
                                             </div>
-                                            <div class="relative flex-shrink-0">
+                                            <div class="flex items-center justify-end">
                                                 <input type="hidden" name="portal[{{ $t['key'] }}]" value="0">
-                                                <input type="checkbox" name="portal[{{ $t['key'] }}]" value="1" id="portal_{{ $t['key'] }}"
-                                                       @checked($portalConfig[$t['key']] ?? false)
-                                                       class="sr-only peer">
-                                                <div class="w-11 h-6 bg-slate-200 peer-focus:ring-2 peer-focus:ring-brand-300 rounded-full peer peer-checked:bg-brand-500 transition-colors"></div>
-                                                <div class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+                                                <span class="relative inline-flex h-6 w-11 flex-shrink-0 items-center">
+                                                    <input type="checkbox" name="portal[{{ $t['key'] }}]" value="1" id="portal_{{ $t['key'] }}"
+                                                           @checked($portalConfig[$t['key']] ?? false)
+                                                           class="peer sr-only">
+                                                    <span aria-hidden="true" class="h-6 w-11 rounded-full bg-slate-200 transition-colors duration-200 peer-checked:bg-brand-500 peer-focus:ring-2 peer-focus:ring-brand-300 peer-focus:ring-offset-2"></span>
+                                                    <span aria-hidden="true" class="pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-5"></span>
+                                                </span>
                                             </div>
                                         </label>
                                     @endforeach
+                                </div>
+
+                                <div class="rounded-2xl border border-slate-200 p-5">
+                                    <div class="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+                                        <div>
+                                            <h4 class="text-sm font-semibold text-slate-700">Artwork Depolama</h4>
+                                            <p class="mt-1 text-xs leading-5 text-slate-500">Aktif disk seçimi yeni yüklenen artwork, galeri ve veri aktarımı medyalarının nereye yazılacağını belirler. Mevcut dosyalar otomatik taşınmaz.</p>
+                                        </div>
+                                        <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+                                            Aktif: {{ $artworkStorageSummary }}
+                                        </span>
+                                    </div>
+
+                                    @if($artworkStorage['spaces_ready'] ?? false)
+                                        <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-start">
+                                            <div class="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-xs leading-5 text-emerald-900">
+                                                Spaces bağlantısı tamamlandığı için portal üzerinden disk seçimi yapılabilir. <span class="font-semibold">Spaces</span> seçildiğinde sistemde bundan sonra oluşacak artwork ve galeri dosyaları `spaces` diskine kaydedilir.
+                                            </div>
+                                            <div>
+                                                <label class="label" for="portal_artwork_storage_disk">Aktif Depolama</label>
+                                                <select id="portal_artwork_storage_disk" name="portal[artwork_storage_disk]" class="input">
+                                                    <option value="local" {{ $artworkStorageDisk === 'local' ? 'selected' : '' }}>Yerel Disk</option>
+                                                    <option value="spaces" {{ $artworkStorageDisk === 'spaces' ? 'selected' : '' }}>DigitalOcean Spaces</option>
+                                                </select>
+                                                <p class="mt-1 text-[11px] text-slate-400">Bu seçim `Storage / Spaces` sekmesindeki aktif disk ayarıyla aynı anahtarı kullanır.</p>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
+                                            Storage / Spaces sekmesindeki <span class="font-semibold">Access Key, Secret Key, Endpoint, Region ve Bucket</span> alanları tamamlanınca bu bölümde Spaces seçeneği açılır.
+                                        </div>
+                                    @endif
                                 </div>
 
                                 {{-- Numeric settings --}}
@@ -844,8 +887,8 @@
                                             <label class="label" for="max_upload_size_mb">Maks. Upload Boyutu (MB)</label>
                                             <input type="number" id="max_upload_size_mb" name="portal[max_upload_size_mb]"
                                                    value="{{ old('portal.max_upload_size_mb', $portalConfig['max_upload_size_mb']) }}"
-                                                   min="1" max="500" class="input">
-                                            <p class="text-[11px] text-slate-400 mt-1">Her artwork yüklemesi için maksimum dosya boyutu.</p>
+                                                   min="1" max="{{ $portalUploadLimitSystemMaxMb }}" class="input">
+                                            <p class="text-[11px] text-slate-400 mt-1">Her artwork yüklemesi için maksimum dosya boyutu. Sistem üst sınırı {{ number_format($portalUploadLimitSystemMaxMb, 0, ',', '.') }} MB (yaklaşık {{ number_format($portalUploadLimitSystemMaxMb / 1000, 1, ',', '.') }} GB).</p>
                                         </div>
                                         <div>
                                             <label class="label" for="max_revision_count">Maks. Revizyon Sayısı</label>
@@ -899,7 +942,10 @@
                                             Bakım: {{ $portalConfig['maintenance_mode'] ? 'Aktif' : 'Pasif' }}
                                         </span>
                                         <span class="rounded-full px-3 py-1 bg-slate-100 text-slate-600">
-                                            Upload: {{ $portalConfig['max_upload_size_mb'] }} MB
+                                            Upload: {{ $portalUploadLimitSummary }}
+                                        </span>
+                                        <span class="rounded-full px-3 py-1 bg-slate-100 text-slate-600">
+                                            Depolama: {{ $artworkStorageSummary }}
                                         </span>
                                         <span class="rounded-full px-3 py-1 bg-slate-100 text-slate-600">
                                             Revizyon: maks. {{ $portalConfig['max_revision_count'] }}

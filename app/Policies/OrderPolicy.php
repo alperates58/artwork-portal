@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\User;
+use App\Services\PortalSettings;
 
 class OrderPolicy
 {
@@ -28,6 +29,10 @@ class OrderPolicy
 
     public function create(User $user): bool
     {
+        if (! app(PortalSettings::class)->portalConfig()['order_creation_enabled']) {
+            return false;
+        }
+
         if ($user->isSupplier()) return false;
         return $user->hasPermission('orders', 'create');
     }

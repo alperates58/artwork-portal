@@ -73,8 +73,8 @@ class MikroIntegrationTest extends TestCase
         $response->assertDontSee('top-secret-key');
         $response->assertDontSee('mikro-user');
         $response->assertDontSee('Dogrudan DB baglantisi kullanilacak');
-        $response->assertSee('Kayitli anahtar var', false);
-        $response->assertSee('Kayitli kullanici var', false);
+        $response->assertSee('Kayıtlı anahtar var', false);
+        $response->assertSee('Kayıtlı kullanıcı var', false);
     }
 
     public function test_updating_non_secret_mikro_settings_keeps_existing_secret_values(): void

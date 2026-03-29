@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\PortalUpdateEvent;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Services\PortalSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
@@ -192,6 +193,166 @@ class UpdateManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Portal Ayarları')
             ->assertSee('Portal İşletim Parametreleri');
+    }
+
+    public function test_admin_can_store_portal_upload_limit_up_to_system_cap(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.settings.update', ['tab' => 'portal']), [
+                'tab' => 'portal',
+                'settings_section' => 'portal',
+                'portal' => [
+                    'order_creation_enabled' => '1',
+                    'supplier_portal_enabled' => '1',
+                    'maintenance_mode' => '0',
+                    'allow_manual_artwork' => '1',
+                    'require_2fa_for_admin' => '0',
+                    'data_transfer_allowed' => '1',
+                    'max_upload_size_mb' => 1200,
+                    'max_revision_count' => 10,
+                    'session_timeout_minutes' => 120,
+                    'order_deadline_warning_days' => 7,
+                    'max_orders_per_page' => 25,
+                    'audit_log_retention_days' => 365,
+                ],
+            ])
+            ->assertRedirect(route('admin.settings.edit', ['tab' => 'portal']));
+
+        $this->assertDatabaseHas('system_settings', [
+            'key' => 'portal.max_upload_size_mb',
+            'value' => '1200',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.settings.edit', ['tab' => 'portal']))
+            ->assertOk()
+            ->assertSee('1.200 MB / 1,2 GB', false);
+    }
+
+    public function test_admin_can_persist_disabled_portal_toggles(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.settings.update', ['tab' => 'portal']), [
+                'tab' => 'portal',
+                'settings_section' => 'portal',
+                'portal' => [
+                    'order_creation_enabled' => '0',
+                    'supplier_portal_enabled' => '1',
+                    'maintenance_mode' => '0',
+                    'allow_manual_artwork' => '1',
+                    'require_2fa_for_admin' => '0',
+                    'data_transfer_allowed' => '1',
+                    'max_upload_size_mb' => 1200,
+                    'max_revision_count' => 10,
+                    'session_timeout_minutes' => 120,
+                    'order_deadline_warning_days' => 7,
+                    'max_orders_per_page' => 25,
+                    'audit_log_retention_days' => 365,
+                ],
+            ])
+            ->assertRedirect(route('admin.settings.edit', ['tab' => 'portal']));
+
+        $this->assertDatabaseHas('system_settings', [
+            'key' => 'portal.order_creation_enabled',
+            'value' => '0',
+        ]);
+
+        $this->assertFalse(app(PortalSettings::class)->portalConfig()['order_creation_enabled']);
+    }
+
+    public function test_portal_tab_hides_spaces_storage_selector_until_spaces_connection_is_complete(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.settings.edit', ['tab' => 'portal']))
+            ->assertOk()
+            ->assertDontSee('Aktif Depolama')
+            ->assertSee('Storage / Spaces sekmesindeki');
+    }
+
+    public function test_admin_can_switch_portal_artwork_storage_to_spaces_after_spaces_configuration_is_complete(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        foreach ([
+            ['group' => 'spaces', 'key' => 'spaces.disk', 'value' => 'local'],
+            ['group' => 'spaces', 'key' => 'spaces.key', 'value' => 'key-123', 'is_encrypted' => false],
+            ['group' => 'spaces', 'key' => 'spaces.secret', 'value' => 'secret-123', 'is_encrypted' => false],
+            ['group' => 'spaces', 'key' => 'spaces.endpoint', 'value' => 'https://nyc3.digitaloceanspaces.com'],
+            ['group' => 'spaces', 'key' => 'spaces.region', 'value' => 'nyc3'],
+            ['group' => 'spaces', 'key' => 'spaces.bucket', 'value' => 'portal-artworks'],
+        ] as $setting) {
+            SystemSetting::query()->create($setting);
+        }
+
+        $this->actingAs($admin)
+            ->put(route('admin.settings.update', ['tab' => 'portal']), [
+                'tab' => 'portal',
+                'settings_section' => 'portal',
+                'portal' => [
+                    'order_creation_enabled' => '1',
+                    'supplier_portal_enabled' => '1',
+                    'maintenance_mode' => '0',
+                    'allow_manual_artwork' => '1',
+                    'require_2fa_for_admin' => '0',
+                    'data_transfer_allowed' => '1',
+                    'artwork_storage_disk' => 'spaces',
+                    'max_upload_size_mb' => 1200,
+                    'max_revision_count' => 10,
+                    'session_timeout_minutes' => 120,
+                    'order_deadline_warning_days' => 7,
+                    'max_orders_per_page' => 25,
+                    'audit_log_retention_days' => 365,
+                ],
+            ])
+            ->assertRedirect(route('admin.settings.edit', ['tab' => 'portal']));
+
+        $this->assertDatabaseHas('system_settings', [
+            'key' => 'spaces.disk',
+            'value' => 'spaces',
+        ]);
+
+        $this->assertSame('spaces', app(PortalSettings::class)->filesystemDisk());
+
+        $this->actingAs($admin)
+            ->get(route('admin.settings.edit', ['tab' => 'portal']))
+            ->assertOk()
+            ->assertSee('Aktif Depolama')
+            ->assertSee('Depolama: Spaces');
+    }
+
+    public function test_portal_storage_selection_requires_spaces_configuration_before_spaces_can_be_selected(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        $this->actingAs($admin)
+            ->from(route('admin.settings.edit', ['tab' => 'portal']))
+            ->put(route('admin.settings.update', ['tab' => 'portal']), [
+                'tab' => 'portal',
+                'settings_section' => 'portal',
+                'portal' => [
+                    'order_creation_enabled' => '1',
+                    'supplier_portal_enabled' => '1',
+                    'maintenance_mode' => '0',
+                    'allow_manual_artwork' => '1',
+                    'require_2fa_for_admin' => '0',
+                    'data_transfer_allowed' => '1',
+                    'artwork_storage_disk' => 'spaces',
+                    'max_upload_size_mb' => 1200,
+                    'max_revision_count' => 10,
+                    'session_timeout_minutes' => 120,
+                    'order_deadline_warning_days' => 7,
+                    'max_orders_per_page' => 25,
+                    'audit_log_retention_days' => 365,
+                ],
+            ])
+            ->assertRedirect(route('admin.settings.edit', ['tab' => 'portal']))
+            ->assertSessionHasErrors('portal.artwork_storage_disk');
     }
 
     public function test_update_actions_redirect_back_to_updates_tab(): void

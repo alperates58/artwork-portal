@@ -60,6 +60,19 @@ class PortalSettings
         return (string) $this->get('spaces.disk', config('filesystems.default', 'local'));
     }
 
+    public function hasCompleteSpacesConfiguration(): bool
+    {
+        $spaces = $this->spacesConfig();
+
+        foreach (['key', 'secret', 'endpoint', 'region', 'bucket'] as $field) {
+            if (! filled($spaces[$field] ?? null)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public function spacesConfig(): array
     {
         return [
@@ -114,12 +127,12 @@ class PortalSettings
 
     public function syncMikroSettings(array $settings): void
     {
-        $this->set('mikro', 'mikro.enabled', (string) ($settings['enabled'] ?? false));
+        $this->set('mikro', 'mikro.enabled', $this->booleanSettingValue($settings['enabled'] ?? false));
         $this->set('mikro', 'mikro.base_url', $settings['base_url'] ?? null);
         $this->set('mikro', 'mikro.company_code', $settings['company_code'] ?? null);
         $this->set('mikro', 'mikro.work_year', $settings['work_year'] ?? null);
         $this->set('mikro', 'mikro.timeout', (string) ($settings['timeout'] ?? config('mikro.timeout')));
-        $this->set('mikro', 'mikro.verify_ssl', (string) ($settings['verify_ssl'] ?? true));
+        $this->set('mikro', 'mikro.verify_ssl', $this->booleanSettingValue($settings['verify_ssl'] ?? true));
         $this->set('mikro', 'mikro.shipment_endpoint', $settings['shipment_endpoint'] ?? null);
         $this->set('mikro', 'mikro.sync_interval_minutes', (string) ($settings['sync_interval_minutes'] ?? config('mikro.sync_interval_minutes')));
 
@@ -236,7 +249,7 @@ class PortalSettings
             'supplier_portal_enabled'        => filter_var($this->get('portal.supplier_portal_enabled', true), FILTER_VALIDATE_BOOL),
             'maintenance_mode'               => filter_var($this->get('portal.maintenance_mode', false), FILTER_VALIDATE_BOOL),
             'allow_manual_artwork'           => filter_var($this->get('portal.allow_manual_artwork', true), FILTER_VALIDATE_BOOL),
-            'max_upload_size_mb'             => (int) $this->get('portal.max_upload_size_mb', 50),
+            'max_upload_size_mb'             => (int) $this->get('portal.max_upload_size_mb', config('artwork.max_file_size_mb', 1200)),
             'max_revision_count'             => (int) $this->get('portal.max_revision_count', 10),
             'session_timeout_minutes'        => (int) $this->get('portal.session_timeout_minutes', 120),
             'order_deadline_warning_days'    => (int) $this->get('portal.order_deadline_warning_days', 7),
@@ -258,16 +271,25 @@ class PortalSettings
             'order_deadline_warning_days', 'max_orders_per_page', 'audit_log_retention_days',
         ];
         foreach ($boolKeys as $k) {
-            $this->set('portal', "portal.{$k}", (string) filter_var($s[$k] ?? false, FILTER_VALIDATE_BOOL));
+            $this->set('portal', "portal.{$k}", $this->booleanSettingValue($s[$k] ?? false));
         }
         foreach ($intKeys as $k) {
             $this->set('portal', "portal.{$k}", (string) (int) ($s[$k] ?? 0));
         }
     }
 
+    public function syncArtworkStorageDisk(?string $disk): void
+    {
+        if (! in_array($disk, ['local', 'spaces'], true)) {
+            return;
+        }
+
+        $this->set('spaces', 'spaces.disk', $disk);
+    }
+
     public function syncMailNotificationSettings(array $settings): void
     {
-        $this->set('mail_notifications', 'mail_notifications.enabled', (string) ($settings['enabled'] ?? false));
+        $this->set('mail_notifications', 'mail_notifications.enabled', $this->booleanSettingValue($settings['enabled'] ?? false));
         $this->set('mail_notifications', 'mail_notifications.graphics_to', $settings['graphics_to'] ?? null);
         $this->set('mail_notifications', 'mail_notifications.graphics_cc', $settings['graphics_cc'] ?? null);
         $this->set('mail_notifications', 'mail_notifications.graphics_bcc', $settings['graphics_bcc'] ?? null);
@@ -287,6 +309,11 @@ class PortalSettings
         ['key' => 'design', 'label' => 'Tasarım'],
         ['key' => 'other',  'label' => 'Diğer'],
     ];
+
+    private function booleanSettingValue(mixed $value): string
+    {
+        return filter_var($value, FILTER_VALIDATE_BOOL) ? '1' : '0';
+    }
 
     public function fileGroups(): array
     {

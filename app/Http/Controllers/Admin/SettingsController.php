@@ -69,6 +69,10 @@ class SettingsController extends Controller
         return view('admin.settings.edit', [
             'activeTab' => $this->resolveTab($request),
             'spaces' => $this->settings->spacesConfig(),
+            'artworkStorage' => [
+                'disk' => $this->settings->filesystemDisk(),
+                'spaces_ready' => $this->settings->hasCompleteSpacesConfiguration(),
+            ],
             'mikro' => $this->settings->mikroFormConfig(),
             'mikroViewMapping' => $this->mikroViewMappings->formConfig(),
             'mailServer' => $this->settings->mailServerFormConfig(),
@@ -121,6 +125,7 @@ class SettingsController extends Controller
 
         if (array_key_exists('portal', $validated)) {
             $this->settings->syncPortalSettings($validated['portal']);
+            $this->settings->syncArtworkStorageDisk($validated['portal']['artwork_storage_disk'] ?? null);
         }
 
         return $this->redirectToTab($activeTab)->with('success', 'Sistem ayarlari guncellendi.');
@@ -382,6 +387,8 @@ class SettingsController extends Controller
         }
 
         if ($section === 'portal' || $request->has('portal')) {
+            $maxUploadSizeMb = max(1, (int) config('artwork.max_file_size_mb', 1200));
+
             $rules += [
                 'portal.order_creation_enabled'      => ['nullable', 'boolean'],
                 'portal.supplier_portal_enabled'     => ['nullable', 'boolean'],
@@ -389,7 +396,8 @@ class SettingsController extends Controller
                 'portal.allow_manual_artwork'        => ['nullable', 'boolean'],
                 'portal.require_2fa_for_admin'       => ['nullable', 'boolean'],
                 'portal.data_transfer_allowed'       => ['nullable', 'boolean'],
-                'portal.max_upload_size_mb'          => ['required', 'integer', 'min:1', 'max:500'],
+                'portal.artwork_storage_disk'        => ['nullable', 'in:local,spaces'],
+                'portal.max_upload_size_mb'          => ['required', 'integer', 'min:1', 'max:' . $maxUploadSizeMb],
                 'portal.max_revision_count'          => ['required', 'integer', 'min:1', 'max:100'],
                 'portal.session_timeout_minutes'     => ['required', 'integer', 'min:15', 'max:10080'],
                 'portal.order_deadline_warning_days' => ['required', 'integer', 'min:1', 'max:60'],
@@ -417,7 +425,43 @@ class SettingsController extends Controller
             ];
         }
 
-        return $this->validateWithTabRedirect($request, $activeTab, $rules);
+        $validated = $this->validateWithTabRedirect($request, $activeTab, $rules);
+
+        if (($validated['spaces']['disk'] ?? null) === 'spaces') {
+            $missingSpacesFields = collect([
+                'spaces.key' => $validated['spaces']['key'] ?? null,
+                'spaces.secret' => $validated['spaces']['secret'] ?? null,
+                'spaces.endpoint' => $validated['spaces']['endpoint'] ?? null,
+                'spaces.region' => $validated['spaces']['region'] ?? null,
+                'spaces.bucket' => $validated['spaces']['bucket'] ?? null,
+            ])->filter(fn ($value) => ! filled($value))->keys();
+
+            if ($missingSpacesFields->isNotEmpty()) {
+                $validator = Validator::make($request->all(), []);
+
+                foreach ($missingSpacesFields as $field) {
+                    $validator->errors()->add($field, 'Spaces kullanımı için bu alan zorunludur.');
+                }
+
+                throw tap(new ValidationException($validator), function (ValidationException $exception) use ($activeTab): void {
+                    $exception->redirectTo($this->settingsTabUrl($activeTab));
+                });
+            }
+        }
+
+        if (($validated['portal']['artwork_storage_disk'] ?? null) === 'spaces' && ! $this->settings->hasCompleteSpacesConfiguration()) {
+            $validator = Validator::make($request->all(), []);
+            $validator->errors()->add(
+                'portal.artwork_storage_disk',
+                'Spaces seçeneğini kullanmadan önce Storage / Spaces sekmesindeki bağlantı alanlarını tamamlayın.'
+            );
+
+            throw tap(new ValidationException($validator), function (ValidationException $exception) use ($activeTab): void {
+                $exception->redirectTo($this->settingsTabUrl($activeTab));
+            });
+        }
+
+        return $validated;
     }
 
     private function validateWithTabRedirect(Request $request, string $activeTab, array $rules): array

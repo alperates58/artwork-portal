@@ -11,6 +11,7 @@ use App\Models\ArtworkTag;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\MultipartUploadService;
 use App\Services\SpacesStorageService;
@@ -87,6 +88,12 @@ class ArtworkUploadTest extends TestCase
         $category = ArtworkCategory::factory()->create();
         $tag = ArtworkTag::factory()->create();
 
+        SystemSetting::query()->create([
+            'group' => 'spaces',
+            'key' => 'spaces.disk',
+            'value' => 'spaces',
+        ]);
+
         $this->mock(SpacesStorageService::class, function ($mock) {
             $mock->shouldReceive('buildPath')->andReturn('artworks/supplier/1/orders/PO-001/lines/1/rev/1/uuid.pdf');
         });
@@ -127,6 +134,7 @@ class ArtworkUploadTest extends TestCase
             'name' => 'test-artwork.pdf',
             'category_id' => $category->id,
             'uploaded_by' => $this->graphicUser->id,
+            'file_disk' => 'spaces',
         ]);
         $this->assertDatabaseHas('artwork_gallery_usages', [
             'purchase_order_line_id' => $this->line->id,
