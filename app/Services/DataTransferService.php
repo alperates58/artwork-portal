@@ -27,6 +27,7 @@ use SimpleXMLElement;
 class DataTransferService
 {
     private const IMPORT_TRACKING_KEY = 'imported_ids';
+    private const LAST_EXPORT_AT_KEY = 'last_export_at';
     private const SETTING_GROUP = 'data_transfer';
     private const MEDIA_EXPORT_LIMIT_BYTES = 52428800; // 50 MB
 
@@ -155,31 +156,19 @@ class DataTransferService
     public function buildExportOptions(): array
     {
         $definitions = $this->sectionDefinitions();
-        $lastExportAt = $this->supportsTransferTracking()
-            ? DataTransferRecord::query()
-                ->where('direction', 'export')
-                ->max('transferred_at')
-            : null;
+        $lastExportAt = SystemSetting::query()
+            ->where('group', self::SETTING_GROUP)
+            ->where('key', self::LAST_EXPORT_AT_KEY)
+            ->value('value');
 
         return [
-            'sections' => collect($definitions)->map(function (array $definition, string $section): array {
-                $tracked = $this->supportsTransferTracking()
-                    ? DataTransferRecord::query()
-                        ->where('direction', 'export')
-                        ->where('entity_type', $section)
-                        ->distinct()
-                        ->count('entity_key')
-                    : 0;
-
-                return [
-                    ...$definition,
-                    'key' => $section,
-                    'stats' => [
-                        'total' => $this->totalCountForSection($section),
-                        'tracked' => $tracked,
-                    ],
-                ];
-            })->values()->all(),
+            'sections' => collect($definitions)->map(fn (array $definition, string $section): array => [
+                ...$definition,
+                'key' => $section,
+                'stats' => [
+                    'total' => $this->totalCountForSection($section),
+                ],
+            ])->values()->all(),
             'last_export_at' => $lastExportAt ? Carbon::parse($lastExportAt) : null,
             'imported_count' => $this->importedCount(),
         ];
@@ -211,7 +200,7 @@ class DataTransferService
         return $validated;
     }
 
-    public function export(array $selection, bool $includeMedia = false, bool $onlyNew = true): array
+    public function export(array $selection, bool $includeMedia = false, bool $onlyNew = false): array
     {
         if ($includeMedia) {
             $this->guardMediaExportSize($selection);
@@ -240,6 +229,10 @@ class DataTransferService
             }
 
             $stats[$section] = $this->{$method}($xml, $fields, $includeMedia, $onlyNew, $selectionHash, $batchUuid);
+        }
+
+        if (collect($stats)->sum(fn (array $sectionStats) => (int) ($sectionStats['count'] ?? 0)) > 0) {
+            $this->rememberLastExportAt();
         }
 
         return [
@@ -440,6 +433,14 @@ class DataTransferService
         return hash('sha256', json_encode($normalized, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
+    private function rememberLastExportAt(): void
+    {
+        SystemSetting::query()->updateOrCreate(
+            ['group' => self::SETTING_GROUP, 'key' => self::LAST_EXPORT_AT_KEY],
+            ['value' => now()->toIso8601String(), 'is_encrypted' => false]
+        );
+    }
+
     private function appendSuppliersSection(SimpleXMLElement $xml, array $fields, bool $includeMedia, bool $onlyNew, string $selectionHash, string $batchUuid): array
     {
         $suppliersNode = $xml->addChild('suppliers');
@@ -451,14 +452,9 @@ class DataTransferService
             $entityKey = $this->supplierEntityKey($supplier);
             $payloadHash = $this->payloadHash($payload);
 
-            if ($onlyNew && $this->wasTransferred('export', 'suppliers', $entityKey, $selectionHash, $payloadHash)) {
-                continue;
-            }
-
             $node = $suppliersNode->addChild('supplier');
             $node->addAttribute('entity_key', $entityKey);
             $this->writePayloadToNode($node, $payload);
-            $this->markTransferred('export', 'suppliers', $entityKey, $selectionHash, $payloadHash, $batchUuid);
             $exported++;
         }
 
@@ -485,14 +481,9 @@ class DataTransferService
             $entityKey = $this->userEntityKey($user);
             $payloadHash = $this->payloadHash($payload);
 
-            if ($onlyNew && $this->wasTransferred('export', 'users', $entityKey, $selectionHash, $payloadHash)) {
-                continue;
-            }
-
             $node = $usersNode->addChild('user');
             $node->addAttribute('entity_key', $entityKey);
             $this->writePayloadToNode($node, $payload);
-            $this->markTransferred('export', 'users', $entityKey, $selectionHash, $payloadHash, $batchUuid);
             $exported++;
         }
 
@@ -510,14 +501,9 @@ class DataTransferService
             $entityKey = $this->purchaseOrderEntityKey($order);
             $payloadHash = $this->payloadHash($payload);
 
-            if ($onlyNew && $this->wasTransferred('export', 'purchase_orders', $entityKey, $selectionHash, $payloadHash)) {
-                continue;
-            }
-
             $node = $ordersNode->addChild('purchase_order');
             $node->addAttribute('entity_key', $entityKey);
             $this->writePayloadToNode($node, $payload);
-            $this->markTransferred('export', 'purchase_orders', $entityKey, $selectionHash, $payloadHash, $batchUuid);
             $exported++;
         }
 
@@ -536,14 +522,9 @@ class DataTransferService
             $entityKey = $this->artworkGalleryEntityKey($item);
             $payloadHash = $this->payloadHash($payload);
 
-            if ($onlyNew && $this->wasTransferred('export', 'artwork_gallery', $entityKey, $selectionHash, $payloadHash)) {
-                continue;
-            }
-
             $node = $galleryNode->addChild('item');
             $node->addAttribute('entity_key', $entityKey);
             $this->writePayloadToNode($node, $payload);
-            $this->markTransferred('export', 'artwork_gallery', $entityKey, $selectionHash, $payloadHash, $batchUuid);
             $exported++;
         }
 
@@ -567,14 +548,9 @@ class DataTransferService
             $entityKey = $this->artworkRevisionEntityKey($revision);
             $payloadHash = $this->payloadHash($payload);
 
-            if ($onlyNew && $this->wasTransferred('export', 'artwork_revisions', $entityKey, $selectionHash, $payloadHash)) {
-                continue;
-            }
-
             $node = $revisionsNode->addChild('revision');
             $node->addAttribute('entity_key', $entityKey);
             $this->writePayloadToNode($node, $payload);
-            $this->markTransferred('export', 'artwork_revisions', $entityKey, $selectionHash, $payloadHash, $batchUuid);
             $exported++;
         }
 
@@ -625,14 +601,9 @@ class DataTransferService
             $entityKey   = $revisionRef . '|' . ($log->user?->email ?? '') . '|' . $log->downloaded_at?->format('YmdHis');
             $payloadHash = $this->payloadHash($payload);
 
-            if ($onlyNew && $this->wasTransferred('export', 'download_logs', $entityKey, $selectionHash, $payloadHash)) {
-                continue;
-            }
-
             $node = $logsNode->addChild('log');
             $node->addAttribute('entity_key', $entityKey);
             $this->writePayloadToNode($node, $payload);
-            $this->markTransferred('export', 'download_logs', $entityKey, $selectionHash, $payloadHash, $batchUuid);
             $exported++;
         }
 

@@ -34,7 +34,7 @@ class DataTransferController extends Controller
             $result = $this->dataTransfer->export(
                 selection: $selection,
                 includeMedia: $request->boolean('include_media'),
-                onlyNew: $request->boolean('only_new'),
+                onlyNew: false,
             );
         } catch (\Throwable $exception) {
             report($exception);
@@ -42,6 +42,14 @@ class DataTransferController extends Controller
             return back()->withErrors([
                 'fields' => $exception->getMessage() ?: 'Dışa aktarım paketi oluşturulurken bir hata oluştu.',
             ]);
+        }
+
+        $exportedCount = collect($result['stats'])->sum(fn (array $sectionStats) => (int) ($sectionStats['count'] ?? 0));
+
+        if ($exportedCount === 0) {
+            return redirect()
+                ->route('admin.data-transfer.index')
+                ->with('warning', 'Seçilen alanlar için dışa aktarılacak kayıt bulunamadı.');
         }
 
         return response($result['xml'], 200, [

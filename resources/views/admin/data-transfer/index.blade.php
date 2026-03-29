@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Veri Aktarımı')
 @section('page-title', 'Veri Aktarımı')
-@section('page-subtitle', 'Hangi verilerin ve hangi alanların taşınacağını seçin. Aynı içerik tekrar dışa aktarılmaz.')
+@section('page-subtitle', 'Hangi verilerin ve hangi alanların taşınacağını seçin. Tekrar kontrolü içe aktarma sırasında yapılır.')
 
 @section('content')
 
@@ -35,7 +35,7 @@
             <div>
                 <h2 class="text-base font-semibold text-slate-900">Dışa Aktarım Paketi</h2>
                 <p class="mt-1 text-sm text-slate-500">
-                    Her bölüm için hangi alanların gideceğini seçin. İçeriği değişmemiş kayıtlar tekrar pakete eklenmez.
+                    Her bölüm için hangi alanların gideceğini seçin. Seçtiğiniz kayıtlar doğrudan XML paketine yazılır.
                 </p>
             </div>
 
@@ -45,16 +45,7 @@
             </div>
         </div>
 
-        <div class="mb-6 grid gap-4 md:grid-cols-2">
-            <label class="flex items-start gap-3 rounded-2xl border border-brand-100 bg-brand-50/70 px-4 py-3">
-                <input type="hidden" name="only_new" value="0">
-                <input type="checkbox" name="only_new" value="1" class="mt-1 rounded border-slate-300 text-brand-600 focus:ring-brand-500" checked>
-                <span>
-                    <span class="block text-sm font-semibold text-slate-800">Sadece yeni veya değişmiş kayıtları dahil et</span>
-                    <span class="mt-1 block text-xs text-slate-500">Aynı alan setiyle daha önce gönderilmiş ve içeriği değişmemiş kayıtlar atlanır.</span>
-                </span>
-            </label>
-
+        <div class="mb-6">
             <label class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
                 <input type="checkbox" name="include_media" value="1" class="mt-1 rounded border-slate-300 text-brand-600 focus:ring-brand-500">
                 <span>
@@ -83,7 +74,6 @@
 
                         <div class="flex gap-2 text-xs">
                             <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600">Toplam: {{ $section['stats']['total'] }}</span>
-                            <span class="rounded-full bg-amber-50 px-3 py-1 text-amber-700">İzlenen: {{ $section['stats']['tracked'] }}</span>
                             @if($section['supports_media'])
                                 <span class="rounded-full bg-blue-50 px-3 py-1 text-blue-700">Medya destekli</span>
                             @endif
@@ -111,7 +101,7 @@
 
         <div class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
             <p class="text-xs text-slate-500">
-                Siparişler dışa aktarılırken tekrar kontrolü tedarikçi + sipariş no bileşimiyle yapılır. Revizyon ve galeri kayıtlarında içerik özeti de hesaba katılır.
+                Tekrar kontrolü içe aktarma sırasında yapılır. Sipariş tarafında eşleşme tedarikçi + sipariş no bileşimiyle korunur.
             </p>
 
             <button type="submit" class="btn btn-primary">
