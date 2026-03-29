@@ -176,8 +176,223 @@ foreach (AuditLogController::CATEGORIES as $cat => $actions) {
         </div>
     </form>
 
+    {{-- ── Görünüm sekme seçici ─────────────────────────────────────────────── --}}
+    <div class="flex gap-2 border-b border-slate-200 -mb-px">
+        <button @click="activeTab = 'table'"
+                :class="activeTab === 'table' ? 'border-brand-500 text-brand-700 font-semibold' : 'border-transparent text-slate-500 hover:text-slate-700'"
+                class="flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm transition-colors">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 6h18M3 14h18M3 18h18"/>
+            </svg>
+            Log Tablosu
+        </button>
+        <button @click="activeTab = 'timeline'"
+                :class="activeTab === 'timeline' ? 'border-brand-500 text-brand-700 font-semibold' : 'border-transparent text-slate-500 hover:text-slate-700'"
+                class="flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm transition-colors">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Zaman Çizelgesi
+        </button>
+    </div>
+
+    {{-- ── Zaman çizelgesi paneli ────────────────────────────────────────────── --}}
+    <div x-show="activeTab === 'timeline'" x-cloak class="space-y-4">
+
+        {{-- Arama kutusu --}}
+        <div class="card p-4">
+            <div class="flex flex-wrap gap-3 items-end">
+
+                {{-- Arama türü --}}
+                <div class="w-full sm:w-44">
+                    <label class="label">Arama Türü</label>
+                    <select x-model="tlSearchType" @change="tlSearchValue = ''; tlResults = []; tlMeta = null" class="input">
+                        <option value="order_no">Sipariş No</option>
+                        <option value="stock_code">Stok Kodu</option>
+                        <option value="supplier_id">Tedarikçi</option>
+                    </select>
+                </div>
+
+                {{-- Sipariş No --}}
+                <div x-show="tlSearchType === 'order_no'" class="w-full sm:w-64">
+                    <label class="label">Sipariş No</label>
+                    <input list="tl-order-nos" type="text" x-model="tlSearchValue"
+                           @input.debounce.400ms="fetchTimeline()"
+                           placeholder="Sipariş numarası girin…" class="input">
+                    <datalist id="tl-order-nos">
+                        @foreach($orderNumbers as $no)
+                            <option value="{{ $no }}">
+                        @endforeach
+                    </datalist>
+                </div>
+
+                {{-- Stok Kodu --}}
+                <div x-show="tlSearchType === 'stock_code'" class="w-full sm:w-64">
+                    <label class="label">Stok Kodu</label>
+                    <input list="tl-stock-codes" type="text" x-model="tlSearchValue"
+                           @input.debounce.400ms="fetchTimeline()"
+                           placeholder="Stok kodu girin…" class="input">
+                    <datalist id="tl-stock-codes">
+                        @foreach($stockCodes as $code)
+                            <option value="{{ $code }}">
+                        @endforeach
+                    </datalist>
+                </div>
+
+                {{-- Tedarikçi --}}
+                <div x-show="tlSearchType === 'supplier_id'" class="w-full sm:w-64">
+                    <label class="label">Tedarikçi</label>
+                    <select x-model="tlSearchValue" @change="fetchTimeline()" class="input">
+                        <option value="">Tedarikçi seçin…</option>
+                        @foreach($suppliers as $s)
+                            <option value="{{ $s->id }}">{{ $s->name }}{{ $s->code ? ' (' . $s->code . ')' : '' }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Yükleniyor / temizle --}}
+                <div class="flex items-center gap-2">
+                    <template x-if="tlLoading">
+                        <svg class="h-5 w-5 animate-spin text-brand-500" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                        </svg>
+                    </template>
+                    <template x-if="tlResults.length > 0">
+                        <button @click="tlSearchValue=''; tlResults=[]; tlMeta=null" class="btn btn-secondary text-xs">Temizle</button>
+                    </template>
+                </div>
+            </div>
+
+            {{-- Meta bilgi bandı --}}
+            <template x-if="tlMeta">
+                <div class="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-2.5 border border-slate-200">
+                    <span class="text-xs text-slate-500">
+                        <span x-text="tlMeta.type" class="font-semibold text-slate-700"></span>:
+                        <span x-text="tlMeta.value" class="font-mono text-brand-700"></span>
+                    </span>
+                    <template x-if="tlMeta.order_count">
+                        <span class="text-xs text-slate-500">·
+                            <span x-text="tlMeta.order_count" class="font-bold text-slate-700"></span> sipariş
+                        </span>
+                    </template>
+                    <span class="ml-auto text-xs font-semibold text-slate-700">
+                        <span x-text="tlResults.length"></span> log kaydı
+                    </span>
+                </div>
+            </template>
+        </div>
+
+        {{-- Boş durum --}}
+        <template x-if="!tlLoading && tlResults.length === 0 && tlSearchValue !== ''">
+            <div class="card py-12 text-center">
+                <svg class="mx-auto h-10 w-10 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                <p class="mt-3 text-sm text-slate-400">Bu arama için log kaydı bulunamadı.</p>
+            </div>
+        </template>
+
+        {{-- Başlangıç ipucu --}}
+        <template x-if="!tlLoading && tlSearchValue === ''">
+            <div class="card py-12 text-center">
+                <svg class="mx-auto h-10 w-10 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="mt-3 text-sm text-slate-400">Sipariş No, Stok Kodu veya Tedarikçi seçerek<br>aktivite geçmişini görüntüleyin.</p>
+            </div>
+        </template>
+
+        {{-- Zaman çizelgesi --}}
+        <template x-if="tlResults.length > 0">
+            <div class="space-y-0">
+                <template x-for="(group, gi) in tlGrouped" :key="gi">
+                    <div>
+                        {{-- Gün başlığı --}}
+                        <div class="sticky top-0 z-10 flex items-center gap-3 py-2 bg-slate-50/95 backdrop-blur-sm">
+                            <span class="text-xs font-semibold text-slate-500 whitespace-nowrap" x-text="group.day"></span>
+                            <div class="flex-1 h-px bg-slate-200"></div>
+                            <span class="text-[11px] text-slate-400 whitespace-nowrap" x-text="group.items.length + ' kayıt'"></span>
+                        </div>
+
+                        {{-- Olaylar --}}
+                        <div class="relative ml-3 border-l-2 border-slate-200 pl-6 pb-2 space-y-3">
+                            <template x-for="(log, li) in group.items" :key="log.id">
+                                <div class="relative">
+                                    {{-- Zaman çizelgesi noktası --}}
+                                    <span class="absolute -left-[25px] top-3 h-3 w-3 rounded-full border-2 border-white shadow-sm"
+                                          :class="{
+                                            'bg-emerald-500': log.color === 'emerald',
+                                            'bg-red-500':     log.color === 'red',
+                                            'bg-violet-500':  log.color === 'violet',
+                                            'bg-blue-500':    log.color === 'blue',
+                                            'bg-amber-500':   log.color === 'amber',
+                                            'bg-orange-500':  log.color === 'orange',
+                                            'bg-rose-500':    log.color === 'rose',
+                                            'bg-slate-400':   !['emerald','red','violet','blue','amber','orange','rose'].includes(log.color),
+                                          }"></span>
+
+                                    {{-- Kart --}}
+                                    <div class="rounded-xl border border-slate-100 bg-white px-4 py-3 shadow-sm hover:shadow-md transition-shadow">
+                                        <div class="flex flex-wrap items-start gap-2">
+
+                                            {{-- Kullanıcı avatarı --}}
+                                            <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-[11px] font-bold text-white"
+                                                 style="background: linear-gradient(135deg,#8b5cf6,#6d28d9)"
+                                                 x-text="log.user_initials"></div>
+
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex flex-wrap items-center gap-2">
+                                                    {{-- İşlem badge --}}
+                                                    <span class="inline-flex items-center rounded-lg px-2.5 py-0.5 text-[11px] font-semibold"
+                                                          :class="{
+                                                            'bg-emerald-100 text-emerald-700': log.color === 'emerald',
+                                                            'bg-red-100 text-red-700':         log.color === 'red',
+                                                            'bg-violet-100 text-violet-700':   log.color === 'violet',
+                                                            'bg-blue-100 text-blue-700':       log.color === 'blue',
+                                                            'bg-amber-100 text-amber-700':     log.color === 'amber',
+                                                            'bg-orange-100 text-orange-700':   log.color === 'orange',
+                                                            'bg-rose-100 text-rose-700':       log.color === 'rose',
+                                                            'bg-slate-100 text-slate-600':     !['emerald','red','violet','blue','amber','orange','rose'].includes(log.color),
+                                                          }"
+                                                          x-text="log.action_label"></span>
+                                                    {{-- Kullanıcı adı --}}
+                                                    <span class="text-xs font-medium text-slate-700" x-text="log.user_name"></span>
+                                                    <span class="text-[11px] text-slate-400" x-text="log.user_role"></span>
+                                                </div>
+
+                                                {{-- Detaylar --}}
+                                                <template x-if="log.details.length > 0">
+                                                    <div class="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                                                        <template x-for="d in log.details" :key="d.key">
+                                                            <span class="text-xs text-slate-500">
+                                                                <span class="font-medium text-slate-600" x-text="d.key + ':'"></span>
+                                                                <span x-text="d.value"></span>
+                                                            </span>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+
+                                            {{-- Saat + IP --}}
+                                            <div class="flex-shrink-0 text-right">
+                                                <p class="text-xs font-mono font-semibold text-slate-700" x-text="log.time"></p>
+                                                <p class="text-[10px] font-mono text-slate-400" x-text="log.ip || '—'"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+    </div>
+
     {{-- ── Log tablosu ─────────────────────────────────────────────────────── --}}
-    <div class="card overflow-x-auto">
+    <div x-show="activeTab === 'table'" class="card overflow-x-auto">
         <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <h3 class="text-sm font-semibold text-slate-900">
                 @if($selectedCategory)
@@ -330,6 +545,48 @@ function logsPage() {
     return {
         selectedCat: '{{ $selectedCategory }}',
         selectedAction: '{{ $selectedAction }}',
+
+        // Tab
+        activeTab: 'table',
+
+        // Timeline
+        tlSearchType:  'order_no',
+        tlSearchValue: '',
+        tlLoading:     false,
+        tlResults:     [],
+        tlMeta:        null,
+
+        get tlGrouped() {
+            const groups = {};
+            for (const log of this.tlResults) {
+                if (!groups[log.day_group]) groups[log.day_group] = { day: log.day_group, items: [] };
+                groups[log.day_group].items.push(log);
+            }
+            return Object.values(groups);
+        },
+
+        async fetchTimeline() {
+            const val = this.tlSearchValue.trim();
+            if (!val) { this.tlResults = []; this.tlMeta = null; return; }
+
+            this.tlLoading = true;
+            try {
+                const params = new URLSearchParams({ search_type: this.tlSearchType, search_value: val });
+                const res = await fetch('{{ route('admin.logs.timeline') }}?' + params.toString(), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                this.tlResults = data.logs  ?? [];
+                this.tlMeta    = data.meta  ?? null;
+            } catch (e) {
+                console.error('Timeline fetch error:', e);
+                this.tlResults = [];
+                this.tlMeta    = null;
+            } finally {
+                this.tlLoading = false;
+            }
+        },
     };
 }
 </script>

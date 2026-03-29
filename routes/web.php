@@ -153,6 +153,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::patch('/raporlar/fabrika/{customReport}', [ReportFactoryController::class, 'update'])->name('reports.factory.update');
             Route::delete('/raporlar/fabrika/{customReport}', [ReportFactoryController::class, 'destroy'])->name('reports.factory.destroy');
             Route::get('/loglar', [AuditLogController::class, 'index'])->name('logs.index');
+            Route::get('/loglar/zaman-cizelgesi', [AuditLogController::class, 'timeline'])->name('logs.timeline');
             Route::get('/artwork-galerisi', [ArtworkGalleryController::class, 'index'])->name('artwork-gallery.index');
             Route::get('/artwork-galerisi/yonetim', [ArtworkGalleryController::class, 'manage'])->name('artwork-gallery.manage');
             Route::post('/artwork-galerisi/kategoriler', [ArtworkGalleryController::class, 'storeCategory'])->name('artwork-gallery.categories.store');

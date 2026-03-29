@@ -4,8 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderLine;
+use App\Models\Supplier;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -63,6 +67,63 @@ class AuditLogController extends Controller
         'mikro.test.failed'                   => 'Mikro bağlantı başarısız',
     ];
 
+    // ── Action → renk ────────────────────────────────────────────────
+    public const ACTION_COLORS = [
+        'user.login'                     => 'slate',
+        'user.logout'                    => 'slate',
+        'artwork.upload'                 => 'violet',
+        'artwork.download'               => 'blue',
+        'artwork.approved'               => 'emerald',
+        'artwork.rejected'               => 'orange',
+        'artwork.delete'                 => 'red',
+        'artwork.gallery.create'         => 'blue',
+        'artwork.gallery.delete'         => 'red',
+        'order.create'                   => 'amber',
+        'order.update'                   => 'amber',
+        'order.delete'                   => 'red',
+        'order.view'                     => 'slate',
+        'portal.order.view'              => 'slate',
+        'mail.notification.sent'         => 'emerald',
+        'mail.notification.failed'       => 'red',
+        'mail.notification.queue_failed' => 'red',
+        'mikro.test.failed'              => 'red',
+        'mikro.test.success'             => 'emerald',
+        'erp.sync'                       => 'rose',
+    ];
+
+    // ── Payload key → Türkçe etiket ──────────────────────────────────
+    private const PAYLOAD_LABELS = [
+        'order_no'        => 'Sipariş',
+        'order_id'        => 'Sipariş ID',
+        'filename'        => 'Dosya',
+        'original_filename' => 'Dosya',
+        'file'            => 'Dosya',
+        'product_code'    => 'Stok Kodu',
+        'description'     => 'Açıklama',
+        'supplier'        => 'Tedarikçi',
+        'supplier_name'   => 'Tedarikçi',
+        'supplier_id'     => 'Tedarikçi ID',
+        'line_no'         => 'Satır',
+        'status'          => 'Durum',
+        'revision'        => 'Revizyon',
+        'revision_no'     => 'Revizyon No',
+        'note'            => 'Not',
+        'notes'           => 'Not',
+        'subject'         => 'Konu',
+        'to'              => 'Alıcı',
+        'recipient'       => 'Alıcı',
+        'error'           => 'Hata',
+        'message'         => 'Mesaj',
+        'result'          => 'Sonuç',
+        'triggered_by'    => 'Tetikleyen',
+        'mode'            => 'Mod',
+        'strategy'        => 'Strateji',
+        'file_size'       => 'Boyut',
+        'reason'          => 'Neden',
+        'type'            => 'Tür',
+    ];
+
+    // ── Ana log listesi ───────────────────────────────────────────────
     public function index(Request $request): View
     {
         abort_if(
@@ -70,14 +131,12 @@ class AuditLogController extends Controller
             403
         );
 
-        // Aktif filtreler
         $selectedCategory = $request->input('category');
         $selectedAction   = $request->input('action');
         $selectedUserId   = $request->input('user_id');
         $dateFrom         = $request->input('date_from');
         $dateTo           = $request->input('date_to');
 
-        // Kategori seçiliyse o kategorinin action'larını derle
         $categoryActions = $selectedCategory ? (self::CATEGORIES[$selectedCategory] ?? []) : [];
 
         $logs = AuditLog::query()
@@ -92,12 +151,10 @@ class AuditLogController extends Controller
             ->simplePaginate(50)
             ->withQueryString();
 
-        // Kullanıcı listesi (combobox için)
         $users = User::orderBy('name')->get(['id', 'name', 'role']);
 
-        // Seçili kullanıcı varsa özet istatistiklerini hesapla
-        $selectedUser   = $selectedUserId ? $users->firstWhere('id', $selectedUserId) : null;
-        $userStats      = null;
+        $selectedUser = $selectedUserId ? $users->firstWhere('id', $selectedUserId) : null;
+        $userStats    = null;
         if ($selectedUser) {
             $userStats = AuditLog::where('user_id', $selectedUserId)
                 ->selectRaw('action, COUNT(*) as cnt')
@@ -108,22 +165,136 @@ class AuditLogController extends Controller
                 ->pluck('cnt', 'action');
         }
 
-        // Genel kategori sayıları (aktif filtreler olmadan — toplam)
-        $categoryCounts = collect(self::CATEGORIES)->map(function ($actions) {
-            return AuditLog::whereIn('action', $actions)->count();
-        });
+        $categoryCounts = collect(self::CATEGORIES)->map(
+            fn ($actions) => AuditLog::whereIn('action', $actions)->count()
+        );
+
+        // Zaman çizelgesi için combobox verileri
+        $orderNumbers = PurchaseOrder::orderByDesc('id')->limit(300)->pluck('order_no');
+        $stockCodes   = PurchaseOrderLine::distinct()->orderBy('product_code')->limit(500)->pluck('product_code')->filter();
+        $suppliers    = Supplier::whereNull('deleted_at')->orderBy('name')->get(['id', 'name', 'code']);
 
         return view('admin.logs.index', compact(
-            'logs',
-            'users',
-            'selectedUser',
-            'userStats',
-            'categoryCounts',
-            'selectedCategory',
-            'selectedAction',
-            'selectedUserId',
-            'dateFrom',
-            'dateTo',
+            'logs', 'users', 'selectedUser', 'userStats', 'categoryCounts',
+            'selectedCategory', 'selectedAction', 'selectedUserId', 'dateFrom', 'dateTo',
+            'orderNumbers', 'stockCodes', 'suppliers',
         ));
+    }
+
+    // ── Zaman çizelgesi AJAX ─────────────────────────────────────────
+    public function timeline(Request $request): JsonResponse
+    {
+        abort_if(
+            ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('logs', 'view'),
+            403
+        );
+
+        $searchType  = $request->input('search_type', 'order_no');   // order_no | stock_code | supplier_id
+        $searchValue = trim((string) $request->input('search_value', ''));
+
+        if (strlen($searchValue) < 1) {
+            return response()->json(['logs' => [], 'count' => 0, 'meta' => null]);
+        }
+
+        $query = AuditLog::query()
+            ->select(['id', 'user_id', 'action', 'payload', 'ip_address', 'created_at'])
+            ->with('user:id,name,role')
+            ->orderByDesc('created_at')
+            ->limit(200);
+
+        if ($searchType === 'order_no') {
+            // Payload içinde order_no eşleşmesi
+            $query->whereNotNull('payload')
+                  ->where('payload', 'like', '%"order_no":"' . addslashes($searchValue) . '"%');
+            $meta = ['type' => 'Sipariş No', 'value' => $searchValue];
+
+        } elseif ($searchType === 'stock_code') {
+            // Bu stok koduna ait sipariş numaralarını bul → onlarla ara
+            $orderNos = PurchaseOrderLine::where('product_code', $searchValue)
+                ->join('purchase_orders', 'purchase_orders.id', '=', 'purchase_order_lines.purchase_order_id')
+                ->pluck('purchase_orders.order_no')
+                ->unique()
+                ->values();
+
+            if ($orderNos->isEmpty()) {
+                return response()->json(['logs' => [], 'count' => 0, 'meta' => ['type' => 'Stok Kodu', 'value' => $searchValue]]);
+            }
+
+            $patterns = $orderNos->map(fn ($no) => '"order_no":"' . addslashes($no) . '"')->all();
+            $query->whereNotNull('payload')
+                  ->where(function ($q) use ($patterns) {
+                      foreach ($patterns as $pattern) {
+                          $q->orWhere('payload', 'like', "%$pattern%");
+                      }
+                  });
+            $meta = ['type' => 'Stok Kodu', 'value' => $searchValue, 'order_count' => $orderNos->count(), 'orders' => $orderNos->all()];
+
+        } elseif ($searchType === 'supplier_id') {
+            // Tedarikçiye ait siparişlerin order_no'larını bul
+            $supplier = Supplier::find($searchValue);
+            if (! $supplier) {
+                return response()->json(['logs' => [], 'count' => 0, 'meta' => null]);
+            }
+            $orderNos = PurchaseOrder::where('supplier_id', $searchValue)->pluck('order_no');
+
+            if ($orderNos->isEmpty()) {
+                return response()->json(['logs' => [], 'count' => 0, 'meta' => ['type' => 'Tedarikçi', 'value' => $supplier->name]]);
+            }
+
+            $patterns = $orderNos->map(fn ($no) => '"order_no":"' . addslashes($no) . '"')->all();
+            $query->whereNotNull('payload')
+                  ->where(function ($q) use ($patterns) {
+                      foreach ($patterns as $pattern) {
+                          $q->orWhere('payload', 'like', "%$pattern%");
+                      }
+                  });
+            $meta = ['type' => 'Tedarikçi', 'value' => $supplier->name, 'order_count' => $orderNos->count()];
+        } else {
+            return response()->json(['logs' => [], 'count' => 0, 'meta' => null]);
+        }
+
+        $logs = $query->get()->map(function (AuditLog $log) {
+            $payload = $log->payload ?? [];
+            $details = [];
+            foreach ($payload as $k => $v) {
+                if (is_scalar($v) && $v !== '' && $v !== null) {
+                    $details[] = [
+                        'key'   => self::PAYLOAD_LABELS[$k] ?? $k,
+                        'value' => (string) $v,
+                    ];
+                }
+            }
+
+            return [
+                'id'         => $log->id,
+                'action'     => $log->action,
+                'action_label' => self::ACTION_LABELS[$log->action] ?? $log->action,
+                'color'      => self::ACTION_COLORS[$log->action] ?? 'slate',
+                'category'   => $this->actionCategory($log->action),
+                'user_name'  => $log->user?->name ?? 'Silinmiş kullanıcı',
+                'user_role'  => $log->user?->role?->label() ?? '',
+                'user_initials' => $log->user ? strtoupper(mb_substr($log->user->name, 0, 2)) : '??',
+                'ip'         => $log->ip_address,
+                'details'    => $details,
+                'date'       => $log->created_at->format('d.m.Y'),
+                'time'       => $log->created_at->format('H:i:s'),
+                'datetime'   => $log->created_at->toIso8601String(),
+                'day_group'  => $log->created_at->format('d.m.Y'),
+            ];
+        });
+
+        return response()->json([
+            'logs'  => $logs,
+            'count' => $logs->count(),
+            'meta'  => $meta,
+        ]);
+    }
+
+    private function actionCategory(string $action): string
+    {
+        foreach (self::CATEGORIES as $cat => $actions) {
+            if (in_array($action, $actions, true)) return $cat;
+        }
+        return 'session';
     }
 }
