@@ -180,15 +180,28 @@ class SettingsController extends Controller
         }
 
         try {
-            $response = \Illuminate\Support\Facades\Http::baseUrl('https://api.github.com')
+            $http = \Illuminate\Support\Facades\Http::baseUrl('https://api.github.com')
                 ->acceptJson()
-                ->timeout(10)
+                ->timeout(15)
                 ->withHeaders(['User-Agent' => config('app.name', 'Portal') . ' commit-list'])
-                ->when(filled($token), fn ($r) => $r->withToken($token))
-                ->get("/repos/{$repo}/commits", ['sha' => $branch, 'per_page' => 30])
-                ->throw();
+                ->when(filled($token), fn ($r) => $r->withToken($token));
 
-            $commits = collect($response->json())->map(fn ($c) => [
+            // GitHub API max 100 per page — fetch all pages
+            $allRaw = [];
+            $page   = 1;
+            do {
+                $response = $http->get("/repos/{$repo}/commits", [
+                    'sha'      => $branch,
+                    'per_page' => 100,
+                    'page'     => $page,
+                ])->throw();
+
+                $batch = $response->json();
+                $allRaw = array_merge($allRaw, $batch);
+                $page++;
+            } while (count($batch) === 100);
+
+            $commits = collect($allRaw)->map(fn ($c) => [
                 'sha'     => substr($c['sha'], 0, 7),
                 'full'    => $c['sha'],
                 'message' => strtok($c['commit']['message'], "\n"),
