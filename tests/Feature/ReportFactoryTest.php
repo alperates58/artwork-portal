@@ -101,4 +101,40 @@ class ReportFactoryTest extends TestCase
         $this->assertSame('1', (string) $response->json('table.0.manual_artwork'));
         $this->assertSame('0', (string) $response->json('table.0.pending_artwork'));
     }
+
+    public function test_preview_handles_complex_dimension_and_metric_selection(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $supplier = Supplier::factory()->create([
+            'name' => 'Marmara Tedarik',
+            'code' => 'TED-702',
+        ]);
+
+        $order = PurchaseOrder::factory()->create([
+            'supplier_id' => $supplier->id,
+            'order_no' => 'PO-2026-7021',
+            'status' => 'active',
+            'order_date' => '2026-03-29',
+        ]);
+
+        PurchaseOrderLine::factory()->create([
+            'purchase_order_id' => $order->id,
+            'line_no' => 1,
+            'product_code' => 'STK-702',
+            'artwork_status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($admin)->postJson(route('admin.reports.factory.preview'), [
+            'dimensions' => ['supplier', 'month', 'order_status', 'artwork_status'],
+            'metrics' => ['pending_artwork', 'uploaded_artwork', 'manual_artwork', 'revision_count'],
+            'filters' => [
+                'supplier_id' => $supplier->id,
+            ],
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'row_count' => 1,
+            ]);
+    }
 }

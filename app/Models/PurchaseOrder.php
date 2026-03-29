@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Schema;
 
 class PurchaseOrder extends Model
 {
@@ -76,6 +77,14 @@ class PurchaseOrder extends Model
 
     public function scopeWithListMetrics(Builder $query): Builder
     {
+        if (! self::hasManualArtworkColumns()) {
+            return $query->withCount('lines')
+                ->withCount([
+                    'lines as pending_artwork_lines_count' => fn (Builder $lineQuery) => $lineQuery
+                        ->whereDoesntHave('artwork.activeRevision'),
+                ]);
+        }
+
         return $query->withCount('lines')
             ->withCount([
                 'lines as pending_artwork_lines_count' => fn (Builder $lineQuery) => $lineQuery
@@ -114,6 +123,12 @@ class PurchaseOrder extends Model
             return (int) $this->attributes['pending_artwork_lines_count'];
         }
 
+        if (! self::hasManualArtworkColumns()) {
+            return $this->lines()
+                ->whereDoesntHave('artwork.revisions', fn ($query) => $query->where('is_active', true))
+                ->count();
+        }
+
         return $this->lines()
             ->whereNull('manual_artwork_completed_at')
             ->whereDoesntHave('artwork.revisions', fn ($query) => $query->where('is_active', true))
@@ -135,6 +150,25 @@ class PurchaseOrder extends Model
             return (int) $this->attributes['manual_artwork_lines_count'];
         }
 
+        if (! self::hasManualArtworkColumns()) {
+            return 0;
+        }
+
         return $this->lines()->whereNotNull('manual_artwork_completed_at')->count();
+    }
+
+    private static function hasManualArtworkColumns(): bool
+    {
+        static $hasColumns;
+
+        if ($hasColumns === null) {
+            $hasColumns = Schema::hasColumns('purchase_order_lines', [
+                'manual_artwork_completed_at',
+                'manual_artwork_completed_by',
+                'manual_artwork_note',
+            ]);
+        }
+
+        return $hasColumns;
     }
 }

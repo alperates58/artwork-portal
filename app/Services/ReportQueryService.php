@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ReportQueryService
 {
@@ -12,6 +12,11 @@ class ReportQueryService
         if (empty($dimensions) || empty($metrics)) {
             return ['labels' => [], 'datasets' => [], 'table' => [], 'columns' => [], 'row_count' => 0];
         }
+
+        $hasManualArtworkColumns = $this->hasManualArtworkColumns();
+        $yearExpression = $this->yearExpression('purchase_orders.order_date');
+        $monthExpression = $this->monthExpression('purchase_orders.order_date');
+        $quarterExpression = $this->quarterExpression('purchase_orders.order_date');
 
         $query = DB::table('purchase_order_lines')
             ->join('purchase_orders', 'purchase_orders.id', '=', 'purchase_order_lines.purchase_order_id')
@@ -52,28 +57,28 @@ class ReportQueryService
         $selects = [];
         $groupBys = [];
 
-        foreach ($dimensions as $dim) {
-            switch ($dim) {
+        foreach ($dimensions as $dimension) {
+            switch ($dimension) {
                 case 'supplier':
                     $selects[] = 'suppliers.name as dim_supplier';
                     $groupBys[] = 'suppliers.id';
                     $groupBys[] = 'suppliers.name';
                     break;
                 case 'month':
-                    $selects[] = 'YEAR(purchase_orders.order_date) as dim_year';
-                    $selects[] = 'MONTH(purchase_orders.order_date) as dim_month';
-                    $groupBys[] = DB::raw('YEAR(purchase_orders.order_date)');
-                    $groupBys[] = DB::raw('MONTH(purchase_orders.order_date)');
+                    $selects[] = $yearExpression . ' as dim_year';
+                    $selects[] = $monthExpression . ' as dim_month';
+                    $groupBys[] = $yearExpression;
+                    $groupBys[] = $monthExpression;
                     break;
                 case 'year':
-                    $selects[] = 'YEAR(purchase_orders.order_date) as dim_year_val';
-                    $groupBys[] = DB::raw('YEAR(purchase_orders.order_date)');
+                    $selects[] = $yearExpression . ' as dim_year_val';
+                    $groupBys[] = $yearExpression;
                     break;
                 case 'quarter':
-                    $selects[] = 'YEAR(purchase_orders.order_date) as dim_q_year';
-                    $selects[] = 'QUARTER(purchase_orders.order_date) as dim_quarter';
-                    $groupBys[] = DB::raw('YEAR(purchase_orders.order_date)');
-                    $groupBys[] = DB::raw('QUARTER(purchase_orders.order_date)');
+                    $selects[] = $yearExpression . ' as dim_q_year';
+                    $selects[] = $quarterExpression . ' as dim_quarter';
+                    $groupBys[] = $yearExpression;
+                    $groupBys[] = $quarterExpression;
                     break;
                 case 'order_status':
                     $selects[] = 'purchase_orders.status as dim_order_status';
@@ -100,16 +105,22 @@ class ReportQueryService
                     $selects[] = 'COUNT(DISTINCT purchase_orders.id) as metric_order_count';
                     break;
                 case 'line_count':
-                    $selects[] = 'COUNT(purchase_order_lines.id) as metric_line_count';
+                    $selects[] = 'COUNT(DISTINCT purchase_order_lines.id) as metric_line_count';
                     break;
                 case 'pending_artwork':
-                    $selects[] = "SUM(CASE WHEN purchase_order_lines.manual_artwork_completed_at IS NULL AND purchase_order_lines.artwork_status = 'pending' THEN 1 ELSE 0 END) as metric_pending_artwork";
+                    $selects[] = $hasManualArtworkColumns
+                        ? "SUM(CASE WHEN purchase_order_lines.manual_artwork_completed_at IS NULL AND purchase_order_lines.artwork_status = 'pending' THEN 1 ELSE 0 END) as metric_pending_artwork"
+                        : "SUM(CASE WHEN purchase_order_lines.artwork_status = 'pending' THEN 1 ELSE 0 END) as metric_pending_artwork";
                     break;
                 case 'uploaded_artwork':
-                    $selects[] = "SUM(CASE WHEN purchase_order_lines.manual_artwork_completed_at IS NOT NULL OR purchase_order_lines.artwork_status IN ('uploaded','approved') THEN 1 ELSE 0 END) as metric_uploaded_artwork";
+                    $selects[] = $hasManualArtworkColumns
+                        ? "SUM(CASE WHEN purchase_order_lines.manual_artwork_completed_at IS NOT NULL OR purchase_order_lines.artwork_status IN ('uploaded','approved') THEN 1 ELSE 0 END) as metric_uploaded_artwork"
+                        : "SUM(CASE WHEN purchase_order_lines.artwork_status IN ('uploaded','approved') THEN 1 ELSE 0 END) as metric_uploaded_artwork";
                     break;
                 case 'manual_artwork':
-                    $selects[] = 'SUM(CASE WHEN purchase_order_lines.manual_artwork_completed_at IS NOT NULL THEN 1 ELSE 0 END) as metric_manual_artwork';
+                    $selects[] = $hasManualArtworkColumns
+                        ? 'SUM(CASE WHEN purchase_order_lines.manual_artwork_completed_at IS NOT NULL THEN 1 ELSE 0 END) as metric_manual_artwork'
+                        : '0 as metric_manual_artwork';
                     break;
                 case 'revision_count':
                     $selects[] = 'COUNT(DISTINCT artwork_revisions.id) as metric_revision_count';
@@ -125,20 +136,20 @@ class ReportQueryService
         }
 
         foreach ($groupBys as $groupBy) {
-            if ($groupBy instanceof Expression) {
-                $query->groupByRaw((string) $groupBy);
+            if (str_contains($groupBy, '(')) {
+                $query->groupByRaw($groupBy);
             } else {
                 $query->groupBy($groupBy);
             }
         }
 
         if (! empty($groupBys)) {
-            $first = $groupBys[0];
+            $firstGroupBy = $groupBys[0];
 
-            if ($first instanceof Expression) {
-                $query->orderByRaw((string) $first);
+            if (str_contains($firstGroupBy, '(')) {
+                $query->orderByRaw($firstGroupBy);
             } else {
-                $query->orderBy($first);
+                $query->orderBy($firstGroupBy);
             }
         }
 
@@ -149,7 +160,7 @@ class ReportQueryService
 
     private function format($rows, array $dimensions, array $metrics): array
     {
-        $dimLabels = [
+        $dimensionLabels = [
             'supplier' => 'Tedarikçi',
             'month' => 'Ay',
             'year' => 'Yıl',
@@ -199,10 +210,10 @@ class ReportQueryService
 
         foreach ($rows as $row) {
             $row = (array) $row;
-            $parts = [];
+            $labelParts = [];
 
-            foreach ($dimensions as $dim) {
-                $parts[] = match ($dim) {
+            foreach ($dimensions as $dimension) {
+                $labelParts[] = match ($dimension) {
                     'supplier' => $row['dim_supplier'] ?? '—',
                     'month' => str_pad((string) ($row['dim_month'] ?? 0), 2, '0', STR_PAD_LEFT) . '/' . ($row['dim_year'] ?? ''),
                     'year' => (string) ($row['dim_year_val'] ?? ''),
@@ -215,7 +226,7 @@ class ReportQueryService
                 };
             }
 
-            $label = implode(' · ', $parts) ?: 'Tümü';
+            $label = implode(' · ', $labelParts) ?: 'Tümü';
             $labels[] = $label;
 
             $tableRow = ['label' => $label];
@@ -248,7 +259,7 @@ class ReportQueryService
         $columns = [];
 
         foreach ($dimensions as $dimension) {
-            $columns[] = $dimLabels[$dimension] ?? $dimension;
+            $columns[] = $dimensionLabels[$dimension] ?? $dimension;
         }
 
         foreach ($metrics as $metric) {
@@ -262,5 +273,41 @@ class ReportQueryService
             'columns' => $columns,
             'row_count' => count($rows),
         ];
+    }
+
+    private function hasManualArtworkColumns(): bool
+    {
+        static $hasColumns;
+
+        if ($hasColumns === null) {
+            $hasColumns = Schema::hasColumns('purchase_order_lines', [
+                'manual_artwork_completed_at',
+                'manual_artwork_completed_by',
+                'manual_artwork_note',
+            ]);
+        }
+
+        return $hasColumns;
+    }
+
+    private function yearExpression(string $column): string
+    {
+        return DB::getDriverName() === 'sqlite'
+            ? "CAST(strftime('%Y', {$column}) AS INTEGER)"
+            : "YEAR({$column})";
+    }
+
+    private function monthExpression(string $column): string
+    {
+        return DB::getDriverName() === 'sqlite'
+            ? "CAST(strftime('%m', {$column}) AS INTEGER)"
+            : "MONTH({$column})";
+    }
+
+    private function quarterExpression(string $column): string
+    {
+        return DB::getDriverName() === 'sqlite'
+            ? "CAST((((CAST(strftime('%m', {$column}) AS INTEGER) - 1) / 3) + 1) AS INTEGER)"
+            : "QUARTER({$column})";
     }
 }
