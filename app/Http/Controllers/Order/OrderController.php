@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Order;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\OrderNote;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
@@ -49,10 +50,13 @@ class OrderController extends Controller
             'supplier',
             'createdBy',
             'lines.manualArtworkCompletedBy:id,name',
+            'lines.lineNotes.user:id,name',
+            'lines.lineNotes.replies.user:id,name',
             'lines.artwork.activeRevision.uploadedBy',
             'lines.artwork.revisions' => fn ($query) => $query->orderByDesc('revision_no'),
             'lines.artwork.revisions.uploadedBy:id,name',
             'orderNotes.user:id,name',
+            'orderNotes.replies.user:id,name',
         ]);
 
         $this->audit->log('order.view', $order);
@@ -88,6 +92,41 @@ class OrderController extends Controller
                 'sub' => $note->user?->name ?? '—',
                 'body' => mb_strimwidth($note->body, 0, 120, '…'),
             ]);
+
+            foreach ($note->replies as $reply) {
+                $timeline->push([
+                    'at' => $reply->created_at,
+                    'icon' => 'reply',
+                    'color' => 'amber',
+                    'title' => 'Not yanıtlandı',
+                    'sub' => $reply->user?->name ?? '—',
+                    'body' => mb_strimwidth($reply->body, 0, 120, '…'),
+                ]);
+            }
+        }
+
+        foreach ($order->lines as $line) {
+            foreach ($line->lineNotes as $note) {
+                $timeline->push([
+                    'at' => $note->created_at,
+                    'icon' => 'note',
+                    'color' => 'amber',
+                    'title' => 'Satır açıklaması eklendi',
+                    'sub' => ($note->user?->name ?? '—') . ' · ' . ($line->product_code ?? "Satır #{$line->id}"),
+                    'body' => mb_strimwidth($note->body, 0, 120, '…'),
+                ]);
+
+                foreach ($note->replies as $reply) {
+                    $timeline->push([
+                        'at' => $reply->created_at,
+                        'icon' => 'reply',
+                        'color' => 'amber',
+                        'title' => 'Satır açıklaması yanıtlandı',
+                        'sub' => ($reply->user?->name ?? '—') . ' · ' . ($line->product_code ?? "Satır #{$line->id}"),
+                        'body' => mb_strimwidth($reply->body, 0, 120, '…'),
+                    ]);
+                }
+            }
         }
 
         $manualArtworkLogs = AuditLog::query()
@@ -217,16 +256,82 @@ class OrderController extends Controller
 
     public function storeNote(Request $request, PurchaseOrder $order): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
+            'body' => ['required', 'string', 'max:2000'],
+            'purchase_order_line_id' => ['nullable', 'integer', 'exists:purchase_order_lines,id'],
+            'parent_id' => ['nullable', 'integer', 'exists:order_notes,id'],
+        ]);
+
+        $lineId = array_key_exists('purchase_order_line_id', $validated) && $validated['purchase_order_line_id'] !== null
+            ? (int) $validated['purchase_order_line_id']
+            : null;
+        $parentId = array_key_exists('parent_id', $validated) && $validated['parent_id'] !== null
+            ? (int) $validated['parent_id']
+            : null;
+        $parentNote = null;
+
+        if ($lineId !== null) {
+            abort_if(! $order->lines()->whereKey($lineId)->exists(), 404);
+        }
+
+        if ($parentId !== null) {
+            $selectedNote = OrderNote::query()
+                ->select(['id', 'purchase_order_id', 'purchase_order_line_id', 'parent_id'])
+                ->findOrFail($parentId);
+
+            abort_if($selectedNote->purchase_order_id !== $order->id, 404);
+
+            $parentNote = $selectedNote->parent_id
+                ? OrderNote::query()
+                    ->select(['id', 'purchase_order_id', 'purchase_order_line_id', 'parent_id'])
+                    ->findOrFail($selectedNote->parent_id)
+                : $selectedNote;
+
+            if ($lineId === null) {
+                $lineId = $parentNote->purchase_order_line_id;
+            }
+
+            abort_if((int) $parentNote->purchase_order_line_id !== (int) $lineId, 422, 'Yanıt satırı eşleşmiyor.');
+            $parentId = $parentNote->id;
+        }
+
+        $note = $order->allOrderNotes()->create([
+            'purchase_order_line_id' => $lineId,
+            'parent_id' => $parentId,
+            'user_id' => auth()->id(),
+            'body' => $validated['body'],
+        ]);
+
+        $this->audit->log('order.note.create', $note, [
+            'order_no' => $order->order_no,
+            'line_id' => $lineId,
+            'parent_id' => $parentId,
+        ]);
+
+        return back()->with('success', $parentNote
+            ? 'Yanıt eklendi.'
+            : ($lineId ? 'Satır açıklaması eklendi.' : 'Not eklendi.'));
+    }
+
+    public function updateNote(Request $request, PurchaseOrder $order, OrderNote $note): RedirectResponse
+    {
+        abort_if($note->purchase_order_id !== $order->id, 404);
+
+        $validated = $request->validate([
             'body' => ['required', 'string', 'max:2000'],
         ]);
 
-        $order->orderNotes()->create([
-            'user_id' => auth()->id(),
-            'body' => $request->string('body'),
+        $note->update([
+            'body' => $validated['body'],
         ]);
 
-        return back()->with('success', 'Not eklendi.');
+        $this->audit->log('order.note.update', $note, [
+            'order_no' => $order->order_no,
+            'line_id' => $note->purchase_order_line_id,
+            'parent_id' => $note->parent_id,
+        ]);
+
+        return back()->with('success', $note->parent_id ? 'Yanıt güncellendi.' : 'Açıklama güncellendi.');
     }
 
     public function destroy(Request $request, PurchaseOrder $order): RedirectResponse

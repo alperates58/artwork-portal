@@ -6,6 +6,7 @@ use App\Enums\ArtworkStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PurchaseOrderLine extends Model
@@ -52,6 +53,13 @@ class PurchaseOrderLine extends Model
     public function artwork(): HasOne
     {
         return $this->hasOne(Artwork::class, 'order_line_id');
+    }
+
+    public function lineNotes(): HasMany
+    {
+        return $this->hasMany(OrderNote::class)
+            ->whereNull('parent_id')
+            ->orderBy('created_at');
     }
 
     // ─── Helpers ─────────────────────────────────────────────────

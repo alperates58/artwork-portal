@@ -65,6 +65,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::patch('/siparisler/{order}', [OrderController::class, 'update'])->name('orders.update');
         Route::delete('/siparisler/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
         Route::post('/siparisler/{order}/notlar', [OrderController::class, 'storeNote'])->name('orders.notes.store');
+        Route::patch('/siparisler/{order}/notlar/{note}', [OrderController::class, 'updateNote'])->name('orders.notes.update');
 
         Route::get('/satir/{line}', [OrderLineController::class, 'show'])->name('order-lines.show');
         Route::post('/satir/{line}/manuel-artwork', [OrderLineController::class, 'markManualArtwork'])->name('order-lines.manual-artwork.store');

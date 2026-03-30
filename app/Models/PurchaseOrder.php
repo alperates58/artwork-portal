@@ -57,6 +57,14 @@ class PurchaseOrder extends Model
 
     public function orderNotes(): HasMany
     {
+        return $this->hasMany(OrderNote::class)
+            ->whereNull('purchase_order_line_id')
+            ->whereNull('parent_id')
+            ->orderBy('created_at');
+    }
+
+    public function allOrderNotes(): HasMany
+    {
         return $this->hasMany(OrderNote::class)->orderBy('created_at');
     }
 
