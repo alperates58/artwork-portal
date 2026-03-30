@@ -18,6 +18,8 @@ class ArtworkGallery extends Model
     protected $fillable = [
         'name',
         'stock_code',
+        'revision_no',
+        'stock_card_id',
         'category_id',
         'file_path',
         'file_disk',
@@ -31,12 +33,18 @@ class ArtworkGallery extends Model
     {
         return [
             'file_size' => 'integer',
+            'revision_no' => 'integer',
         ];
     }
 
     public function category(): BelongsTo
     {
         return $this->belongsTo(ArtworkCategory::class, 'category_id');
+    }
+
+    public function stockCard(): BelongsTo
+    {
+        return $this->belongsTo(StockCard::class, 'stock_card_id');
     }
 
     public function uploadedBy(): BelongsTo

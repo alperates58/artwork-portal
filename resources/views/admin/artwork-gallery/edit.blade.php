@@ -30,7 +30,7 @@
                     <div class="flex flex-wrap items-center gap-2">
                         <h2 class="text-lg font-semibold text-slate-900">{{ $artworkGallery->display_name }}</h2>
                         <span class="badge badge-gray">{{ $artworkGallery->file_type_display }}</span>
-                        <span class="badge badge-gray">{{ $artworkGallery->category?->display_name ?? 'Kategorisiz' }}</span>
+                        <span class="badge badge-gray">{{ $artworkGallery->stockCard?->category?->display_name ?? ($artworkGallery->category?->display_name ?? 'Kategorisiz') }}</span>
                     </div>
                     <p class="mt-2 text-sm text-slate-500">
                         {{ $artworkGallery->file_size_formatted }} · {{ $artworkGallery->file_disk }} · {{ $artworkGallery->created_at->format('d.m.Y H:i') }}
@@ -66,6 +66,17 @@
 
                 <div class="grid gap-4 md:grid-cols-2">
                     <div>
+                        <label class="label">Stok Adı</label>
+                        <input class="input bg-slate-50" value="{{ $artworkGallery->stockCard?->stock_name ?? 'Eşleşmiş stok kartı yok' }}" readonly>
+                    </div>
+                    <div>
+                        <label class="label">Kategori</label>
+                        <input class="input bg-slate-50" value="{{ $artworkGallery->stockCard?->category?->display_name ?? ($artworkGallery->category?->display_name ?? 'Kategorisiz') }}" readonly>
+                    </div>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div>
                         <div class="flex items-center justify-between mb-1">
                             <label class="label mb-0" for="category_id">Kategori</label>
                             @if(auth()->user()->isAdmin() || auth()->user()->hasPermission('gallery', 'manage'))
@@ -73,12 +84,13 @@
                                         onclick="document.getElementById('edit-quick-cat-form').classList.toggle('hidden')">+ Yeni kategori</button>
                             @endif
                         </div>
-                        <select id="category_id" name="category_id" class="input">
+                        <select id="category_id" name="category_id" class="input" disabled>
                             <option value="">Kategori seçin</option>
                             @foreach($categories as $category)
-                                <option value="{{ $category->id }}" @selected((string) old('category_id', $artworkGallery->category_id) === (string) $category->id)>{{ $category->display_name }}</option>
+                                <option value="{{ $category->id }}" @selected((string) old('category_id', $artworkGallery->stockCard?->category_id ?? $artworkGallery->category_id) === (string) $category->id)>{{ $category->display_name }}</option>
                             @endforeach
                         </select>
+                        <p class="mt-1 text-xs text-slate-400">Kategori stok kartı kaynağından yönetilir.</p>
                         @if(auth()->user()->isAdmin() || auth()->user()->hasPermission('gallery', 'manage'))
                             <div id="edit-quick-cat-form" class="hidden mt-2">
                                 <div class="flex gap-2">

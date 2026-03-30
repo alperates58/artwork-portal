@@ -39,6 +39,16 @@ class PermissionsController extends Controller
                 'supplier_user_create' => 'Tedarikçi Kullanıcısı Oluştur',
             ],
         ],
+        'stock_cards' => [
+            'label'   => 'Stok Kartları',
+            'actions' => [
+                'view' => 'Görüntüle',
+                'create' => 'Oluştur',
+                'edit' => 'Düzenle',
+                'delete' => 'Sil',
+                'bulk_import' => 'Toplu Excel İçe Aktarma',
+            ],
+        ],
         'users' => [
             'label'   => 'Kullanıcılar',
             'actions' => [

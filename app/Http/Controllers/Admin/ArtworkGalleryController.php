@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ArtworkGalleryUpdateRequest;
 use App\Models\ArtworkCategory;
 use App\Models\ArtworkGallery;
+use App\Models\ArtworkRevision;
 use App\Models\ArtworkTag;
+use App\Models\StockCard;
+use App\Services\ArtworkCategoryService;
 use App\Services\AuditLogService;
 use App\Services\PortalSettings;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +22,7 @@ class ArtworkGalleryController extends Controller
     public function __construct(
         private AuditLogService $audit,
         private PortalSettings $settings,
+        private ArtworkCategoryService $categories,
     ) {}
 
     public function index(): View
@@ -29,32 +33,40 @@ class ArtworkGalleryController extends Controller
         );
 
         $query = ArtworkGallery::query()
-            ->with(['category:id,name', 'tags:id,name', 'uploadedBy:id,name'])
+            ->with(['category:id,name', 'tags:id,name', 'uploadedBy:id,name', 'stockCard.category:id,name'])
             ->withCount('usages')
             ->withMax('usages', 'used_at')
-            ->when(request('search'), fn ($q, $s) => $q->where('name', 'like', "%{$s}%"))
-            ->when(request('stock_code'), fn ($q, $s) => $q->where('stock_code', 'like', "%{$s}%"))
+            ->when(request('search'), fn ($q, $s) => $q->where('name', 'like', '%' . $s . '%'))
+            ->when(request('stock_code'), fn ($q, $s) => $q->where('stock_code', 'like', '%' . mb_strtoupper(trim((string) $s)) . '%'))
             ->when(request('category_id'), fn ($q, $v) => $q->where('category_id', $v))
             ->when(request('tag_id'), fn ($q, $v) => $q->whereHas('tags', fn ($t) => $t->where('artwork_tags.id', $v)))
             ->when(request('type'), function ($q, $type) {
                 match ($type) {
-                    'image'  => $q->whereIn('file_type', ['image/jpeg','image/png','image/gif','image/webp','image/svg+xml'])
-                                  ->orWhereRaw("LOWER(name) REGEXP '\\\\.(jpg|jpeg|png|gif|webp|svg|bmp|tif|tiff)$'"),
-                    'pdf'    => $q->where('file_type', 'application/pdf')->orWhereRaw("LOWER(name) LIKE '%.pdf'"),
-                    'design' => $q->whereRaw("LOWER(name) REGEXP '\\\\.(ai|eps|psd|indd)$'"),
-                    default  => null,
+                    'image' => $q->whereIn('file_type', ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'])
+                        ->orWhereRaw("LOWER(name) REGEXP '\\.(jpg|jpeg|png|gif|webp|svg|bmp|tif|tiff)$'"),
+                    'pdf' => $q->where('file_type', 'application/pdf')->orWhereRaw("LOWER(name) LIKE '%.pdf'"),
+                    'design' => $q->whereRaw("LOWER(name) REGEXP '\\.(ai|eps|psd|indd)$'"),
+                    default => null,
                 };
             });
 
         $totalCount = (clone $query)->count();
-
         $galleryItems = $query->latest()->paginate(24)->withQueryString();
-
         $categories = ArtworkCategory::query()->orderBy('name')->get(['id', 'name']);
-        $tags       = ArtworkTag::query()->orderBy('name')->get(['id', 'name']);
+        $tags = ArtworkTag::query()->orderBy('name')->get(['id', 'name']);
         $fileGroups = $this->settings->fileGroups();
+        $stockCodeFilter = trim((string) request('stock_code', ''));
+        $stockRevisionGroups = $this->buildStockRevisionGroups($stockCodeFilter);
 
-        return view('admin.artwork-gallery.index', compact('galleryItems', 'categories', 'tags', 'totalCount', 'fileGroups'));
+        return view('admin.artwork-gallery.index', compact(
+            'galleryItems',
+            'categories',
+            'tags',
+            'totalCount',
+            'fileGroups',
+            'stockRevisionGroups',
+            'stockCodeFilter',
+        ));
     }
 
     public function manage(): View
@@ -85,22 +97,22 @@ class ArtworkGalleryController extends Controller
         );
 
         $validated = request()->validateWithBag('storeCategory', [
-            'name' => ['required', 'string', 'max:120', 'unique:artwork_categories,name'],
+            'name' => ['required', 'string', 'max:120'],
         ]);
 
-        $category = ArtworkCategory::create($validated);
+        $category = $this->categories->findOrCreate($validated['name']);
 
         if (request()->expectsJson()) {
             return response()->json(['id' => $category->id, 'name' => $category->name]);
         }
 
         if (request()->boolean('_redirect_back')) {
-            return back()->with('success', 'Kategori eklendi.');
+            return back()->with('success', 'Kategori kaydedildi.');
         }
 
         return redirect()
             ->route('admin.artwork-gallery.manage')
-            ->with('success', 'Kategori eklendi.');
+            ->with('success', 'Kategori kaydedildi.');
     }
 
     public function destroyCategory(ArtworkCategory $category): RedirectResponse
@@ -166,6 +178,7 @@ class ArtworkGalleryController extends Controller
 
         $artworkGallery->load([
             'category:id,name',
+            'stockCard.category:id,name',
             'tags:id,name',
             'uploadedBy:id,name',
             'usages.supplier:id,name',
@@ -194,6 +207,7 @@ class ArtworkGalleryController extends Controller
 
         $this->audit->log('artwork.gallery.delete', $artworkGallery, [
             'name' => $name,
+            'stock_code' => $artworkGallery->stock_code,
         ]);
 
         $artworkGallery->delete();
@@ -210,10 +224,25 @@ class ArtworkGalleryController extends Controller
             403
         );
 
-        $artworkGallery->update($request->safe()->only(['name', 'stock_code', 'category_id', 'revision_note']));
+        $stockCard = null;
+
+        if (filled($request->input('stock_code'))) {
+            $stockCard = StockCard::query()
+                ->where('stock_code', mb_strtoupper(trim((string) $request->input('stock_code'))))
+                ->first();
+        }
+
+        $artworkGallery->update([
+            'name' => $request->input('name'),
+            'stock_code' => $stockCard?->stock_code,
+            'stock_card_id' => $stockCard?->id,
+            'category_id' => $stockCard?->category_id ?? $artworkGallery->category_id,
+            'revision_note' => $request->input('revision_note'),
+        ]);
         $artworkGallery->tags()->sync($request->input('tag_ids', []));
 
-        $this->audit->log('artwork.gallery.update', $artworkGallery, [
+        $this->audit->log('artwork.gallery.update', $artworkGallery->fresh('stockCard'), [
+            'stock_code' => $artworkGallery->stock_code,
             'category_id' => $artworkGallery->category_id,
             'tag_ids' => $artworkGallery->tags()->pluck('artwork_tags.id')->all(),
         ]);
@@ -221,5 +250,28 @@ class ArtworkGalleryController extends Controller
         return redirect()
             ->route('admin.artwork-gallery.edit', $artworkGallery)
             ->with('success', 'Artwork galerisi kaydı güncellendi.');
+    }
+
+    private function buildStockRevisionGroups(string $stockCodeFilter)
+    {
+        if ($stockCodeFilter === '') {
+            return collect();
+        }
+
+        $normalized = mb_strtoupper($stockCodeFilter);
+
+        return ArtworkRevision::query()
+            ->with([
+                'uploadedBy:id,name',
+                'galleryItem:id,stock_code,stock_card_id,category_id,name',
+                'galleryItem.stockCard:id,stock_code,stock_name,category_id',
+                'galleryItem.stockCard.category:id,name',
+                'artwork.orderLine.purchaseOrder:id,order_no',
+                'artwork.orderLine:id,purchase_order_id,line_no,product_code',
+            ])
+            ->whereHas('galleryItem', fn ($query) => $query->where('stock_code', 'like', '%' . $normalized . '%'))
+            ->orderByDesc('revision_no')
+            ->get()
+            ->groupBy(fn (ArtworkRevision $revision) => $revision->galleryItem?->stock_code ?: 'Belirsiz');
     }
 }

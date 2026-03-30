@@ -7,8 +7,8 @@ use App\Http\Requests\ArtworkUploadRequest;
 use App\Models\ArtworkCategory;
 use App\Models\ArtworkGallery;
 use App\Models\ArtworkRevision;
-use App\Models\ArtworkTag;
 use App\Models\PurchaseOrderLine;
+use App\Models\StockCard;
 use App\Services\ArtworkUploadService;
 use App\Services\AuditLogService;
 use App\Services\NotificationService;
@@ -27,33 +27,44 @@ class ArtworkController extends Controller
     {
         $this->authorize('uploadArtwork', $line);
 
-        $line->load(['purchaseOrder.supplier', 'artwork.revisions.uploadedBy', 'artwork.revisions.galleryItem']);
+        $line->load([
+            'purchaseOrder.supplier',
+            'artwork.revisions.uploadedBy',
+            'artwork.revisions.galleryItem.stockCard.category',
+        ]);
 
-        $galleryItems = ArtworkGallery::query()
-            ->with(['category:id,name', 'tags:id,name', 'uploadedBy:id,name'])
-            ->withCount('usages')
-            ->withMax('usages', 'used_at')
-            ->when(request('gallery_search'), fn ($query, $search) => $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', '%' . $search . '%')
-                  ->orWhere('stock_code', 'like', '%' . $search . '%');
-            }))
-            ->when(request('gallery_category_id'), fn ($query, $categoryId) => $query->where('category_id', $categoryId))
-            ->when(request('gallery_tag_id'), fn ($query, $tagId) => $query->whereHas('tags', fn ($tagQuery) => $tagQuery->where('artwork_tags.id', $tagId)))
+        $prefillStockCode = old('stock_code', $line->product_code);
+        $resolvedStockCard = filled($prefillStockCode)
+            ? StockCard::query()
+                ->with('category:id,name')
+                ->where('stock_code', mb_strtoupper(trim((string) $prefillStockCode)))
+                ->first()
+            : null;
+        $nextRevisionNo = max(1, (int) (($line->artwork?->revisions()->max('revision_no') ?? 0) + 1));
+        $galleryCandidates = ArtworkGallery::query()
+            ->select(['id', 'name', 'stock_code', 'revision_no', 'stock_card_id', 'category_id', 'file_type', 'file_size', 'file_path', 'revision_note', 'created_at'])
+            ->with(['stockCard:id,stock_code,stock_name,category_id', 'stockCard.category:id,name'])
+            ->withMax('revisions', 'revision_no')
+            ->whereNotNull('stock_code')
+            ->when(
+                $resolvedStockCard?->stock_code,
+                fn ($query, $stockCode) => $query->orderByRaw('CASE WHEN stock_code = ? THEN 0 ELSE 1 END', [$stockCode])
+            )
             ->latest()
-            ->limit(15)
-            ->get();
+            ->limit(60)
+            ->get()
+            ->unique(fn (ArtworkGallery $item) => ($item->stock_code ?? '') . '|' . (string) ($item->revision_no ?? 0))
+            ->values();
+        $galleryCategories = ArtworkCategory::query()->orderBy('name')->get(['id', 'name']);
 
-        $categories = ArtworkCategory::query()->orderBy('name')->get(['id', 'name']);
-        $tags = ArtworkTag::query()->orderBy('name')->get(['id', 'name']);
-
-        return view('artworks.create', compact('line', 'galleryItems', 'categories', 'tags'));
+        return view('artworks.create', compact('line', 'resolvedStockCard', 'nextRevisionNo', 'galleryCandidates', 'galleryCategories'));
     }
 
     public function store(ArtworkUploadRequest $request, PurchaseOrderLine $line): RedirectResponse
     {
         $this->authorize('uploadArtwork', $line);
 
-        $meta = $request->only('title', 'notes', 'gallery_name', 'stock_code', 'description', 'category_id', 'tag_ids');
+        $meta = $request->only('notes', 'stock_code', 'revision_no');
 
         $revision = $request->input('source_type') === 'gallery'
             ? $this->uploadService->storeFromGallery(
@@ -69,7 +80,6 @@ class ArtworkController extends Controller
                 uploader: auth()->user()
             );
 
-        // Notify all purchasing/admin users about the new artwork upload
         $line->load('purchaseOrder:id,order_no,supplier_id');
         $orderNo = $line->purchaseOrder?->order_no ?? 'Sipariş';
         $this->notifications->notifyDepartment(
@@ -82,7 +92,7 @@ class ArtworkController extends Controller
 
         return redirect()
             ->route('order-lines.show', $line)
-            ->with('success', "Artwork basariyla islendi. Revizyon: Rev.{$revision->revision_no}");
+            ->with('success', 'Artwork başarıyla işlendi. Revizyon: Rev.' . $revision->revision_no);
     }
 
     public function show(ArtworkRevision $revision): View
@@ -93,6 +103,7 @@ class ArtworkController extends Controller
             'artwork.orderLine.purchaseOrder.supplier',
             'uploadedBy',
             'galleryItem.category',
+            'galleryItem.stockCard.category',
             'galleryItem.tags',
         ]);
 
@@ -108,7 +119,7 @@ class ArtworkController extends Controller
 
         $this->uploadService->activate($revision, auth()->user());
 
-        return back()->with('success', "Rev.{$revision->revision_no} aktif revizyon olarak isaretlendi.");
+        return back()->with('success', 'Rev.' . $revision->revision_no . ' aktif revizyon olarak işaretlendi.');
     }
 
     public function destroy(ArtworkRevision $revision): RedirectResponse
@@ -119,34 +130,33 @@ class ArtworkController extends Controller
         $line = $revision->artwork->orderLine;
         $revNo = $revision->revision_no;
 
-        // Cannot delete the only active revision if it's the only one
         if ($revision->is_active && $revision->artwork->revisions()->count() === 1) {
             return back()->with('error', 'Tek aktif revizyonu silemezsiniz. Önce yeni revizyon yükleyin.');
         }
 
-        // If deleting the active revision, activate the previous one
         if ($revision->is_active) {
             $prev = $revision->artwork->revisions()
                 ->where('id', '!=', $revision->id)
                 ->orderByDesc('revision_no')
                 ->first();
+
             if ($prev) {
                 $this->uploadService->activate($prev, auth()->user());
             }
         }
 
         $this->audit->log('artwork.delete', $revision, [
-            'revision_no'    => $revNo,
+            'revision_no' => $revNo,
             'original_filename' => $revision->original_filename,
-            'line_id'        => $line?->id,
-            'order_no'       => $line?->purchaseOrder?->order_no,
+            'line_id' => $line?->id,
+            'order_no' => $line?->purchaseOrder?->order_no,
         ]);
 
         $revision->delete();
 
         return redirect()
             ->route('order-lines.show', $line)
-            ->with('success', "Rev.{$revNo} silindi.");
+            ->with('success', 'Rev.' . $revNo . ' silindi.');
     }
 
     public function revisions(PurchaseOrderLine $line): View
@@ -155,7 +165,9 @@ class ArtworkController extends Controller
 
         $line->load([
             'purchaseOrder.supplier',
-            'artwork.revisions' => fn ($query) => $query->with(['uploadedBy', 'galleryItem'])->orderByDesc('revision_no'),
+            'artwork.revisions' => fn ($query) => $query
+                ->with(['uploadedBy', 'galleryItem.stockCard.category'])
+                ->orderByDesc('revision_no'),
         ]);
 
         return view('artworks.revisions', compact('line'));

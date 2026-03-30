@@ -9,6 +9,7 @@ use App\Models\ArtworkGalleryUsage;
 use App\Models\ArtworkRevision;
 use App\Models\ArtworkViewLog;
 use App\Models\PurchaseOrderLine;
+use App\Models\StockCard;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
@@ -27,23 +28,26 @@ class ArtworkUploadService
     public function storeUploadedFile(PurchaseOrderLine $line, UploadedFile $file, array $meta, User $uploader): ArtworkRevision
     {
         return DB::transaction(function () use ($line, $file, $meta, $uploader) {
-            $artwork = $this->resolveArtwork($line, $meta['title'] ?? pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
-            $nextRevNo = $artwork->next_revision_no;
+            $stockCard = $this->resolveStockCard($meta['stock_code'] ?? null);
+            $artwork = $this->resolveArtwork($line, $stockCard?->stock_name ?? pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
+            $revisionNo = (int) ($meta['revision_no'] ?? $artwork->next_revision_no);
 
             $path = $this->spaces->buildPath(
                 $line->purchaseOrder->supplier_id,
                 $line->purchaseOrder->order_no,
                 $line->id,
-                $nextRevNo,
+                $revisionNo,
                 $file->getClientOriginalExtension()
             );
 
             $fileData = $this->multipart->upload($file, $path);
 
             $galleryItem = ArtworkGallery::create([
-                'name' => $meta['gallery_name'] ?? $fileData['original_filename'],
-                'stock_code' => $meta['stock_code'] ?? null,
-                'category_id' => $meta['category_id'] ?? null,
+                'name' => $fileData['original_filename'],
+                'stock_code' => $stockCard?->stock_code,
+                'revision_no' => $revisionNo,
+                'stock_card_id' => $stockCard?->id,
+                'category_id' => $stockCard?->category_id,
                 'file_path' => $fileData['spaces_path'],
                 'file_disk' => $this->settings->filesystemDisk(),
                 'file_size' => $fileData['file_size'],
@@ -52,9 +56,7 @@ class ArtworkUploadService
                 'revision_note' => $meta['notes'] ?? null,
             ]);
 
-            $this->syncGalleryTags($galleryItem, $meta['tag_ids'] ?? []);
-
-            $revision = $this->createRevision($artwork, $line, $uploader, $nextRevNo, [
+            $revision = $this->createRevision($artwork, $line, $uploader, $revisionNo, [
                 ...$fileData,
                 'artwork_gallery_id' => $galleryItem->id,
                 'notes' => $meta['notes'] ?? null,
@@ -63,15 +65,18 @@ class ArtworkUploadService
             $this->recordUsage($galleryItem, $line, 'upload');
 
             $this->audit->log('artwork.upload', $revision, [
-                'revision_no' => $nextRevNo,
+                'revision_no' => $revisionNo,
                 'original_filename' => $revision->original_filename,
                 'file_size' => $revision->file_size,
                 'strategy' => $file->getSize() >= 100 * 1024 * 1024 ? 'multipart' : 'single',
+                'stock_code' => $stockCard?->stock_code,
+                'stock_name' => $stockCard?->stock_name,
             ]);
             $this->audit->log('artwork.gallery.create', $galleryItem, [
                 'purchase_order_id' => $line->purchase_order_id,
                 'purchase_order_line_id' => $line->id,
                 'usage_type' => 'upload',
+                'stock_code' => $stockCard?->stock_code,
             ]);
 
             \App\Jobs\Faz2\SendArtworkNotificationJob::dispatch($revision);
@@ -83,10 +88,20 @@ class ArtworkUploadService
     public function storeFromGallery(PurchaseOrderLine $line, ArtworkGallery $galleryItem, array $meta, User $uploader): ArtworkRevision
     {
         return DB::transaction(function () use ($line, $galleryItem, $meta, $uploader) {
-            $artwork = $this->resolveArtwork($line, $meta['title'] ?? pathinfo($galleryItem->name, PATHINFO_FILENAME));
-            $nextRevNo = $artwork->next_revision_no;
+            $stockCard = $this->resolveStockCard($meta['stock_code'] ?? $galleryItem->stock_code);
+            $artwork = $this->resolveArtwork($line, $stockCard?->stock_name ?? pathinfo($galleryItem->name, PATHINFO_FILENAME));
+            $revisionNo = (int) ($meta['revision_no'] ?? $artwork->next_revision_no);
 
-            $revision = $this->createRevision($artwork, $line, $uploader, $nextRevNo, [
+            if ($stockCard) {
+                $galleryItem->update([
+                    'stock_code' => $stockCard->stock_code,
+                    'revision_no' => $galleryItem->revision_no ?? $revisionNo,
+                    'stock_card_id' => $stockCard->id,
+                    'category_id' => $stockCard->category_id,
+                ]);
+            }
+
+            $revision = $this->createRevision($artwork, $line, $uploader, $revisionNo, [
                 'artwork_gallery_id' => $galleryItem->id,
                 'spaces_path' => $galleryItem->file_path,
                 'original_filename' => $galleryItem->name,
@@ -99,15 +114,17 @@ class ArtworkUploadService
             $this->recordUsage($galleryItem, $line, 'reuse');
 
             $this->audit->log('artwork.upload', $revision, [
-                'revision_no' => $nextRevNo,
+                'revision_no' => $revisionNo,
                 'original_filename' => $revision->original_filename,
                 'file_size' => $revision->file_size,
                 'strategy' => 'gallery-reuse',
+                'stock_code' => $stockCard?->stock_code ?? $galleryItem->stock_code,
             ]);
             $this->audit->log('artwork.gallery.reuse', $galleryItem, [
                 'purchase_order_id' => $line->purchase_order_id,
                 'purchase_order_line_id' => $line->id,
                 'revision_id' => $revision->id,
+                'stock_code' => $stockCard?->stock_code ?? $galleryItem->stock_code,
             ]);
 
             \App\Jobs\Faz2\SendArtworkNotificationJob::dispatch($revision);
@@ -195,14 +212,14 @@ class ArtworkUploadService
         ]);
     }
 
-    private function createRevision(Artwork $artwork, PurchaseOrderLine $line, User $uploader, int $nextRevNo, array $attributes): ArtworkRevision
+    private function createRevision(Artwork $artwork, PurchaseOrderLine $line, User $uploader, int $revisionNo, array $attributes): ArtworkRevision
     {
         $artwork->revisions()->where('is_active', true)->update(['is_active' => false]);
 
         $revision = ArtworkRevision::create([
             ...$attributes,
             'artwork_id' => $artwork->id,
-            'revision_no' => $nextRevNo,
+            'revision_no' => $revisionNo,
             'is_active' => true,
             'uploaded_by' => $uploader->id,
         ]);
@@ -231,15 +248,14 @@ class ArtworkUploadService
         ]);
     }
 
-    private function syncGalleryTags(ArtworkGallery $galleryItem, array $tagIds): void
+    private function resolveStockCard(?string $stockCode): ?StockCard
     {
-        $galleryItem->tags()->sync(
-            collect($tagIds)
-                ->filter()
-                ->map(fn ($id) => (int) $id)
-                ->unique()
-                ->values()
-                ->all()
-        );
+        if (! $stockCode) {
+            return null;
+        }
+
+        return StockCard::query()
+            ->where('stock_code', mb_strtoupper(trim($stockCode)))
+            ->first();
     }
 }

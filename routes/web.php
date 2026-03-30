@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\PermissionsController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ReportFactoryController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\StockCardController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Artwork\ArtworkGalleryPreviewController;
@@ -74,6 +75,7 @@ Route::middleware(['auth', 'active'])->group(function () {
 
         Route::get('/satir/{line}/artwork/yukle', [ArtworkController::class, 'create'])->name('artworks.create');
         Route::post('/satir/{line}/artwork', [ArtworkController::class, 'store'])->name('artworks.store');
+        Route::get('/stok-kartlari/ara', [StockCardController::class, 'lookup'])->name('stock-cards.lookup');
         Route::get('/revizyon/{revision}', [ArtworkController::class, 'show'])->name('artworks.show');
         Route::patch('/revizyon/{revision}/aktif', [ArtworkController::class, 'activate'])->name('artworks.activate');
         Route::delete('/revizyon/{revision}', [ArtworkController::class, 'destroy'])->name('artworks.destroy');
@@ -93,6 +95,12 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/tedarikciler/import-sablonu', [SupplierController::class, 'downloadTemplate'])->name('suppliers.import.template');
             Route::post('/tedarikciler', [SupplierController::class, 'store'])->name('suppliers.store');
             Route::get('/tedarikciler/{supplier}', [SupplierController::class, 'show'])->name('suppliers.show');
+            Route::get('/stok-kartlari', [StockCardController::class, 'index'])->name('stock-cards.index');
+            Route::get('/stok-kartlari/yeni', [StockCardController::class, 'create'])->name('stock-cards.create');
+            Route::get('/stok-kartlari/toplu-import', [StockCardController::class, 'importForm'])->name('stock-cards.import.form');
+            Route::post('/stok-kartlari/toplu-import', [StockCardController::class, 'import'])->name('stock-cards.import');
+            Route::get('/stok-kartlari/import-sablonu', [StockCardController::class, 'downloadTemplate'])->name('stock-cards.import.template');
+            Route::post('/stok-kartlari', [StockCardController::class, 'store'])->name('stock-cards.store');
         });
 
     Route::middleware('role:admin')
@@ -110,6 +118,9 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/tedarikciler/{supplier}/duzenle', [SupplierController::class, 'edit'])->name('suppliers.edit');
             Route::patch('/tedarikciler/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
             Route::delete('/tedarikciler/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
+            Route::get('/stok-kartlari/{stockCard}/duzenle', [StockCardController::class, 'edit'])->name('stock-cards.edit');
+            Route::patch('/stok-kartlari/{stockCard}', [StockCardController::class, 'update'])->name('stock-cards.update');
+            Route::delete('/stok-kartlari/{stockCard}', [StockCardController::class, 'destroy'])->name('stock-cards.destroy');
 
             Route::get('/yetkiler', [PermissionsController::class, 'index'])->name('permissions.index');
             Route::get('/yetkiler/{user}', [PermissionsController::class, 'show'])->name('permissions.show');

@@ -247,11 +247,12 @@
                     @php
                         $canViewSuppliers = $user?->hasPermission('suppliers');
                         $canViewUsers     = $user?->hasPermission('users');
+                        $canViewStockCards = $user?->hasPermission('stock_cards');
                         $canViewSettings  = $user?->isAdmin();
                         $canViewReports   = $user?->hasPermission('reports');
                         $canViewGallery   = $user?->hasPermission('gallery');
                         $canViewLogs      = $user?->hasPermission('logs');
-                        $showMgmtSection  = ! $user?->isSupplier() && ($canViewSuppliers || $canViewUsers || $canViewSettings || $canViewReports || $canViewGallery || $canViewLogs);
+                        $showMgmtSection  = ! $user?->isSupplier() && ($canViewSuppliers || $canViewUsers || $canViewStockCards || $canViewSettings || $canViewReports || $canViewGallery || $canViewLogs);
                     @endphp
 
                     @if($showMgmtSection)
@@ -275,6 +276,15 @@
                                        class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
                                         <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                                         <span class="sb-label">{{ \App\Support\PortalTranslation::get('navigation.users', 'Kullanıcılar', 'navigation') }}</span>
+                                    </a>
+                                @endif
+
+                                @if($canViewStockCards)
+                                    <a href="{{ route('admin.stock-cards.index') }}"
+                                       title="{{ \App\Support\PortalTranslation::get('navigation.stock_cards', 'Stok Kartları', 'navigation') }}"
+                                       class="sidebar-link {{ request()->routeIs('admin.stock-cards.*') ? 'active' : '' }}">
+                                        <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/></svg>
+                                        <span class="sb-label">{{ \App\Support\PortalTranslation::get('navigation.stock_cards', 'Stok Kartları', 'navigation') }}</span>
                                     </a>
                                 @endif
 

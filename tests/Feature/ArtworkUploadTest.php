@@ -4,12 +4,11 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Models\Artwork;
-use App\Models\ArtworkCategory;
 use App\Models\ArtworkGallery;
 use App\Models\ArtworkRevision;
-use App\Models\ArtworkTag;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
+use App\Models\StockCard;
 use App\Models\Supplier;
 use App\Models\SystemSetting;
 use App\Models\User;
@@ -29,6 +28,7 @@ class ArtworkUploadTest extends TestCase
     private User $supplierUser;
     private User $purchasingUser;
     private PurchaseOrderLine $line;
+    private StockCard $stockCard;
 
     protected function setUp(): void
     {
@@ -49,7 +49,13 @@ class ArtworkUploadTest extends TestCase
         $order = PurchaseOrder::factory()->create(['supplier_id' => $supplier->id]);
         $this->line = PurchaseOrderLine::factory()->create([
             'purchase_order_id' => $order->id,
+            'product_code' => 'STK-1001',
             'artwork_status' => 'pending',
+        ]);
+
+        $this->stockCard = StockCard::factory()->create([
+            'stock_code' => 'STK-1001',
+            'stock_name' => 'Lider Nemlendirici Kutu',
         ]);
     }
 
@@ -58,7 +64,9 @@ class ArtworkUploadTest extends TestCase
         $this->actingAs($this->graphicUser)
             ->get(route('artworks.create', $this->line))
             ->assertOk()
-            ->assertViewIs('artworks.create');
+            ->assertViewIs('artworks.create')
+            ->assertSee('Stok Kodu')
+            ->assertSee('Revizyon No');
     }
 
     public function test_admin_can_see_upload_form(): void
@@ -83,11 +91,8 @@ class ArtworkUploadTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_graphic_user_can_upload_artwork_and_create_gallery_usage(): void
+    public function test_graphic_user_can_upload_artwork_with_stock_card(): void
     {
-        $category = ArtworkCategory::factory()->create();
-        $tag = ArtworkTag::factory()->create();
-
         SystemSetting::query()->create([
             'group' => 'spaces',
             'key' => 'spaces.disk',
@@ -95,12 +100,12 @@ class ArtworkUploadTest extends TestCase
         ]);
 
         $this->mock(SpacesStorageService::class, function ($mock) {
-            $mock->shouldReceive('buildPath')->andReturn('artworks/supplier/1/orders/PO-001/lines/1/rev/1/uuid.pdf');
+            $mock->shouldReceive('buildPath')->andReturn('artworks/supplier/1/orders/PO-001/lines/1/rev/3/uuid.pdf');
         });
 
         $this->mock(MultipartUploadService::class, function ($mock) {
             $mock->shouldReceive('upload')->andReturn([
-                'spaces_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/1/uuid.pdf',
+                'spaces_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/3/uuid.pdf',
                 'original_filename' => 'test-artwork.pdf',
                 'stored_filename' => 'uuid.pdf',
                 'mime_type' => 'application/pdf',
@@ -114,15 +119,15 @@ class ArtworkUploadTest extends TestCase
             ->post(route('artworks.store', $this->line), [
                 'source_type' => 'upload',
                 'artwork_file' => $file,
-                'notes' => 'Ilk revizyon',
-                'category_id' => $category->id,
-                'tag_ids' => [$tag->id],
+                'stock_code' => $this->stockCard->stock_code,
+                'revision_no' => 3,
+                'notes' => 'İlk onay yüklemesi',
             ])
             ->assertRedirect(route('order-lines.show', $this->line));
 
         $this->assertDatabaseHas('artworks', ['order_line_id' => $this->line->id]);
         $this->assertDatabaseHas('artwork_revisions', [
-            'revision_no' => 1,
+            'revision_no' => 3,
             'is_active' => true,
             'original_filename' => 'test-artwork.pdf',
         ]);
@@ -132,7 +137,10 @@ class ArtworkUploadTest extends TestCase
         ]);
         $this->assertDatabaseHas('artwork_gallery', [
             'name' => 'test-artwork.pdf',
-            'category_id' => $category->id,
+            'stock_code' => $this->stockCard->stock_code,
+            'revision_no' => 3,
+            'stock_card_id' => $this->stockCard->id,
+            'category_id' => $this->stockCard->category_id,
             'uploaded_by' => $this->graphicUser->id,
             'file_disk' => 'spaces',
         ]);
@@ -140,17 +148,18 @@ class ArtworkUploadTest extends TestCase
             'purchase_order_line_id' => $this->line->id,
             'usage_type' => 'upload',
         ]);
-        $this->assertDatabaseHas('artwork_gallery_tag', [
-            'tag_id' => $tag->id,
-        ]);
     }
 
-    public function test_gallery_reuse_creates_revision_without_uploading_new_file(): void
+    public function test_gallery_reuse_creates_revision_with_explicit_revision_number(): void
     {
         $galleryItem = ArtworkGallery::factory()->create([
+            'uploaded_by' => $this->adminUser->id,
+            'stock_code' => $this->stockCard->stock_code,
+            'stock_card_id' => $this->stockCard->id,
+            'category_id' => $this->stockCard->category_id,
+            'revision_no' => 2,
             'name' => 'master-artwork.pdf',
             'file_path' => 'artworks/gallery/master-artwork.pdf',
-            'uploaded_by' => $this->adminUser->id,
         ]);
 
         $this->mock(MultipartUploadService::class, function ($mock) {
@@ -161,6 +170,8 @@ class ArtworkUploadTest extends TestCase
             ->post(route('artworks.store', $this->line), [
                 'source_type' => 'gallery',
                 'gallery_item_id' => $galleryItem->id,
+                'stock_code' => $this->stockCard->stock_code,
+                'revision_no' => 2,
                 'notes' => 'Galeriden reuse edildi',
             ])
             ->assertRedirect(route('order-lines.show', $this->line));
@@ -169,6 +180,7 @@ class ArtworkUploadTest extends TestCase
             'artwork_gallery_id' => $galleryItem->id,
             'spaces_path' => 'artworks/gallery/master-artwork.pdf',
             'original_filename' => 'master-artwork.pdf',
+            'revision_no' => 2,
             'is_active' => true,
         ]);
         $this->assertDatabaseHas('artwork_gallery_usages', [
@@ -178,64 +190,50 @@ class ArtworkUploadTest extends TestCase
         ]);
     }
 
-    public function test_upload_form_shows_gallery_card_filters_preview_and_metadata(): void
+    public function test_gallery_reuse_accepts_selected_gallery_revision_even_when_lower_than_next_revision(): void
     {
-        $category = ArtworkCategory::factory()->create(['name' => 'Kutu']);
-        $tag = ArtworkTag::factory()->create(['name' => 'Onaylı']);
-        $galleryItem = ArtworkGallery::factory()->create([
-            'uploaded_by' => $this->adminUser->id,
-            'category_id' => $category->id,
-            'name' => 'lider-kutu.ai',
-            'file_type' => 'application/postscript',
+        $artwork = Artwork::factory()->create(['order_line_id' => $this->line->id]);
+        ArtworkRevision::factory()->create([
+            'artwork_id' => $artwork->id,
+            'revision_no' => 3,
+            'is_active' => true,
         ]);
-        $galleryItem->tags()->attach($tag);
-
-        $this->actingAs($this->graphicUser)
-            ->get(route('artworks.create', $this->line, [
-                'gallery_search' => 'lider',
-                'gallery_category_id' => $category->id,
-                'gallery_tag_id' => $tag->id,
-            ]))
-            ->assertOk()
-            ->assertSee('Görüntüle')
-            ->assertSee('lider-kutu.ai')
-            ->assertSee('Kutu')
-            ->assertSee('Onaylı');
-    }
-
-    public function test_graphic_user_can_preview_gallery_image(): void
-    {
-        Storage::disk('local')->put('artworks/gallery/preview.png', 'fake-image');
 
         $galleryItem = ArtworkGallery::factory()->create([
             'uploaded_by' => $this->adminUser->id,
-            'file_disk' => 'local',
-            'file_path' => 'artworks/gallery/preview.png',
-            'file_type' => 'image/png',
-            'name' => 'preview.png',
+            'stock_code' => $this->stockCard->stock_code,
+            'stock_card_id' => $this->stockCard->id,
+            'category_id' => $this->stockCard->category_id,
+            'revision_no' => 2,
+            'name' => 'eski-rev2.pdf',
+            'file_path' => 'artworks/gallery/eski-rev2.pdf',
         ]);
 
         $this->actingAs($this->graphicUser)
-            ->get(route('artworks.gallery.preview', $galleryItem))
-            ->assertOk()
-            ->assertHeader('content-type', 'image/png');
+            ->post(route('artworks.store', $this->line), [
+                'source_type' => 'gallery',
+                'gallery_item_id' => $galleryItem->id,
+                'stock_code' => $this->stockCard->stock_code,
+                'revision_no' => 2,
+            ])
+            ->assertRedirect(route('order-lines.show', $this->line));
+
+        $this->assertDatabaseHas('artwork_revisions', [
+            'artwork_gallery_id' => $galleryItem->id,
+            'revision_no' => 2,
+        ]);
     }
 
-    public function test_purchasing_user_cannot_preview_gallery_image(): void
+    public function test_stock_card_lookup_returns_auto_fill_payload(): void
     {
-        Storage::disk('local')->put('artworks/gallery/purchasing-preview.png', 'fake-image');
-
-        $galleryItem = ArtworkGallery::factory()->create([
-            'uploaded_by' => $this->adminUser->id,
-            'file_disk' => 'local',
-            'file_path' => 'artworks/gallery/purchasing-preview.png',
-            'file_type' => 'image/png',
-            'name' => 'purchasing-preview.png',
-        ]);
-
-        $this->actingAs($this->purchasingUser)
-            ->get(route('artworks.gallery.preview', $galleryItem))
-            ->assertForbidden();
+        $this->actingAs($this->graphicUser)
+            ->getJson(route('stock-cards.lookup', ['stock_code' => $this->stockCard->stock_code]))
+            ->assertOk()
+            ->assertJson([
+                'stock_code' => $this->stockCard->stock_code,
+                'stock_name' => $this->stockCard->stock_name,
+                'category_id' => $this->stockCard->category_id,
+            ]);
     }
 
     public function test_uploading_new_revision_deactivates_old(): void
@@ -268,6 +266,8 @@ class ArtworkUploadTest extends TestCase
             ->post(route('artworks.store', $this->line), [
                 'source_type' => 'upload',
                 'artwork_file' => $file,
+                'stock_code' => $this->stockCard->stock_code,
+                'revision_no' => 2,
             ]);
 
         $this->assertDatabaseHas('artwork_revisions', ['id' => $rev1->id, 'is_active' => false]);
@@ -282,26 +282,72 @@ class ArtworkUploadTest extends TestCase
             ->post(route('artworks.store', $this->line), [
                 'source_type' => 'upload',
                 'artwork_file' => $file,
+                'stock_code' => $this->stockCard->stock_code,
+                'revision_no' => 1,
             ])
             ->assertSessionHasErrors('artwork_file');
     }
 
-    public function test_upload_requires_file_for_upload_source(): void
+    public function test_upload_requires_stock_code(): void
     {
+        $file = UploadedFile::fake()->create('test.pdf', 50, 'application/pdf');
+
         $this->actingAs($this->graphicUser)
             ->post(route('artworks.store', $this->line), [
                 'source_type' => 'upload',
+                'artwork_file' => $file,
+                'revision_no' => 1,
             ])
-            ->assertSessionHasErrors('artwork_file');
+            ->assertSessionHasErrors('stock_code');
     }
 
-    public function test_gallery_source_requires_gallery_item(): void
+    public function test_upload_requires_revision_number(): void
     {
+        $file = UploadedFile::fake()->create('test.pdf', 50, 'application/pdf');
+
         $this->actingAs($this->graphicUser)
             ->post(route('artworks.store', $this->line), [
-                'source_type' => 'gallery',
+                'source_type' => 'upload',
+                'artwork_file' => $file,
+                'stock_code' => $this->stockCard->stock_code,
             ])
-            ->assertSessionHasErrors('gallery_item_id');
+            ->assertSessionHasErrors('revision_no');
+    }
+
+    public function test_upload_rejects_unknown_stock_code(): void
+    {
+        $file = UploadedFile::fake()->create('test.pdf', 50, 'application/pdf');
+
+        $this->actingAs($this->graphicUser)
+            ->post(route('artworks.store', $this->line), [
+                'source_type' => 'upload',
+                'artwork_file' => $file,
+                'stock_code' => 'STK-4040',
+                'revision_no' => 1,
+            ])
+            ->assertSessionHasErrors('stock_code');
+    }
+
+    public function test_upload_rejects_duplicate_gallery_revision_for_same_stock_code(): void
+    {
+        ArtworkGallery::factory()->create([
+            'stock_code' => $this->stockCard->stock_code,
+            'stock_card_id' => $this->stockCard->id,
+            'category_id' => $this->stockCard->category_id,
+            'revision_no' => 2,
+            'name' => 'mevcut-rev2.pdf',
+        ]);
+
+        $file = UploadedFile::fake()->create('yeni-rev2.pdf', 50, 'application/pdf');
+
+        $this->actingAs($this->graphicUser)
+            ->post(route('artworks.store', $this->line), [
+                'source_type' => 'upload',
+                'artwork_file' => $file,
+                'stock_code' => $this->stockCard->stock_code,
+                'revision_no' => 2,
+            ])
+            ->assertSessionHasErrors('revision_no');
     }
 
     public function test_upload_creates_audit_logs_for_revision_and_gallery(): void
@@ -326,6 +372,8 @@ class ArtworkUploadTest extends TestCase
             ->post(route('artworks.store', $this->line), [
                 'source_type' => 'upload',
                 'artwork_file' => $file,
+                'stock_code' => $this->stockCard->stock_code,
+                'revision_no' => 1,
             ]);
 
         $this->assertDatabaseHas('audit_logs', [
