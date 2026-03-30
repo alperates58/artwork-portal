@@ -1,7 +1,7 @@
 @extends('layouts.app')
-@section('title', 'Stok Kodu Raporu')
-@section('page-title', 'Stok Kodu Raporu')
-@section('page-subtitle', 'Hangi stok kodunun kaç kez revize edildiği ve hangi tedarikçilere kullanıldığı')
+@section('title', 'Stok Kodu Kullanım Analizi')
+@section('page-title', 'Stok Kodu Kullanım Analizi')
+@section('page-subtitle', 'Stok kodu bazında revizyon sayıları, kullanıldığı tedarikçiler ve geçmiş artwork akışı')
 
 @section('header-actions')
     <a href="{{ route('admin.reports.index') }}" class="btn btn-secondary">← Raporlar</a>

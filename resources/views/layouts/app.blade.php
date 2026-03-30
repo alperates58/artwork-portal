@@ -363,49 +363,49 @@
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
                                                               {{ request()->routeIs('admin.reports.index') ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
                                                         <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.index') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
-                                                        Genel Bakış
+                                                        Rapor Merkezi
                                                     </a>
                                                     <a href="{{ route('admin.reports.lead-time') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
                                                               {{ request()->routeIs('admin.reports.lead-time') ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
                                                         <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.lead-time') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
-                                                        Lead Time
+                                                        Tedarik Süreci
                                                     </a>
                                                     <a href="{{ route('admin.reports.pending') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
                                                               {{ request()->routeIs('admin.reports.pending') ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
                                                         <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.pending') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
-                                                        Bekleyen Artwork
+                                                        Bekleyen İşler & Eskime
                                                     </a>
                                                     <a href="{{ route('admin.reports.performance') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
                                                               {{ request()->routeIs('admin.reports.performance') ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
                                                         <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.performance') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
-                                                        Performans
+                                                        Tedarikçi Performansı
                                                     </a>
                                                     <a href="{{ route('admin.reports.category') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
                                                               {{ request()->routeIs('admin.reports.category') ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
                                                         <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.category') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
-                                                        Kategori & Etiket
+                                                        Kategori & İçerik Analizi
                                                     </a>
                                                     <a href="{{ route('admin.reports.stock-code') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
                                                               {{ request()->routeIs('admin.reports.stock-code') ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
                                                         <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.stock-code') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
-                                                        Stok Kodu
+                                                        Stok Kodu Kullanımı
                                                     </a>
                                                     <a href="{{ route('admin.reports.timeline') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
                                                               {{ request()->routeIs('admin.reports.timeline') ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
                                                         <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.timeline') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
-                                                        Aktivite Zaman Çizelgesi
+                                                        Aktivite Akışı
                                                     </a>
                                                     <a href="{{ route('admin.reports.factory.index') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
                                                               {{ request()->routeIs('admin.reports.factory.*') ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
                                                         <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.factory.*') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
-                                                        Rapor Fabrikası
+                                                        Özel Raporlar
                                                     </a>
                                                 </div>
                                             </div>

@@ -1,7 +1,7 @@
 @extends('layouts.app')
-@section('title', 'Rapor Fabrikası')
-@section('page-title', 'Rapor Fabrikası')
-@section('page-subtitle', 'Özel raporlarınızı oluşturun, kaydedin ve yönetin.')
+@section('title', 'Özel Raporlar')
+@section('page-title', 'Özel Raporlar')
+@section('page-subtitle', 'Boyut ve metrik seçerek kendi raporlarınızı oluşturun, kaydedin ve yönetin.')
 
 @section('header-actions')
     <a href="{{ route('admin.reports.factory.create') }}" class="btn btn-primary">

@@ -21,18 +21,21 @@ class PermissionsController extends Controller
         'orders' => [
             'label'   => 'Siparişler',
             'actions' => [
-                'view'   => 'Görüntüle',
-                'create' => 'Oluştur',
-                'edit'   => 'Düzenle',
-                'delete' => 'Sil',
+                'view'          => 'Görüntüle',
+                'create'        => 'Oluştur',
+                'edit'          => 'Düzenle',
+                'delete'        => 'Sil',
+                'plan_priority' => 'Planlama Önceliği Düzenle',
+                'purchasing_date' => 'Satın Alma Tarihi Düzenle',
             ],
         ],
         'suppliers' => [
             'label'   => 'Tedarikçiler',
             'actions' => [
-                'view'   => 'Görüntüle',
-                'create' => 'Oluştur',
-                'edit'   => 'Düzenle',
+                'view'         => 'Görüntüle',
+                'create'       => 'Oluştur',
+                'edit'         => 'Düzenle',
+                'bulk_import'  => 'Toplu Excel İçe Aktarma',
             ],
         ],
         'users' => [
@@ -43,9 +46,36 @@ class PermissionsController extends Controller
                 'edit'   => 'Düzenle',
             ],
         ],
+        'departments' => [
+            'label'   => 'Departmanlar',
+            'actions' => [
+                'view'   => 'Görüntüle',
+                'create' => 'Oluştur',
+                'edit'   => 'Düzenle',
+                'delete' => 'Sil',
+            ],
+        ],
         'reports' => [
             'label'   => 'Raporlar',
-            'actions' => ['view' => 'Görüntüle'],
+            'actions' => [
+                'view'   => 'Görüntüle',
+                'create' => 'Özel Rapor Oluştur',
+                'save'   => 'Özel Rapor Kaydet',
+            ],
+        ],
+        'artworks' => [
+            'label'   => 'Artwork İşlemleri',
+            'actions' => [
+                'upload'  => 'Artwork Yükle',
+                'approve' => 'Artwork Onayla / Reddet',
+            ],
+        ],
+        'notes' => [
+            'label'   => 'Notlar',
+            'actions' => [
+                'internal'      => 'İç Not Yaz (dahili)',
+                'supplier_only' => 'Tedarikçi Notu Yaz',
+            ],
         ],
         'gallery' => [
             'label'   => 'Artwork Galerisi',
@@ -72,6 +102,13 @@ class PermissionsController extends Controller
             'actions' => [
                 'view'   => 'Görüntüle',
                 'manage' => 'Ekle / Düzenle / Sil',
+            ],
+        ],
+        'backup' => [
+            'label'   => 'Yedek & Veri Aktarımı',
+            'actions' => [
+                'export' => 'Dışa Aktar',
+                'import' => 'İçe Aktar',
             ],
         ],
     ];

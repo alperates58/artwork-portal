@@ -1,7 +1,7 @@
 @extends('layouts.app')
-@section('title', 'Aktivite Zaman Çizelgesi')
-@section('page-title', 'Aktivite Zaman Çizelgesi')
-@section('page-subtitle', 'Sipariş, artwork ve not olaylarını tek ekranda takip edin.')
+@section('title', 'Aktivite Akışı')
+@section('page-title', 'Aktivite Akışı')
+@section('page-subtitle', 'Sipariş, artwork ve not olaylarını tarih ve tür filtresiyle tek ekranda takip edin.')
 
 @section('content')
 

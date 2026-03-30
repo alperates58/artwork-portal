@@ -1,7 +1,7 @@
 @extends('layouts.app')
-@section('title', 'Lead Time Raporu')
-@section('page-title', 'Lead Time Raporu')
-@section('page-subtitle', 'Sipariş → Artwork yükleme → Tedarikçi indirme süreleri')
+@section('title', 'Tedarik Süreci Analizi')
+@section('page-title', 'Tedarik Süreci Analizi')
+@section('page-subtitle', 'Sipariş → Artwork yükleme → Tedarikçi indirme aşamaları ve süre metrikleri')
 
 @section('header-actions')
     <a href="{{ route('admin.reports.index') }}" class="btn btn-secondary">← Raporlar</a>

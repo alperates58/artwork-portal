@@ -816,7 +816,8 @@
                                     @php
                                         $toggles = [
                                             ['key' => 'order_creation_enabled', 'label' => 'Sipariş Oluşturma', 'desc' => 'Admin panelinden yeni sipariş oluşturulabilir. Kapalıysa sipariş oluşturma formu devre dışı kalır.', 'warn' => false],
-                                            ['key' => 'supplier_portal_enabled', 'label' => 'Tedarikçi Portalı', 'desc' => 'Tedarikçilerin kendi portallarine erişim izni. Kapalıysa tedarikçi girişi engellenir.', 'warn' => true],
+                                            ['key' => 'order_deletion_enabled', 'label' => 'Sipariş Silme', 'desc' => 'Yetkilendirilmiş kullanıcıların sipariş silebilmesine izin verir. Kapalıysa silme işlemi tüm roller için engellenir.', 'warn' => true],
+                                            ['key' => 'supplier_portal_enabled', 'label' => 'Tedarikçi Portalı', 'desc' => 'Tedarikçilerin kendi portallerine erişim izni. Kapalıysa tedarikçi girişi engellenir.', 'warn' => true],
                                             ['key' => 'maintenance_mode', 'label' => 'Bakım Modu', 'desc' => 'Aktif edildiğinde admin dışındaki kullanıcılar bakım sayfasına yönlendirilir.', 'warn' => true],
                                             ['key' => 'allow_manual_artwork', 'label' => 'Manuel Artwork Tamamlama', 'desc' => 'Satın alma ekibinin "Manuel Gönderildi" olarak işaretleyebilmesi.', 'warn' => false],
                                             ['key' => 'data_transfer_allowed', 'label' => 'Veri Aktarımı', 'desc' => 'Local ↔ Sunucu veri aktarım özelliğinin kullanılmasına izin verir.', 'warn' => false],

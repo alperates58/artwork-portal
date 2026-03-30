@@ -10,6 +10,7 @@ use App\Models\Supplier;
 use App\Services\AuditLogService;
 use App\Services\DashboardCacheService;
 use App\Services\NotificationService;
+use App\Services\PortalSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -231,6 +232,9 @@ class OrderController extends Controller
     public function destroy(Request $request, PurchaseOrder $order): RedirectResponse
     {
         $this->authorize('delete', $order);
+
+        $portalConfig = app(PortalSettings::class)->portalConfig();
+        abort_if(! ($portalConfig['order_deletion_enabled'] ?? true), 403, 'Sipariş silme işlevi sistem ayarlarından devre dışı bırakılmıştır.');
 
         $request->validate([
             'confirmation_text' => ['required', 'string'],

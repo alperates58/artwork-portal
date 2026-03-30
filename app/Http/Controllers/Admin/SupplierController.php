@@ -122,14 +122,20 @@ class SupplierController extends Controller
 
     public function importForm(): View
     {
-        abort_unless(auth()->user()->hasPermission('suppliers', 'create'), 403);
+        abort_unless(
+            auth()->user()->hasPermission('suppliers', 'create') || auth()->user()->hasPermission('suppliers', 'bulk_import'),
+            403
+        );
 
         return view('admin.suppliers.import');
     }
 
     public function import(Request $request, SupplierBulkImportService $service): RedirectResponse
     {
-        abort_unless(auth()->user()->hasPermission('suppliers', 'create'), 403);
+        abort_unless(
+            auth()->user()->hasPermission('suppliers', 'create') || auth()->user()->hasPermission('suppliers', 'bulk_import'),
+            403
+        );
 
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:5120'],

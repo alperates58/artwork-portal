@@ -257,6 +257,7 @@ class PortalSettings
             'require_2fa_for_admin'          => filter_var($this->get('portal.require_2fa_for_admin', false), FILTER_VALIDATE_BOOL),
             'data_transfer_allowed'          => filter_var($this->get('portal.data_transfer_allowed', true), FILTER_VALIDATE_BOOL),
             'audit_log_retention_days'       => (int) $this->get('portal.audit_log_retention_days', 365),
+            'order_deletion_enabled'         => filter_var($this->get('portal.order_deletion_enabled', true), FILTER_VALIDATE_BOOL),
         ];
     }
 
@@ -265,6 +266,7 @@ class PortalSettings
         $boolKeys = [
             'order_creation_enabled', 'supplier_portal_enabled', 'maintenance_mode',
             'allow_manual_artwork', 'require_2fa_for_admin', 'data_transfer_allowed',
+            'order_deletion_enabled',
         ];
         $intKeys = [
             'max_upload_size_mb', 'max_revision_count', 'session_timeout_minutes',

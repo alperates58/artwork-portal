@@ -13,6 +13,8 @@ class DepartmentController extends Controller
 {
     public function index(): View
     {
+        abort_unless(auth()->user()->isAdmin() || auth()->user()->hasPermission('departments', 'view'), 403);
+
         $departments = Department::query()
             ->withCount('users')
             ->orderBy('name')
@@ -23,6 +25,8 @@ class DepartmentController extends Controller
 
     public function create(): View
     {
+        abort_unless(auth()->user()->isAdmin() || auth()->user()->hasPermission('departments', 'create'), 403);
+
         return view('admin.departments.create', [
             'screens' => PermissionsController::$screens,
         ]);
@@ -30,6 +34,8 @@ class DepartmentController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        abort_unless(auth()->user()->isAdmin() || auth()->user()->hasPermission('departments', 'create'), 403);
+
         $request->validate([
             'name' => ['required', 'string', 'max:100', 'unique:departments,name'],
         ]);
@@ -46,6 +52,8 @@ class DepartmentController extends Controller
 
     public function edit(Department $department): View
     {
+        abort_unless(auth()->user()->isAdmin() || auth()->user()->hasPermission('departments', 'edit'), 403);
+
         $department->load('users');
 
         return view('admin.departments.edit', [
@@ -56,6 +64,8 @@ class DepartmentController extends Controller
 
     public function update(Request $request, Department $department): RedirectResponse
     {
+        abort_unless(auth()->user()->isAdmin() || auth()->user()->hasPermission('departments', 'edit'), 403);
+
         $request->validate([
             'name' => ['required', 'string', 'max:100', Rule::unique('departments', 'name')->ignore($department)],
         ]);
@@ -72,6 +82,8 @@ class DepartmentController extends Controller
 
     public function destroy(Department $department): RedirectResponse
     {
+        abort_unless(auth()->user()->isAdmin() || auth()->user()->hasPermission('departments', 'delete'), 403);
+
         $name = $department->name;
         $department->users()->update(['department_id' => null]);
         $department->delete();

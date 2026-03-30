@@ -1,7 +1,7 @@
 @extends('layouts.app')
-@section('title', 'Performans Raporu')
-@section('page-title', 'Performans Raporu')
-@section('page-subtitle', 'Tedarikçi ve grafik ekibi performansını 100 puan üzerinden değerlendirin.')
+@section('title', 'Tedarikçi Performans Değerlendirmesi')
+@section('page-title', 'Tedarikçi Performans Değerlendirmesi')
+@section('page-subtitle', 'Tedarikçi ve grafik ekibinin 100 puan üzerinden performans skoru, onay oranları ve hız metrikleri')
 
 @section('header-actions')
     <a href="{{ route('admin.reports.index') }}" class="btn btn-secondary">← Raporlar</a>

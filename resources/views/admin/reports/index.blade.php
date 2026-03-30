@@ -1,23 +1,77 @@
 @extends('layouts.app')
-@section('title', 'Raporlar')
-@section('page-title', 'Operasyonel Raporlar')
+@section('title', 'Rapor Merkezi')
+@section('page-title', 'Rapor Merkezi')
+@section('page-subtitle', 'Operasyonel raporlar, analiz araçları ve özel rapor oluşturucu')
 
 @section('content')
-{{-- Quick nav to detailed reports --}}
-<div class="flex flex-wrap gap-2 mb-6">
-    @foreach([
-        ['route' => 'admin.reports.lead-time',  'label' => 'Lead Time',          'icon' => '⏱'],
-        ['route' => 'admin.reports.pending',     'label' => 'Bekleyen Artwork',   'icon' => '⏳'],
-        ['route' => 'admin.reports.performance', 'label' => 'Performans',         'icon' => '🏆'],
-        ['route' => 'admin.reports.category',    'label' => 'Kategori',           'icon' => '🗂'],
-        ['route' => 'admin.reports.stock-code',  'label' => 'Stok Kodu',          'icon' => '📋'],
-        ['route' => 'admin.reports.timeline',    'label' => 'Aktivite',           'icon' => '📅'],
-    ] as $r)
-        <a href="{{ route($r['route']) }}"
-           class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:border-brand-300 hover:text-brand-700 transition">
-            {{ $r['icon'] }} {{ $r['label'] }}
-        </a>
-    @endforeach
+{{-- Rapor grupları --}}
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mb-8">
+    {{-- Tedarik Süreci --}}
+    <a href="{{ route('admin.reports.lead-time') }}" class="card p-4 flex items-start gap-3 hover:border-brand-200 hover:shadow-sm transition group">
+        <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-brand-50 flex items-center justify-center group-hover:bg-brand-100 transition">
+            <svg class="w-4.5 h-4.5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+            <p class="text-sm font-semibold text-slate-800 group-hover:text-brand-700 transition">Tedarik Süreci</p>
+            <p class="text-xs text-slate-500 mt-0.5">Sipariş → Yükleme → İndirme aşamaları, lead time analizi</p>
+        </div>
+    </a>
+    {{-- Bekleyen İşler --}}
+    <a href="{{ route('admin.reports.pending') }}" class="card p-4 flex items-start gap-3 hover:border-amber-200 hover:shadow-sm transition group">
+        <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center group-hover:bg-amber-100 transition">
+            <svg class="w-4.5 h-4.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+            <p class="text-sm font-semibold text-slate-800 group-hover:text-amber-700 transition">Bekleyen İşler & Eskime</p>
+            <p class="text-xs text-slate-500 mt-0.5">Artwork bekleyen satırlar, yaşlandırma bantları, kritik bekleyenler</p>
+        </div>
+    </a>
+    {{-- Tedarikçi Performansı --}}
+    <a href="{{ route('admin.reports.performance') }}" class="card p-4 flex items-start gap-3 hover:border-emerald-200 hover:shadow-sm transition group">
+        <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition">
+            <svg class="w-4.5 h-4.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        </div>
+        <div>
+            <p class="text-sm font-semibold text-slate-800 group-hover:text-emerald-700 transition">Tedarikçi Performansı</p>
+            <p class="text-xs text-slate-500 mt-0.5">100 puan üzerinden performans skoru, onay oranları, hız metrikleri</p>
+        </div>
+    </a>
+    {{-- Kategori & İçerik --}}
+    <a href="{{ route('admin.reports.category') }}" class="card p-4 flex items-start gap-3 hover:border-violet-200 hover:shadow-sm transition group">
+        <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-violet-50 flex items-center justify-center group-hover:bg-violet-100 transition">
+            <svg class="w-4.5 h-4.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+        </div>
+        <div>
+            <p class="text-sm font-semibold text-slate-800 group-hover:text-violet-700 transition">Kategori & İçerik Analizi</p>
+            <p class="text-xs text-slate-500 mt-0.5">Artwork galerisi kategori ve etiket dağılımı, bekleyen içerikler</p>
+        </div>
+    </a>
+    {{-- Stok Kodu --}}
+    <a href="{{ route('admin.reports.stock-code') }}" class="card p-4 flex items-start gap-3 hover:border-slate-300 hover:shadow-sm transition group">
+        <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center group-hover:bg-slate-200 transition">
+            <svg class="w-4.5 h-4.5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        </div>
+        <div>
+            <p class="text-sm font-semibold text-slate-800 group-hover:text-slate-700 transition">Stok Kodu Kullanımı</p>
+            <p class="text-xs text-slate-500 mt-0.5">Stok kodu bazında revizyon sayıları ve tedarikçi kullanım geçmişi</p>
+        </div>
+    </a>
+    {{-- Aktivite Akışı --}}
+    <a href="{{ route('admin.reports.timeline') }}" class="card p-4 flex items-start gap-3 hover:border-sky-200 hover:shadow-sm transition group">
+        <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-sky-50 flex items-center justify-center group-hover:bg-sky-100 transition">
+            <svg class="w-4.5 h-4.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+        <div>
+            <p class="text-sm font-semibold text-slate-800 group-hover:text-sky-700 transition">Aktivite Akışı</p>
+            <p class="text-xs text-slate-500 mt-0.5">Sipariş, artwork ve not olayları zaman çizelgesi, tarih/tür filtresi</p>
+        </div>
+    </a>
+</div>
+
+{{-- Özel Raporlar bölümü --}}
+<div class="flex items-center justify-between mb-3">
+    <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Güncel Operasyon</h2>
+    <a href="{{ route('admin.reports.factory.index') }}" class="text-xs text-brand-600 hover:underline font-medium">Özel Raporlar →</a>
 </div>
 
 <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">

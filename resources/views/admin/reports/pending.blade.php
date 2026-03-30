@@ -1,7 +1,7 @@
 @extends('layouts.app')
-@section('title', 'Bekleyen Artwork Raporu')
-@section('page-title', 'Bekleyen Artwork Yaşlandırma')
-@section('page-subtitle', 'Artwork yüklemesi beklenen satırların sipariş tarihinden itibaren bekleme süreleri')
+@section('title', 'Bekleyen İşler & Eskime Analizi')
+@section('page-title', 'Bekleyen İşler & Eskime Analizi')
+@section('page-subtitle', 'Artwork yüklemesi beklenen satırlar, yaşlandırma bantları ve kritik bekleyen işler')
 
 @section('header-actions')
     <a href="{{ route('admin.reports.index') }}" class="btn btn-secondary">← Raporlar</a>
