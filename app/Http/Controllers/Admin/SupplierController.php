@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Supplier;
+use App\Services\SupplierBulkImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -117,5 +118,44 @@ class SupplierController extends Controller
         return redirect()
             ->route('admin.suppliers.index')
             ->with('success', 'Tedarikçi arşivlendi.');
+    }
+
+    public function importForm(): View
+    {
+        abort_unless(auth()->user()->hasPermission('suppliers', 'create'), 403);
+
+        return view('admin.suppliers.import');
+    }
+
+    public function import(Request $request, SupplierBulkImportService $service): RedirectResponse
+    {
+        abort_unless(auth()->user()->hasPermission('suppliers', 'create'), 403);
+
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:5120'],
+        ], [
+            'file.required' => 'Lütfen bir Excel dosyası seçin.',
+            'file.mimes'    => 'Sadece .xlsx veya .xls dosyası yüklenebilir.',
+            'file.max'      => 'Dosya boyutu en fazla 5 MB olabilir.',
+        ]);
+
+        try {
+            $result = $service->import($request->file('file'));
+        } catch (\InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Dosya işlenirken bir hata oluştu: ' . $e->getMessage());
+        }
+
+        return redirect()
+            ->route('admin.suppliers.import.form')
+            ->with('import_result', $result);
+    }
+
+    public function downloadTemplate(SupplierBulkImportService $service): void
+    {
+        abort_unless(auth()->user()->hasPermission('suppliers'), 403);
+
+        $service->streamTemplate();
     }
 }

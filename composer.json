@@ -5,11 +5,12 @@
     "license": "proprietary",
     "require": {
         "php": "^8.3",
+        "aws/aws-sdk-php": "^3.300",
         "laravel/framework": "^11.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "league/flysystem-aws-s3-v3": "^3.0",
-        "aws/aws-sdk-php": "^3.300",
+        "phpoffice/phpspreadsheet": "^5.5",
         "predis/predis": "^2.2",
         "spatie/laravel-permission": "^6.7"
     },

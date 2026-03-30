@@ -85,6 +85,9 @@ Route::middleware(['auth', 'active'])->group(function () {
         ->group(function () {
             Route::get('/tedarikciler', [SupplierController::class, 'index'])->name('suppliers.index');
             Route::get('/tedarikciler/yeni', [SupplierController::class, 'create'])->name('suppliers.create');
+            Route::get('/tedarikciler/toplu-import', [SupplierController::class, 'importForm'])->name('suppliers.import.form');
+            Route::post('/tedarikciler/toplu-import', [SupplierController::class, 'import'])->name('suppliers.import');
+            Route::get('/tedarikciler/import-sablonu', [SupplierController::class, 'downloadTemplate'])->name('suppliers.import.template');
             Route::post('/tedarikciler', [SupplierController::class, 'store'])->name('suppliers.store');
             Route::get('/tedarikciler/{supplier}', [SupplierController::class, 'show'])->name('suppliers.show');
         });
