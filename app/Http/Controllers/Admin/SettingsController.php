@@ -3,6 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Artwork;
+use App\Models\ArtworkRevision;
+use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderLine;
+use App\Models\Supplier;
+use App\Models\SupplierUser;
+use App\Models\User;
 use App\Services\Erp\MikroViewMappingService;
 use App\Services\GithubUpdateChecker;
 use App\Services\MailNotificationDispatcher;
@@ -14,6 +21,8 @@ use App\Services\PortalUpdateStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -585,16 +594,98 @@ class SettingsController extends Controller
 
     private function generalSystemConfig(): array
     {
+        // --- Database stats ---
+        $orderCount        = PurchaseOrder::count();
+        $lineCount         = PurchaseOrderLine::count();
+        $pendingLineCount  = PurchaseOrderLine::whereNull('artwork_uploaded_at')->count();
+        $artworkCount      = Artwork::count();
+        $revisionCount     = ArtworkRevision::count();
+        $supplierCount     = Supplier::count();
+        $activeSupplierCount = Supplier::where('is_active', true)->count();
+        $adminUserCount    = User::count();
+        $supplierUserCount = SupplierUser::count();
+
+        // --- Local disk ---
+        $storagePath    = storage_path('app');
+        $diskTotal      = @disk_total_space($storagePath) ?: 0;
+        $diskFree       = @disk_free_space($storagePath)  ?: 0;
+        $diskUsed       = $diskTotal - $diskFree;
+
+        // --- Spaces ---
+        $spacesConfig   = $this->settings->spacesConfig();
+        $spacesReady    = $this->settings->hasCompleteSpacesConfiguration();
+        $spacesFileCount = null;
+        if ($spacesReady) {
+            try {
+                $spacesFileCount = count(Storage::disk('spaces')->allFiles());
+            } catch (\Throwable) {
+                $spacesFileCount = null;
+            }
+        }
+
+        // --- Server ---
+        $serverIp       = $_SERVER['SERVER_ADDR'] ?? gethostbyname(gethostname());
+        $hostname       = gethostname() ?: 'Bilinmiyor';
+
+        // --- PHP ---
+        $phpVersion     = PHP_VERSION;
+        $memoryLimit    = ini_get('memory_limit');
+        $uploadMax      = ini_get('upload_max_filesize');
+        $maxExecution   = ini_get('max_execution_time');
+        $opcache        = function_exists('opcache_get_status') && opcache_get_status(false) !== false;
+
+        // --- DB size (MySQL) ---
+        $dbName  = config('database.connections.mysql.database');
+        $dbSize  = null;
+        try {
+            $row = DB::selectOne("SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS size_mb
+                FROM information_schema.tables WHERE table_schema = ?", [$dbName]);
+            $dbSize = $row?->size_mb;
+        } catch (\Throwable) {}
+
         return [
-            'app_name' => (string) config('app.name'),
-            'app_env' => (string) config('app.env'),
-            'app_version' => (string) config('app.version'),
-            'app_timezone' => (string) config('app.timezone'),
-            'queue_connection' => (string) config('queue.default'),
-            'cache_store' => (string) config('cache.default'),
-            'session_driver' => (string) config('session.driver'),
-            'filesystem_disk' => $this->settings->filesystemDisk(),
-            'mail_mailer' => (string) config('mail.default'),
+            // App
+            'app_name'             => (string) config('app.name'),
+            'app_env'              => (string) config('app.env'),
+            'app_version'          => (string) config('app.version'),
+            'app_timezone'         => (string) config('app.timezone'),
+            'queue_connection'     => (string) config('queue.default'),
+            'cache_store'          => (string) config('cache.default'),
+            'session_driver'       => (string) config('session.driver'),
+            'filesystem_disk'      => $this->settings->filesystemDisk(),
+            'mail_mailer'          => (string) config('mail.default'),
+            // Stats
+            'order_count'          => $orderCount,
+            'line_count'           => $lineCount,
+            'pending_line_count'   => $pendingLineCount,
+            'artwork_count'        => $artworkCount,
+            'revision_count'       => $revisionCount,
+            'supplier_count'       => $supplierCount,
+            'active_supplier_count'=> $activeSupplierCount,
+            'admin_user_count'     => $adminUserCount,
+            'supplier_user_count'  => $supplierUserCount,
+            // Disk
+            'disk_total_bytes'     => $diskTotal,
+            'disk_used_bytes'      => $diskUsed,
+            'disk_free_bytes'      => $diskFree,
+            // Spaces
+            'spaces_ready'         => $spacesReady,
+            'spaces_bucket'        => $spacesConfig['bucket'] ?? null,
+            'spaces_endpoint'      => $spacesConfig['endpoint'] ?? null,
+            'spaces_disk'          => $spacesConfig['disk'] ?? 'local',
+            'spaces_file_count'    => $spacesFileCount,
+            // Server
+            'server_ip'            => $serverIp,
+            'server_hostname'      => $hostname,
+            // PHP
+            'php_version'          => $phpVersion,
+            'memory_limit'         => $memoryLimit,
+            'upload_max'           => $uploadMax,
+            'max_execution'        => $maxExecution,
+            'opcache_enabled'      => $opcache,
+            // DB
+            'db_name'              => $dbName,
+            'db_size_mb'           => $dbSize,
         ];
     }
 

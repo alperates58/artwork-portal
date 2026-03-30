@@ -1022,35 +1022,178 @@
                     </div>
 
                     <div class="{{ $activeTab === 'general' ? '' : 'hidden' }}">
-                        <div class="grid gap-6 2xl:grid-cols-2">
-                            <div class="rounded-3xl border border-slate-200 p-6 space-y-4">
-                                <div>
-                                    <h3 class="text-lg font-semibold text-slate-900">Genel Sistem Bilgileri</h3>
-                                    <p class="mt-1 text-sm text-slate-500">Bu sekme read-only bilgi sunar. Altyapı ve bootstrap env değerleri bu passta admin paneline taşınmamıştır.</p>
+                        @php
+                            function fmtBytes(int $bytes): string {
+                                if ($bytes <= 0) return '—';
+                                $units = ['B','KB','MB','GB','TB'];
+                                $i = (int) floor(log($bytes, 1024));
+                                return round($bytes / pow(1024, $i), 1) . ' ' . $units[$i];
+                            }
+                            $diskPct = $generalSystem['disk_total_bytes'] > 0
+                                ? round($generalSystem['disk_used_bytes'] / $generalSystem['disk_total_bytes'] * 100, 1)
+                                : 0;
+                        @endphp
+
+                        {{-- İstatistik kartları --}}
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+                            @php
+                                $statCards = [
+                                    ['label' => 'Sipariş',         'value' => number_format($generalSystem['order_count']),         'sub' => number_format($generalSystem['line_count']) . ' satır',                 'color' => 'text-brand-700'],
+                                    ['label' => 'Bekleyen Satır',  'value' => number_format($generalSystem['pending_line_count']),  'sub' => 'Artwork bekleniyor',                                                   'color' => $generalSystem['pending_line_count'] > 0 ? 'text-amber-600' : 'text-emerald-600'],
+                                    ['label' => 'Artwork',         'value' => number_format($generalSystem['artwork_count']),        'sub' => number_format($generalSystem['revision_count']) . ' revizyon',          'color' => 'text-violet-700'],
+                                    ['label' => 'Tedarikçi',       'value' => number_format($generalSystem['supplier_count']),      'sub' => number_format($generalSystem['active_supplier_count']) . ' aktif',       'color' => 'text-slate-700'],
+                                    ['label' => 'Kullanıcı',       'value' => number_format($generalSystem['admin_user_count'] + $generalSystem['supplier_user_count']), 'sub' => $generalSystem['admin_user_count'] . ' admin · ' . $generalSystem['supplier_user_count'] . ' tedarikçi', 'color' => 'text-sky-700'],
+                                ];
+                            @endphp
+                            @foreach($statCards as $card)
+                                <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">{{ $card['label'] }}</p>
+                                    <p class="mt-1 text-2xl font-bold {{ $card['color'] }}">{{ $card['value'] }}</p>
+                                    <p class="mt-0.5 text-xs text-slate-400">{{ $card['sub'] }}</p>
                                 </div>
-                                <dl class="grid gap-4 md:grid-cols-2">
-                                    <div><dt class="text-xs uppercase tracking-wide text-slate-400">Uygulama Adi</dt><dd class="mt-1 text-sm text-slate-900">{{ $generalSystem['app_name'] }}</dd></div>
-                                    <div><dt class="text-xs uppercase tracking-wide text-slate-400">Sürüm</dt><dd class="mt-1 font-mono text-sm text-slate-900">{{ $generalSystem['app_version'] }}</dd></div>
-                                    <div><dt class="text-xs uppercase tracking-wide text-slate-400">Environment</dt><dd class="mt-1 text-sm text-slate-900">{{ $generalSystem['app_env'] }}</dd></div>
-                                    <div><dt class="text-xs uppercase tracking-wide text-slate-400">Timezone</dt><dd class="mt-1 text-sm text-slate-900">{{ $generalSystem['app_timezone'] }}</dd></div>
-                                    <div><dt class="text-xs uppercase tracking-wide text-slate-400">Queue</dt><dd class="mt-1 text-sm text-slate-900">{{ $generalSystem['queue_connection'] }}</dd></div>
-                                    <div><dt class="text-xs uppercase tracking-wide text-slate-400">Cache</dt><dd class="mt-1 text-sm text-slate-900">{{ $generalSystem['cache_store'] }}</dd></div>
-                                    <div><dt class="text-xs uppercase tracking-wide text-slate-400">Session</dt><dd class="mt-1 text-sm text-slate-900">{{ $generalSystem['session_driver'] }}</dd></div>
-                                    <div><dt class="text-xs uppercase tracking-wide text-slate-400">Aktif Disk</dt><dd class="mt-1 text-sm text-slate-900">{{ $generalSystem['filesystem_disk'] }}</dd></div>
-                                    <div><dt class="text-xs uppercase tracking-wide text-slate-400">Varsayilan Mailer</dt><dd class="mt-1 text-sm text-slate-900">{{ $generalSystem['mail_mailer'] }}</dd></div>
+                            @endforeach
+                        </div>
+
+                        <div class="grid gap-6 lg:grid-cols-2 2xl:grid-cols-3">
+
+                            {{-- Depolama --}}
+                            <div class="rounded-3xl border border-slate-200 p-6 space-y-4">
+                                <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide">Depolama</h3>
+
+                                {{-- Local disk --}}
+                                <div class="space-y-1.5">
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="font-medium text-slate-600">Yerel Disk Kullanımı</span>
+                                        <span class="font-mono text-slate-500">{{ fmtBytes($generalSystem['disk_used_bytes']) }} / {{ fmtBytes($generalSystem['disk_total_bytes']) }}</span>
+                                    </div>
+                                    <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
+                                        <div class="h-2 rounded-full {{ $diskPct > 85 ? 'bg-red-500' : ($diskPct > 65 ? 'bg-amber-400' : 'bg-brand-500') }}" style="width: {{ $diskPct }}%"></div>
+                                    </div>
+                                    <p class="text-xs text-slate-400">{{ $diskPct }}% dolu · {{ fmtBytes($generalSystem['disk_free_bytes']) }} boş</p>
+                                </div>
+
+                                <hr class="border-slate-100">
+
+                                {{-- Spaces --}}
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-xs font-medium text-slate-600">DigitalOcean Spaces</p>
+                                        <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium {{ $generalSystem['spaces_ready'] ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">
+                                            <span class="w-1.5 h-1.5 rounded-full {{ $generalSystem['spaces_ready'] ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
+                                            {{ $generalSystem['spaces_ready'] ? 'Bağlı' : 'Bağlı değil' }}
+                                        </span>
+                                    </div>
+                                    @if($generalSystem['spaces_ready'])
+                                        <dl class="grid grid-cols-2 gap-2 text-xs">
+                                            <div><dt class="text-slate-400">Bucket</dt><dd class="font-mono text-slate-700 truncate">{{ $generalSystem['spaces_bucket'] ?: '—' }}</dd></div>
+                                            <div><dt class="text-slate-400">Endpoint</dt><dd class="font-mono text-slate-700 truncate text-[10px]">{{ $generalSystem['spaces_endpoint'] ?: '—' }}</dd></div>
+                                            @if($generalSystem['spaces_file_count'] !== null)
+                                                <div><dt class="text-slate-400">Dosya Sayısı</dt><dd class="font-mono text-slate-700">{{ number_format($generalSystem['spaces_file_count']) }}</dd></div>
+                                            @endif
+                                        </dl>
+                                    @else
+                                        <p class="text-xs text-slate-400">Spaces yapılandırması eksik. Depolama sekmesinden tamamlayın.</p>
+                                    @endif
+                                </div>
+
+                                <hr class="border-slate-100">
+
+                                {{-- DB --}}
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-xs font-medium text-slate-600">Veritabanı</p>
+                                        <p class="text-xs text-slate-400 font-mono">{{ $generalSystem['db_name'] }}</p>
+                                    </div>
+                                    <span class="text-sm font-bold text-slate-700">{{ $generalSystem['db_size_mb'] !== null ? $generalSystem['db_size_mb'] . ' MB' : '—' }}</span>
+                                </div>
+                            </div>
+
+                            {{-- Sunucu & PHP --}}
+                            <div class="rounded-3xl border border-slate-200 p-6 space-y-4">
+                                <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide">Sunucu & PHP</h3>
+                                <dl class="space-y-3">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <dt class="text-xs text-slate-400 shrink-0">IP Adresi</dt>
+                                        <dd class="text-xs font-mono font-medium text-slate-800 text-right">{{ $generalSystem['server_ip'] ?: '—' }}</dd>
+                                    </div>
+                                    <div class="flex items-start justify-between gap-2">
+                                        <dt class="text-xs text-slate-400 shrink-0">Hostname</dt>
+                                        <dd class="text-xs font-mono text-slate-700 text-right truncate max-w-[180px]">{{ $generalSystem['server_hostname'] }}</dd>
+                                    </div>
+                                    <hr class="border-slate-100">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <dt class="text-xs text-slate-400 shrink-0">PHP Sürümü</dt>
+                                        <dd class="text-xs font-mono font-semibold text-slate-800">{{ $generalSystem['php_version'] }}</dd>
+                                    </div>
+                                    <div class="flex items-start justify-between gap-2">
+                                        <dt class="text-xs text-slate-400 shrink-0">Memory Limit</dt>
+                                        <dd class="text-xs font-mono text-slate-700">{{ $generalSystem['memory_limit'] }}</dd>
+                                    </div>
+                                    <div class="flex items-start justify-between gap-2">
+                                        <dt class="text-xs text-slate-400 shrink-0">Upload Max</dt>
+                                        <dd class="text-xs font-mono text-slate-700">{{ $generalSystem['upload_max'] }}</dd>
+                                    </div>
+                                    <div class="flex items-start justify-between gap-2">
+                                        <dt class="text-xs text-slate-400 shrink-0">Max Execution</dt>
+                                        <dd class="text-xs font-mono text-slate-700">{{ $generalSystem['max_execution'] }}s</dd>
+                                    </div>
+                                    <div class="flex items-start justify-between gap-2">
+                                        <dt class="text-xs text-slate-400 shrink-0">OPCache</dt>
+                                        <dd>
+                                            <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium {{ $generalSystem['opcache_enabled'] ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">
+                                                {{ $generalSystem['opcache_enabled'] ? 'Aktif' : 'Pasif' }}
+                                            </span>
+                                        </dd>
+                                    </div>
                                 </dl>
                             </div>
+
+                            {{-- Uygulama altyapısı --}}
                             <div class="rounded-3xl border border-slate-200 p-6 space-y-4">
-                                <div>
-                                    <h3 class="text-lg font-semibold text-slate-900">Kapsam Notu</h3>
-                                    <p class="mt-1 text-sm text-slate-500">Bu pass yalnız admin için uygun ve runtime-safe ayarları panel yüzeyine taşır.</p>
-                                </div>
-                                <ul class="list-inside list-disc space-y-2 text-sm text-slate-700">
-                                    <li>MAIL_MAILER, MAIL_URL, MAIL_SCHEME gibi bootstrap detayları burada yönetilmez.</li>
-                                    <li>Mail dışı altyapı env değerleri admin ayarlarına taşınmamıştır.</li>
-                                    <li>Mevcut update, Spaces, Mikro ve mail notification persistence anahtarlari korunur.</li>
-                                    <li>Secret alanlar plaintext olarak tekrar render edilmez.</li>
-                                </ul>
+                                <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wide">Uygulama Altyapısı</h3>
+                                <dl class="space-y-3">
+                                    <div class="flex justify-between gap-2">
+                                        <dt class="text-xs text-slate-400">Uygulama Adı</dt>
+                                        <dd class="text-xs font-medium text-slate-800">{{ $generalSystem['app_name'] }}</dd>
+                                    </div>
+                                    <div class="flex justify-between gap-2">
+                                        <dt class="text-xs text-slate-400">Sürüm</dt>
+                                        <dd class="text-xs font-mono font-semibold text-slate-800">{{ $generalSystem['app_version'] }}</dd>
+                                    </div>
+                                    <div class="flex justify-between gap-2">
+                                        <dt class="text-xs text-slate-400">Environment</dt>
+                                        <dd>
+                                            <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $generalSystem['app_env'] === 'production' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
+                                                {{ $generalSystem['app_env'] }}
+                                            </span>
+                                        </dd>
+                                    </div>
+                                    <div class="flex justify-between gap-2">
+                                        <dt class="text-xs text-slate-400">Timezone</dt>
+                                        <dd class="text-xs font-mono text-slate-700">{{ $generalSystem['app_timezone'] }}</dd>
+                                    </div>
+                                    <hr class="border-slate-100">
+                                    <div class="flex justify-between gap-2">
+                                        <dt class="text-xs text-slate-400">Queue</dt>
+                                        <dd class="text-xs font-mono text-slate-700">{{ $generalSystem['queue_connection'] }}</dd>
+                                    </div>
+                                    <div class="flex justify-between gap-2">
+                                        <dt class="text-xs text-slate-400">Cache</dt>
+                                        <dd class="text-xs font-mono text-slate-700">{{ $generalSystem['cache_store'] }}</dd>
+                                    </div>
+                                    <div class="flex justify-between gap-2">
+                                        <dt class="text-xs text-slate-400">Session</dt>
+                                        <dd class="text-xs font-mono text-slate-700">{{ $generalSystem['session_driver'] }}</dd>
+                                    </div>
+                                    <div class="flex justify-between gap-2">
+                                        <dt class="text-xs text-slate-400">Aktif Disk</dt>
+                                        <dd class="text-xs font-mono text-slate-700">{{ $generalSystem['filesystem_disk'] }}</dd>
+                                    </div>
+                                    <div class="flex justify-between gap-2">
+                                        <dt class="text-xs text-slate-400">Mailer</dt>
+                                        <dd class="text-xs font-mono text-slate-700">{{ $generalSystem['mail_mailer'] }}</dd>
+                                    </div>
+                                </dl>
                             </div>
                         </div>
                     </div>
