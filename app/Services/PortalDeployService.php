@@ -79,6 +79,17 @@ class PortalDeployService
         $steps[] = $this->runArtisan('config:clear');
         $steps[] = $this->runArtisan('cache:clear');
 
+        $composerStep = $this->runComposerInstall();
+        if (! $composerStep['ok']) {
+            $composerStep['cmd'] = 'UYARI · ' . $composerStep['cmd'];
+            $composerStep['output'] = "Composer bağımlılıkları güncellenemedi. Yeni PHP paketi eklendiyse manuel olarak çalıştırın:\n"
+                . "  docker compose exec app composer install --no-dev --optimize-autoloader\n\n"
+                . ($composerStep['output'] ?? '(çıktı yok)');
+            $composerStep['ok'] = true;
+            $hasWarnings = true;
+        }
+        $steps[] = $composerStep;
+
         $portalUpdateStep = $this->runArtisan('portal:update');
         $steps[] = $portalUpdateStep;
 
@@ -117,6 +128,18 @@ class PortalDeployService
         $steps[] = $finalCacheClear;
 
         return ['ok' => true, 'steps' => $steps, 'warning' => $hasWarnings];
+    }
+
+    private function runComposerInstall(): array
+    {
+        $base = base_path();
+
+        return $this->runProcessCommand(
+            'composer install --no-dev --optimize-autoloader',
+            ['composer', 'install', '--no-dev', '--optimize-autoloader', '--no-interaction'],
+            $base,
+            300
+        );
     }
 
     private function buildFrontendAssets(): array
