@@ -157,6 +157,18 @@
 </head>
 <body class="font-sans antialiased text-slate-900" style="background: #f1f5f9;">
 @php
+    $localization = app(\App\Services\PortalLocalizationService::class);
+    $localization->ensureInfrastructure();
+    $localeOptions = $localization->localeOptions();
+    $currentLocale = app()->getLocale();
+    $localizationManageLocale = request()->query('locale');
+    if (! filled($localizationManageLocale)) {
+        $localizationManageLocale = $localization->languages()
+            ->where('code', '!=', 'tr')
+            ->sortBy('sort_order')
+            ->pluck('code')
+            ->first() ?: 'tr';
+    }
     $logoPath = trim((string) config('portal.logo_path'), '/');
     $logoUrl  = $logoPath !== '' ? asset($logoPath) : null;
     $user     = auth()->user();
@@ -166,7 +178,7 @@
     $hasPageAside       = View::hasSection('page-aside');
     $pageAsideStorageKey = trim((string) $__env->yieldContent('page-aside-storage-key', request()->route()?->getName() ?: 'default'));
     $pageSubtitle        = trim((string) $__env->yieldContent('page-subtitle', config('portal.brand_tagline')));
-    $settingsActive      = request()->routeIs('admin.settings.*') || request()->routeIs('admin.permissions.*') || request()->routeIs('admin.departments.*') || request()->routeIs('admin.data-transfer.*');
+    $settingsActive      = request()->routeIs('admin.settings.*') || request()->routeIs('admin.permissions.*') || request()->routeIs('admin.departments.*') || request()->routeIs('admin.data-transfer.*') || request()->routeIs('admin.localization.*');
     $settingsOpen        = $settingsActive;
 @endphp
 
@@ -204,18 +216,18 @@
                         <div class="space-y-1">
                             @if($user?->hasPermission('dashboard'))
                             <a href="{{ route('dashboard') }}"
-                               title="Dashboard"
+                               title="{{ \App\Support\PortalTranslation::get('navigation.dashboard', 'Dashboard', 'navigation') }}"
                                class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                                 <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                                <span class="sb-label">Dashboard</span>
+                                <span class="sb-label">{{ \App\Support\PortalTranslation::get('navigation.dashboard', 'Dashboard', 'navigation') }}</span>
                             </a>
                             @endif
                             @if($user?->hasPermission('orders'))
                             <a href="{{ route('orders.index') }}"
-                               title="Siparişler"
+                               title="{{ \App\Support\PortalTranslation::get('navigation.orders', 'Siparişler', 'navigation') }}"
                                class="sidebar-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
                                 <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                <span class="sb-label">Siparişler</span>
+                                <span class="sb-label">{{ \App\Support\PortalTranslation::get('navigation.orders', 'Siparişler', 'navigation') }}</span>
                             </a>
                             @endif
                         </div>
@@ -224,10 +236,10 @@
                     @if($user?->isSupplier())
                         <div class="space-y-1">
                             <a href="{{ route('portal.orders.index') }}"
-                               title="Siparişlerim"
+                               title="{{ \App\Support\PortalTranslation::get('navigation.my_orders', 'Siparişlerim', 'navigation') }}"
                                class="sidebar-link {{ request()->routeIs('portal.*') ? 'active' : '' }}">
                                 <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                <span class="sb-label">Siparişlerim</span>
+                                <span class="sb-label">{{ \App\Support\PortalTranslation::get('navigation.my_orders', 'Siparişlerim', 'navigation') }}</span>
                             </a>
                         </div>
                     @endif
@@ -245,24 +257,24 @@
                     @if($showMgmtSection)
                         <div class="space-y-2">
                             <div class="px-3 sb-section-title">
-                                <p class="text-[11px] font-semibold uppercase tracking-[0.24em]" style="color: rgba(148,163,184,0.45);">Yönetim</p>
+                                <p class="text-[11px] font-semibold uppercase tracking-[0.24em]" style="color: rgba(148,163,184,0.45);">{{ \App\Support\PortalTranslation::get('navigation.management', 'Yönetim', 'navigation') }}</p>
                             </div>
                             <div class="space-y-1">
                                 @if($canViewSuppliers)
                                     <a href="{{ route('admin.suppliers.index') }}"
-                                       title="Tedarikçiler"
+                                       title="{{ \App\Support\PortalTranslation::get('navigation.suppliers', 'Tedarikçiler', 'navigation') }}"
                                        class="sidebar-link {{ request()->routeIs('admin.suppliers.*') ? 'active' : '' }}">
                                         <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                                        <span class="sb-label">Tedarikçiler</span>
+                                        <span class="sb-label">{{ \App\Support\PortalTranslation::get('navigation.suppliers', 'Tedarikçiler', 'navigation') }}</span>
                                     </a>
                                 @endif
 
                                 @if($canViewUsers)
                                     <a href="{{ route('admin.users.index') }}"
-                                       title="Kullanıcılar"
+                                       title="{{ \App\Support\PortalTranslation::get('navigation.users', 'Kullanıcılar', 'navigation') }}"
                                        class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
                                         <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                                        <span class="sb-label">Kullanıcılar</span>
+                                        <span class="sb-label">{{ \App\Support\PortalTranslation::get('navigation.users', 'Kullanıcılar', 'navigation') }}</span>
                                     </a>
                                 @endif
 
@@ -271,10 +283,10 @@
                                     <div data-nav-group="settings" data-nav-group-open="false" data-nav-group-active="{{ $settingsActive ? 'true' : 'false' }}">
                                         <button type="button"
                                                 data-nav-group-toggle="settings"
-                                                title="Ayarlar"
+                                                title="{{ \App\Support\PortalTranslation::get('navigation.settings', 'Ayarlar', 'navigation') }}"
                                                 class="sidebar-link w-full {{ $settingsActive ? 'active' : '' }}">
                                             <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317a1 1 0 011.35-.936l1.824.73a1 1 0 00.95-.08l1.52-1.014a1 1 0 011.475.616l.497 1.99a1 1 0 00.687.719l1.945.648a1 1 0 01.572 1.473l-.92 1.69a1 1 0 000 .956l.92 1.69a1 1 0 01-.572 1.473l-1.945.648a1 1 0 00-.687.719l-.497 1.99a1 1 0 01-1.475.616l-1.52-1.014a1 1 0 00-.95-.08l-1.824.73a1 1 0 01-1.35-.936l-.13-1.864a1 1 0 00-.53-.812l-1.63-.92a1 1 0 010-1.74l1.63-.92a1 1 0 00.53-.812l.13-1.864z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                            <span class="sb-label flex-1 text-left">Ayarlar</span>
+                                            <span class="sb-label flex-1 text-left">{{ \App\Support\PortalTranslation::get('navigation.settings', 'Ayarlar', 'navigation') }}</span>
                                             <svg data-nav-group-chevron="settings"
                                                  class="sb-chevron h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 text-slate-400"
                                                  fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -286,14 +298,14 @@
                                                 <div class="ml-4 mt-1 mb-1 space-y-0.5 pl-3" style="border-left: 1px solid rgba(255,255,255,0.1);">
                                                     @php
                                                         $settingsTabs = [
-                                                            'portal'  => 'Portal & Sipariş',
-                                                            'formats' => 'Artwork & Formatlar',
-                                                            'storage' => 'Depolama & Spaces',
-                                                            'mail'    => 'E-posta & Bildirim',
-                                                            'mikro'   => 'ERP Entegrasyonu',
-                                                            'backup'  => 'Yedek & Veri Aktarımı',
-                                                            'updates' => 'Güncelleme & Versiyon',
-                                                            'general' => 'Sistem Özeti',
+                                                            'portal'  => \App\Support\PortalTranslation::get('navigation.settings.portal', 'Portal & Sipariş', 'navigation'),
+                                                            'formats' => \App\Support\PortalTranslation::get('navigation.settings.formats', 'Artwork & Formatlar', 'navigation'),
+                                                            'storage' => \App\Support\PortalTranslation::get('navigation.settings.storage', 'Depolama & Spaces', 'navigation'),
+                                                            'mail'    => \App\Support\PortalTranslation::get('navigation.settings.mail', 'E-posta & Bildirim', 'navigation'),
+                                                            'mikro'   => \App\Support\PortalTranslation::get('navigation.settings.mikro', 'ERP Entegrasyonu', 'navigation'),
+                                                            'backup'  => \App\Support\PortalTranslation::get('navigation.settings.backup', 'Yedek & Veri Aktarımı', 'navigation'),
+                                                            'updates' => \App\Support\PortalTranslation::get('navigation.settings.updates', 'Güncelleme & Versiyon', 'navigation'),
+                                                            'general' => \App\Support\PortalTranslation::get('navigation.settings.general', 'Sistem Özeti', 'navigation'),
                                                         ];
                                                         $activeSettingsTab = request()->query('tab', 'updates');
                                                     @endphp
@@ -315,7 +327,7 @@
                                                                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
                                                         <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full
                                                             {{ request()->routeIs('admin.permissions.*') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
-                                                        Yetkiler
+                                                        {{ \App\Support\PortalTranslation::get('navigation.permissions', 'Yetkiler', 'navigation') }}
                                                     </a>
                                                     <a href="{{ route('admin.departments.index') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
@@ -324,7 +336,16 @@
                                                                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
                                                         <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full
                                                             {{ request()->routeIs('admin.departments.*') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
-                                                        Departmanlar
+                                                        {{ \App\Support\PortalTranslation::get('navigation.departments', 'Departmanlar', 'navigation') }}
+                                                    </a>
+                                                    <a href="{{ route('admin.localization.index', ['locale' => $localizationManageLocale]) }}"
+                                                       class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
+                                                              {{ request()->routeIs('admin.localization.*')
+                                                                  ? 'bg-brand-50 text-brand-700'
+                                                                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
+                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full
+                                                            {{ request()->routeIs('admin.localization.*') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
+                                                        {{ \App\Support\PortalTranslation::get('navigation.settings.localization', 'Dil Ayarları', 'navigation') }}
                                                     </a>
                                                     <a href="{{ route('admin.data-transfer.index') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
@@ -455,10 +476,10 @@
 
                                 @if($canViewLogs)
                                     <a href="{{ route('admin.logs.index') }}"
-                                       title="Sistem Logları"
+                                       title="{{ \App\Support\PortalTranslation::get('navigation.logs', 'Sistem Logları', 'navigation') }}"
                                        class="sidebar-link {{ request()->routeIs('admin.logs.*') ? 'active' : '' }}">
                                         <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                                        <span class="sb-label">Sistem Logları</span>
+                                        <span class="sb-label">{{ \App\Support\PortalTranslation::get('navigation.logs', 'Sistem Logları', 'navigation') }}</span>
                                     </a>
                                 @endif
                             </div>
@@ -468,12 +489,12 @@
                     {{-- Profil linki --}}
                     <div class="space-y-1">
                         <a href="{{ route('profile.edit') }}"
-                           title="Profilim"
+                           title="{{ \App\Support\PortalTranslation::get('navigation.profile', 'Profilim', 'navigation') }}"
                            class="sidebar-link {{ request()->routeIs('profile.*') ? 'active' : '' }}">
                             <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                             </svg>
-                            <span class="sb-label">Profilim</span>
+                            <span class="sb-label">{{ \App\Support\PortalTranslation::get('navigation.profile', 'Profilim', 'navigation') }}</span>
                         </a>
                     </div>
                 </nav>
@@ -563,6 +584,17 @@
                     </div>
 
                     <div class="flex flex-wrap items-center gap-3">
+                        @if(count($localeOptions) > 1)
+                        <form method="POST" action="{{ route('locale.switch') }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
+                            @csrf
+                            <label for="portal-locale" class="text-xs font-medium text-slate-500">{{ \App\Support\PortalTranslation::get('general.language', 'Dil', 'general') }}</label>
+                            <select id="portal-locale" name="locale" class="border-0 bg-transparent pr-6 text-sm font-medium text-slate-700 focus:outline-none focus:ring-0" onchange="this.form.submit()">
+                                @foreach($localeOptions as $localeOption)
+                                    <option value="{{ $localeOption['code'] }}" @selected($currentLocale === $localeOption['code'])>{{ $localeOption['name'] }}</option>
+                                @endforeach
+                            </select>
+                        </form>
+                        @endif
                         {{-- Global search trigger --}}
                         @if(auth()->user()?->role?->value !== 'supplier')
                         <button type="button"

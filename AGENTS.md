@@ -135,6 +135,8 @@ ArtworkRevision >── ArtworkGallery (reused from gallery)
 | `ArtworkGallery` | `artwork_gallery` | `name`, `stock_code`, `category_id`, `file_path`, `file_disk` |
 | `AuditLog` | `audit_logs` | `user_id`, `action`, `model_type`, `model_id`, `payload` (json) |
 | `SystemSetting` | `system_settings` | `key`, `value` — runtime config, NEVER expose secrets in UI |
+| `PortalLanguage` | `portal_languages` | `code`, `name`, `is_active`, `is_default`, `sort_order` |
+| `PortalTranslation` | `portal_translations` | `group`, `key`, `locale`, `value` |
 | `DataTransferRecord` | `data_transfer_records` | `direction`, `entity_type`, `entity_key`, `selection_hash`, `payload_hash` |
 | `SupplierMikroAccount` | `supplier_mikro_accounts` | `supplier_id`, `mikro_cari_kod`, `mikro_company_code`, `is_active` |
 | `MikroViewMapping` | `mikro_view_mappings` | `view_name`, `endpoint_path`, `payload_mode`, `mapping_payload`, `is_active` |
@@ -214,6 +216,7 @@ admin.departments.index / .create / .store / .edit / .update / .destroy
 
 # Admin — Settings
 admin.settings.edit / .update
+admin.localization.index / .languages.store / .translations.update / .import / .export
 admin.settings.mail-connection-test / .mail-test
 admin.settings.update-check / .update-prepare / .deploy / .apply-only / .commits
 admin.integrations.mikro.test
@@ -367,6 +370,12 @@ Tables with soft deletes: `suppliers` (use `whereNull('deleted_at')` or `Supplie
 - `audit_logs.payload` — json (search with `LIKE '%"key":"value"%'` pattern)
 - `system_settings.value` — json-encoded value
 
+### Localization Tables
+- `portal_languages`: admin-managed languages; Turkish (`tr`) is always the default/base locale
+- `portal_translations`: DB-backed translation registry keyed by (`key`, `locale`)
+- Base/source strings live under locale `tr`
+- Non-Turkish values may be empty until translated
+
 ### Querying Audit Log Payload (JSON stored as text)
 ```php
 // Search by order_no in payload:
@@ -502,6 +511,45 @@ Key setting groups: `mail_*`, `brand_*`, `erp_*`
 - Empty input on settings form = preserve existing value (don't overwrite with empty string)
 - Settings page is admin-only
 - Secrets (passwords, API keys) are stored but never re-displayed in forms (use placeholder `••••••••`)
+
+---
+
+## 14A. Dynamic Localization System
+
+### Architecture
+- Service: `app/Services/PortalLocalizationService.php`
+- UI helper: `app/Support/PortalTranslation.php`
+- Blade usage: `\App\Support\PortalTranslation::get('group.key', 'Varsayılan metin', 'group')`
+- Middleware: `app/Http/Middleware/ApplyPortalLocale.php`
+- Admin controller: `app/Http/Controllers/Admin/LocalizationController.php`
+- Admin view: `resources/views/admin/localization/index.blade.php`
+
+### Rules
+- Turkish (`tr`) MUST remain the default/base language
+- Admin-managed languages are stored in `portal_languages`
+- Admin-managed translations are stored in `portal_translations`
+- New UI text that should be translatable must be registered via `PortalTranslation::get(...)` or `@pt(...)`
+- For new menus, tabs, labels, buttons, breadcrumbs, helper text, and navigation items, do NOT leave the text hardcoded-only
+- Translation keys should be grouped consistently, e.g. `navigation.*`, `general.*`, `settings.*`
+- Missing non-`tr` translations must gracefully fall back to the Turkish default string
+- Import/export format is JSON; imported entries must remain manually editable from admin
+- Do NOT create a second parallel translation system for admin-managed UI text
+- Do NOT bypass the locale middleware; it controls session-based active language selection
+
+### When Adding New UI
+```php
+// GOOD
+\App\Support\PortalTranslation::get('navigation.new_menu', 'Yeni Menü', 'navigation')
+
+// BAD
+'Yeni Menü'
+```
+
+### Migration Notes
+- Localization requires:
+  - `2026_03_31_090000_create_portal_languages_table.php`
+  - `2026_03_31_090100_create_portal_translations_table.php`
+- If these migrations are not run, localization pages will fail
 
 ---
 
