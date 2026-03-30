@@ -22,7 +22,7 @@
             <svg class="w-4.5 h-4.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
         <div>
-            <p class="text-sm font-semibold text-slate-800 group-hover:text-amber-700 transition">Bekleyen İşler & Eskime</p>
+            <p class="text-sm font-semibold text-slate-800 group-hover:text-amber-700 transition">Bekleyen İşler & Yaşlandırma</p>
             <p class="text-xs text-slate-500 mt-0.5">Artwork bekleyen satırlar, yaşlandırma bantları, kritik bekleyenler</p>
         </div>
     </a>

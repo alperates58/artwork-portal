@@ -375,7 +375,7 @@
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
                                                               {{ request()->routeIs('admin.reports.pending') ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
                                                         <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.reports.pending') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
-                                                        Bekleyen İşler & Eskime
+                                                        Bekleyen İşler & Yaşlandırma
                                                     </a>
                                                     <a href="{{ route('admin.reports.performance') }}"
                                                        class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition

@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'Bekleyen İşler & Eskime Analizi')
-@section('page-title', 'Bekleyen İşler & Eskime Analizi')
+@section('title', 'Bekleyen İşler & Yaşlandırma Analizi')
+@section('page-title', 'Bekleyen İşler & Yaşlandırma Analizi')
 @section('page-subtitle', 'Artwork yüklemesi beklenen satırlar, yaşlandırma bantları ve kritik bekleyen işler')
 
 @section('header-actions')
