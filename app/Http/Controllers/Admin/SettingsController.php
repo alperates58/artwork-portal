@@ -597,7 +597,7 @@ class SettingsController extends Controller
         // --- Database stats ---
         $orderCount        = PurchaseOrder::count();
         $lineCount         = PurchaseOrderLine::count();
-        $pendingLineCount  = PurchaseOrderLine::whereNull('artwork_uploaded_at')->count();
+        $pendingLineCount  = PurchaseOrderLine::where('artwork_status', 'pending')->count();
         $artworkCount      = Artwork::count();
         $revisionCount     = ArtworkRevision::count();
         $supplierCount     = Supplier::count();
