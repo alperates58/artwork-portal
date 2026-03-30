@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Artwork;
 use App\Models\ArtworkRevision;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
-use App\Models\SupplierUser;
 use App\Models\User;
 use App\Services\Erp\MikroViewMappingService;
 use App\Services\GithubUpdateChecker;
@@ -602,8 +602,12 @@ class SettingsController extends Controller
         $revisionCount     = ArtworkRevision::count();
         $supplierCount     = Supplier::count();
         $activeSupplierCount = Supplier::where('is_active', true)->count();
-        $adminUserCount    = User::count();
-        $supplierUserCount = SupplierUser::count();
+        $totalUserCount    = User::count();
+        $adminUserCount    = User::where('role', UserRole::ADMIN->value)->count();
+        $purchasingUserCount = User::where('role', UserRole::PURCHASING->value)->count();
+        $graphicUserCount  = User::where('role', UserRole::GRAPHIC->value)->count();
+        $supplierUserCount = User::where('role', UserRole::SUPPLIER->value)->count();
+        $internalUserCount = $adminUserCount + $purchasingUserCount + $graphicUserCount;
 
         // --- Local disk ---
         $storagePath    = storage_path('app');
@@ -662,7 +666,11 @@ class SettingsController extends Controller
             'revision_count'       => $revisionCount,
             'supplier_count'       => $supplierCount,
             'active_supplier_count'=> $activeSupplierCount,
+            'total_user_count'     => $totalUserCount,
             'admin_user_count'     => $adminUserCount,
+            'purchasing_user_count'=> $purchasingUserCount,
+            'graphic_user_count'   => $graphicUserCount,
+            'internal_user_count'  => $internalUserCount,
             'supplier_user_count'  => $supplierUserCount,
             // Disk
             'disk_total_bytes'     => $diskTotal,

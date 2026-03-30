@@ -591,6 +591,7 @@
                                 <div class="rounded-3xl border border-slate-200 p-6 space-y-6">
                                     <div>
                                         <h3 class="text-lg font-semibold text-slate-900">Mail Sunucusu</h3>
+                                        <p class="mt-1 text-xs font-medium uppercase tracking-wide text-slate-400">Mail / Exchange</p>
                                         <p class="mt-1 text-sm text-slate-500">Yalnız runtime-safe mail sunucusu alanları burada yönetilir. İlgisiz altyapı env değerleri bu passta taşınmaz.</p>
                                     </div>
                                     <div class="grid gap-4 md:grid-cols-2">
@@ -1023,12 +1024,12 @@
 
                     <div class="{{ $activeTab === 'general' ? '' : 'hidden' }}">
                         @php
-                            function fmtBytes(int $bytes): string {
+                            $fmtBytes = static function (int $bytes): string {
                                 if ($bytes <= 0) return '—';
                                 $units = ['B','KB','MB','GB','TB'];
                                 $i = (int) floor(log($bytes, 1024));
                                 return round($bytes / pow(1024, $i), 1) . ' ' . $units[$i];
-                            }
+                            };
                             $diskPct = $generalSystem['disk_total_bytes'] > 0
                                 ? round($generalSystem['disk_used_bytes'] / $generalSystem['disk_total_bytes'] * 100, 1)
                                 : 0;
@@ -1046,11 +1047,32 @@
                                 ];
                             @endphp
                             @foreach($statCards as $card)
-                                <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                                @php
+                                    $cardHref = match($loop->index) {
+                                        0 => route('orders.index'),
+                                        1 => route('admin.reports.pending'),
+                                        2 => route('admin.artwork-gallery.index'),
+                                        3 => route('admin.suppliers.index'),
+                                        4 => route('admin.users.index'),
+                                        default => '#',
+                                    };
+
+                                    $cardValue = $loop->index === 4
+                                        ? number_format($generalSystem['total_user_count'])
+                                        : $card['value'];
+
+                                    $cardSub = $loop->index === 4
+                                        ? $generalSystem['admin_user_count'] . ' admin · '
+                                            . $generalSystem['purchasing_user_count'] . ' satın alma · '
+                                            . $generalSystem['graphic_user_count'] . ' grafik · '
+                                            . $generalSystem['supplier_user_count'] . ' tedarikçi'
+                                        : $card['sub'];
+                                @endphp
+                                <a href="{{ $cardHref }}" class="block rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-sm">
                                     <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">{{ $card['label'] }}</p>
-                                    <p class="mt-1 text-2xl font-bold {{ $card['color'] }}">{{ $card['value'] }}</p>
-                                    <p class="mt-0.5 text-xs text-slate-400">{{ $card['sub'] }}</p>
-                                </div>
+                                    <p class="mt-1 text-2xl font-bold {{ $card['color'] }}">{{ $cardValue }}</p>
+                                    <p class="mt-0.5 text-xs text-slate-400">{{ $cardSub }}</p>
+                                </a>
                             @endforeach
                         </div>
 
@@ -1064,12 +1086,12 @@
                                 <div class="space-y-1.5">
                                     <div class="flex items-center justify-between text-xs">
                                         <span class="font-medium text-slate-600">Yerel Disk Kullanımı</span>
-                                        <span class="font-mono text-slate-500">{{ fmtBytes($generalSystem['disk_used_bytes']) }} / {{ fmtBytes($generalSystem['disk_total_bytes']) }}</span>
+                                        <span class="font-mono text-slate-500">{{ $fmtBytes($generalSystem['disk_used_bytes']) }} / {{ $fmtBytes($generalSystem['disk_total_bytes']) }}</span>
                                     </div>
                                     <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
                                         <div class="h-2 rounded-full {{ $diskPct > 85 ? 'bg-red-500' : ($diskPct > 65 ? 'bg-amber-400' : 'bg-brand-500') }}" style="width: {{ $diskPct }}%"></div>
                                     </div>
-                                    <p class="text-xs text-slate-400">{{ $diskPct }}% dolu · {{ fmtBytes($generalSystem['disk_free_bytes']) }} boş</p>
+                                    <p class="text-xs text-slate-400">{{ $diskPct }}% dolu · {{ $fmtBytes($generalSystem['disk_free_bytes']) }} boş</p>
                                 </div>
 
                                 <hr class="border-slate-100">
