@@ -5,38 +5,43 @@
 
 @php
     $tabs = [
-        'updates' => [
-            'label' => 'Güncellemeler',
-            'description' => 'Sürüm durumu, release notları ve kontrollü update hazırlığı.',
-            'eyebrow' => 'Sürüm ve yayın',
-        ],
-        'storage' => [
-            'label' => 'Depolama / Spaces',
-            'description' => 'Aktif disk seçimi ve runtime depolama bağlantısı.',
-            'eyebrow' => 'Dosya depolama',
-        ],
-        'mikro' => [
-            'label' => 'Mikro API',
-            'description' => 'ERP bağlantısı, zamanlama ve güvenli endpoint ayarları.',
-            'eyebrow' => 'ERP entegrasyonu',
-        ],
-        'mail' => [
-            'label' => 'Mail / Exchange',
-            'description' => 'Mail sunucusu ve yeni sipariş bildirim davranışları.',
-            'eyebrow' => 'Bildirim altyapısı',
-        ],
-        'formats' => [
-            'label' => 'Dosya Formatları',
-            'description' => 'İzin verilen dosya uzantıları ve format tanımlarını yönetin.',
-            'eyebrow' => 'Yükleme kuralları',
-        ],
         'portal' => [
-            'label' => 'Portal Ayarları',
-            'description' => 'Sipariş oluşturma, upload limiti ve portal davranış parametreleri.',
+            'label' => 'Portal & Sipariş Ayarları',
+            'description' => 'Sipariş oluşturma, silme, upload limiti ve portal davranış parametreleri.',
             'eyebrow' => 'İşletim parametreleri',
         ],
+        'formats' => [
+            'label' => 'Artwork & Dosya Formatları',
+            'description' => 'İzin verilen dosya uzantıları, format grupları ve artwork yükleme kuralları.',
+            'eyebrow' => 'Artwork ayarları',
+        ],
+        'storage' => [
+            'label' => 'Depolama & Spaces',
+            'description' => 'Aktif disk seçimi ve runtime DigitalOcean Spaces bağlantısı.',
+            'eyebrow' => 'Dosya depolama',
+        ],
+        'mail' => [
+            'label' => 'E-posta & Bildirim',
+            'description' => 'SMTP sunucu ayarları ve yeni sipariş bildirim davranışları.',
+            'eyebrow' => 'Bildirim altyapısı',
+        ],
+        'mikro' => [
+            'label' => 'ERP Entegrasyonu',
+            'description' => 'Mikro ERP bağlantısı, zamanlama ve güvenli endpoint ayarları.',
+            'eyebrow' => 'ERP entegrasyonu',
+        ],
+        'backup' => [
+            'label' => 'Yedek & Veri Aktarımı',
+            'description' => 'Veri dışa/içe aktarma ve yedek yönetimi. Tam uygulama sonraki fazda gelecektir.',
+            'eyebrow' => 'Yedekleme',
+        ],
+        'updates' => [
+            'label' => 'Güncelleme & Versiyon',
+            'description' => 'Sürüm durumu, release notları ve kontrollü güncelleme hazırlığı.',
+            'eyebrow' => 'Sürüm ve yayın',
+        ],
         'general' => [
-            'label' => 'Genel Sistem',
+            'label' => 'Sistem Özeti',
             'description' => 'Read-only uygulama ortamı ve çalışma zamanı özeti.',
             'eyebrow' => 'Sistem özeti',
         ],
@@ -142,6 +147,19 @@
                 ['label' => 'Tedarikçi portalı', 'value' => ($portalConfig['supplier_portal_enabled'] ?? false) ? 'Açık' : 'Kapalı'],
                 ['label' => 'Upload limiti', 'value' => $portalUploadLimitSummary],
                 ['label' => 'Artwork depolama', 'value' => $artworkStorageSummary],
+            ],
+        ],
+        'backup' => [
+            'title' => 'Veri aktarımı ve yedekleme',
+            'summary' => 'Sipariş, tedarikçi ve artwork verilerini dışa aktarma ve toplu içe aktarma işlemleri bu bölümden yönetilecektir.',
+            'points' => [
+                'Toplu tedarikçi içe aktarımı Tedarikçiler › Toplu İçe Aktar ekranından yapılabilir.',
+                'Tam yedekleme ve geri yükleme desteği sonraki fazda eklenecektir.',
+                'Veri export (Excel/CSV) özellikleri planlama aşamasındadır.',
+            ],
+            'meta' => [
+                ['label' => 'Durum', 'value' => 'Planlama aşamasında'],
+                ['label' => 'Toplu import', 'value' => 'Tedarikçiler ekranında mevcut'],
             ],
         ],
         'general' => [
@@ -822,6 +840,8 @@
                                             ['key' => 'allow_manual_artwork', 'label' => 'Manuel Artwork Tamamlama', 'desc' => 'Satın alma ekibinin "Manuel Gönderildi" olarak işaretleyebilmesi.', 'warn' => false],
                                             ['key' => 'data_transfer_allowed', 'label' => 'Veri Aktarımı', 'desc' => 'Local ↔ Sunucu veri aktarım özelliğinin kullanılmasına izin verir.', 'warn' => false],
                                             ['key' => 'require_2fa_for_admin', 'label' => '2FA Admin Zorunluluğu', 'desc' => 'Admin hesapları için iki faktörlü doğrulama zorunlu olur (geliştirme planında).', 'warn' => false],
+                                            ['key' => 'preview_png_required', 'label' => 'PNG Önizleme Zorunluluğu', 'desc' => 'Artwork yüklemelerinde PNG önizleme dosyası zorunlu kılınır.', 'warn' => false],
+                                            ['key' => 'supplier_auto_create', 'label' => 'Otomatik Tedarikçi Oluşturma', 'desc' => 'ERP entegrasyonunda eşleşmeyen tedarikçiler otomatik olarak oluşturulur.', 'warn' => true],
                                         ];
                                     @endphp
                                 @foreach($toggles as $t)
@@ -970,6 +990,35 @@
                                 </div>
                             </div>
                         </form>
+                    </div>
+
+                    <div class="{{ $activeTab === 'backup' ? '' : 'hidden' }}">
+                        <div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center space-y-4">
+                            <div class="mx-auto w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-semibold text-slate-700">Veri Aktarımı ve Yedekleme</h3>
+                                <p class="mt-2 text-sm text-slate-500 max-w-md mx-auto">Tam yedekleme, geri yükleme ve veri dışa/içe aktarma özellikleri sonraki fazda eklenecektir.</p>
+                            </div>
+                            <div class="grid sm:grid-cols-3 gap-4 max-w-xl mx-auto text-left pt-2">
+                                <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                                    <p class="text-xs font-semibold text-slate-600 uppercase tracking-wide">Toplu Tedarikçi İçe Aktarım</p>
+                                    <p class="mt-1 text-xs text-slate-400">Excel dosyasından toplu tedarikçi oluşturma.</p>
+                                    <a href="{{ route('admin.suppliers.import.form') }}" class="mt-3 inline-flex text-xs font-medium text-brand-600 hover:underline">Ekrana git →</a>
+                                </div>
+                                <div class="rounded-2xl border border-slate-200 bg-white p-4 opacity-60">
+                                    <p class="text-xs font-semibold text-slate-600 uppercase tracking-wide">Sipariş Verisi Export</p>
+                                    <p class="mt-1 text-xs text-slate-400">Excel/CSV olarak dışa aktarma. Planlama aşamasında.</p>
+                                    <span class="mt-3 inline-flex text-xs font-medium text-slate-400">Yakında</span>
+                                </div>
+                                <div class="rounded-2xl border border-slate-200 bg-white p-4 opacity-60">
+                                    <p class="text-xs font-semibold text-slate-600 uppercase tracking-wide">Tam Yedekleme</p>
+                                    <p class="mt-1 text-xs text-slate-400">Veritabanı ve dosya sistemi yedekleme. Sonraki fazda.</p>
+                                    <span class="mt-3 inline-flex text-xs font-medium text-slate-400">Yakında</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="{{ $activeTab === 'general' ? '' : 'hidden' }}">

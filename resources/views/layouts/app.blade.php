@@ -286,13 +286,14 @@
                                                 <div class="ml-4 mt-1 mb-1 space-y-0.5 pl-3" style="border-left: 1px solid rgba(255,255,255,0.1);">
                                                     @php
                                                         $settingsTabs = [
-                                                            'updates' => 'Güncellemeler',
-                                                            'storage' => 'Depolama / Spaces',
-                                                            'mikro'   => 'Mikro API',
-                                                            'mail'    => 'Mail / Exchange',
-                                                            'formats' => 'Dosya Formatları',
-                                                            'portal'  => 'Portal Ayarları',
-                                                            'general' => 'Genel Sistem',
+                                                            'portal'  => 'Portal & Sipariş',
+                                                            'formats' => 'Artwork & Formatlar',
+                                                            'storage' => 'Depolama & Spaces',
+                                                            'mail'    => 'E-posta & Bildirim',
+                                                            'mikro'   => 'ERP Entegrasyonu',
+                                                            'backup'  => 'Yedek & Veri Aktarımı',
+                                                            'updates' => 'Güncelleme & Versiyon',
+                                                            'general' => 'Sistem Özeti',
                                                         ];
                                                         $activeSettingsTab = request()->query('tab', 'updates');
                                                     @endphp

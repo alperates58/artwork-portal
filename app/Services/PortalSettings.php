@@ -258,6 +258,8 @@ class PortalSettings
             'data_transfer_allowed'          => filter_var($this->get('portal.data_transfer_allowed', true), FILTER_VALIDATE_BOOL),
             'audit_log_retention_days'       => (int) $this->get('portal.audit_log_retention_days', 365),
             'order_deletion_enabled'         => filter_var($this->get('portal.order_deletion_enabled', true), FILTER_VALIDATE_BOOL),
+            'preview_png_required'           => filter_var($this->get('portal.preview_png_required', false), FILTER_VALIDATE_BOOL),
+            'supplier_auto_create'           => filter_var($this->get('portal.supplier_auto_create', false), FILTER_VALIDATE_BOOL),
         ];
     }
 
@@ -266,7 +268,7 @@ class PortalSettings
         $boolKeys = [
             'order_creation_enabled', 'supplier_portal_enabled', 'maintenance_mode',
             'allow_manual_artwork', 'require_2fa_for_admin', 'data_transfer_allowed',
-            'order_deletion_enabled',
+            'order_deletion_enabled', 'preview_png_required', 'supplier_auto_create',
         ];
         $intKeys = [
             'max_upload_size_mb', 'max_revision_count', 'session_timeout_minutes',

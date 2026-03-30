@@ -29,6 +29,7 @@ class SettingsController extends Controller
         'mail',
         'formats',
         'portal',
+        'backup',
         'general',
     ];
 
@@ -397,6 +398,8 @@ class SettingsController extends Controller
                 'portal.require_2fa_for_admin'       => ['nullable', 'boolean'],
                 'portal.data_transfer_allowed'       => ['nullable', 'boolean'],
                 'portal.order_deletion_enabled'      => ['nullable', 'boolean'],
+                'portal.preview_png_required'        => ['nullable', 'boolean'],
+                'portal.supplier_auto_create'        => ['nullable', 'boolean'],
                 'portal.artwork_storage_disk'        => ['nullable', 'in:local,spaces'],
                 'portal.max_upload_size_mb'          => ['required', 'integer', 'min:1', 'max:' . $maxUploadSizeMb],
                 'portal.max_revision_count'          => ['required', 'integer', 'min:1', 'max:100'],

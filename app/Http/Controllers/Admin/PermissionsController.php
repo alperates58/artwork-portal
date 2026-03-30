@@ -32,10 +32,11 @@ class PermissionsController extends Controller
         'suppliers' => [
             'label'   => 'Tedarikçiler',
             'actions' => [
-                'view'         => 'Görüntüle',
-                'create'       => 'Oluştur',
-                'edit'         => 'Düzenle',
-                'bulk_import'  => 'Toplu Excel İçe Aktarma',
+                'view'              => 'Görüntüle',
+                'create'            => 'Oluştur',
+                'edit'              => 'Düzenle',
+                'bulk_import'       => 'Toplu Excel İçe Aktarma',
+                'supplier_user_create' => 'Tedarikçi Kullanıcısı Oluştur',
             ],
         ],
         'users' => [

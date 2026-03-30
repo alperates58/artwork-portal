@@ -142,7 +142,7 @@ class User extends Authenticatable
             UserRole::PURCHASING => [
                 'dashboard'   => ['view' => true],
                 'orders'      => ['view' => true, 'create' => true, 'edit' => true, 'delete' => false, 'plan_priority' => false, 'purchasing_date' => true],
-                'suppliers'   => ['view' => true, 'create' => false, 'edit' => false, 'bulk_import' => false],
+                'suppliers'   => ['view' => true, 'create' => false, 'edit' => false, 'bulk_import' => false, 'supplier_user_create' => false],
                 'users'       => ['view' => false, 'create' => false, 'edit' => false],
                 'departments' => ['view' => true, 'create' => false, 'edit' => false, 'delete' => false],
                 'reports'     => ['view' => true, 'create' => false, 'save' => false],
@@ -157,7 +157,7 @@ class User extends Authenticatable
             UserRole::GRAPHIC => [
                 'dashboard'   => ['view' => true],
                 'orders'      => ['view' => true, 'create' => false, 'edit' => false, 'delete' => false, 'plan_priority' => false, 'purchasing_date' => false],
-                'suppliers'   => ['view' => false, 'create' => false, 'edit' => false, 'bulk_import' => false],
+                'suppliers'   => ['view' => false, 'create' => false, 'edit' => false, 'bulk_import' => false, 'supplier_user_create' => false],
                 'users'       => ['view' => false, 'create' => false, 'edit' => false],
                 'departments' => ['view' => false, 'create' => false, 'edit' => false, 'delete' => false],
                 'reports'     => ['view' => false, 'create' => false, 'save' => false],
