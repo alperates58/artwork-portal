@@ -9,9 +9,7 @@ use App\Models\PurchaseOrderLine;
 use App\Policies\ArtworkPolicy;
 use App\Policies\OrderPolicy;
 use App\Services\PortalSettings;
-use App\Services\PortalLocalizationService;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -26,9 +24,6 @@ class AppServiceProvider extends ServiceProvider
     {
         date_default_timezone_set((string) config('app.timezone', 'Europe/Istanbul'));
         Carbon::setLocale((string) config('app.locale', 'tr'));
-        Blade::directive('pt', function ($expression) {
-            return "<?php echo \\App\\Support\\PortalTranslation::get(...[$expression]); ?>";
-        });
 
         Gate::policy(PurchaseOrder::class, OrderPolicy::class);
         Gate::policy(PurchaseOrderLine::class, OrderPolicy::class);
@@ -42,15 +37,9 @@ class AppServiceProvider extends ServiceProvider
         }
 
         $settings = app(PortalSettings::class);
-        $localization = app(PortalLocalizationService::class);
 
         if (! $settings->hasSettingsTable()) {
             return;
-        }
-
-        if ($localization->hasLocalizationTables()) {
-            $localization->ensureInfrastructure();
-            Carbon::setLocale(app()->getLocale());
         }
 
         $spaces = $settings->spacesConfig();
@@ -77,6 +66,5 @@ class AppServiceProvider extends ServiceProvider
             'mail.from.address' => $mail['from_address'],
             'mail.from.name' => $mail['from_name'],
         ]);
-
     }
 }

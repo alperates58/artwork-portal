@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Middleware\CheckRole;
-use App\Http\Middleware\ApplyPortalLocale;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\LogSlowRequests;
 use App\Http\Middleware\RedirectIfSetupComplete;
@@ -23,7 +22,6 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
             RedirectToSetupIfNotComplete::class,
-            ApplyPortalLocale::class,
             EnsureUserIsActive::class,
             LogSlowRequests::class,
         ]);

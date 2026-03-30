@@ -4,7 +4,6 @@ use App\Http\Controllers\Admin\ArtworkGalleryController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\DataTransferController;
 use App\Http\Controllers\Admin\DepartmentController;
-use App\Http\Controllers\Admin\LocalizationController;
 use App\Http\Controllers\Admin\MikroTestController;
 use App\Http\Controllers\Admin\PermissionsController;
 use App\Http\Controllers\Admin\ReportController;
@@ -38,7 +37,6 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
-    Route::post('/dil-degistir', [LocalizationController::class, 'switchLocale'])->name('locale.switch');
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('/search', [SearchController::class, 'search'])->name('search');
     Route::get('/bildirimler', [NotificationController::class, 'index'])->name('notifications.index');
@@ -136,11 +134,6 @@ Route::middleware(['auth', 'active'])->group(function () {
 
             Route::get('/ayarlar', [SettingsController::class, 'edit'])->name('settings.edit');
             Route::put('/ayarlar', [SettingsController::class, 'update'])->name('settings.update');
-            Route::get('/ayarlar/diller', [LocalizationController::class, 'index'])->name('localization.index');
-            Route::post('/ayarlar/diller', [LocalizationController::class, 'storeLanguage'])->name('localization.languages.store');
-            Route::put('/ayarlar/diller/{locale}', [LocalizationController::class, 'updateTranslations'])->name('localization.translations.update');
-            Route::post('/ayarlar/diller/import', [LocalizationController::class, 'import'])->name('localization.import');
-            Route::get('/ayarlar/diller/{locale}/export', [LocalizationController::class, 'export'])->name('localization.export');
             Route::post('/ayarlar/mikro-view-sample', [SettingsController::class, 'mikroViewSample'])->name('settings.mikro-view-sample');
             Route::post('/ayarlar/mail-connection-test', [SettingsController::class, 'testMailConnection'])->name('settings.mail-connection-test');
             Route::post('/ayarlar/mail-test', [SettingsController::class, 'sendTestMail'])->name('settings.mail-test');
