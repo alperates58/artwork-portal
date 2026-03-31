@@ -169,6 +169,16 @@ class PortalDeployService
         $base = base_path();
         $steps = [];
         $hasLock = file_exists(base_path('package-lock.json'));
+        $preparedEnvironment = $this->prepareFrontendBuildEnvironment($base);
+
+        if (! $preparedEnvironment['ok']) {
+            $steps[] = $preparedEnvironment['step'];
+
+            return ['ok' => false, 'steps' => $steps];
+        }
+
+        $steps[] = $preparedEnvironment['step'];
+        $npmEnvironment = $preparedEnvironment['env'];
 
         if ($this->binaryExists('npm')) {
             $installStep = $this->runProcessCommand(
@@ -177,7 +187,8 @@ class PortalDeployService
                     ? ['npm', 'ci', '--no-audit', '--no-fund']
                     : ['npm', 'install', '--no-audit', '--no-fund'],
                 $base,
-                1200
+                1200,
+                $npmEnvironment
             );
             $steps[] = $installStep;
 
@@ -187,7 +198,8 @@ class PortalDeployService
                         'npm install --no-audit --no-fund (fallback)',
                         ['npm', 'install', '--no-audit', '--no-fund'],
                         $base,
-                        1200
+                        1200,
+                        $npmEnvironment
                     );
                     $steps[] = $fallbackInstall;
 
@@ -199,7 +211,7 @@ class PortalDeployService
                 }
             }
 
-            $buildStep = $this->runProcessCommand('npm run build', ['npm', 'run', 'build'], $base, 1200);
+            $buildStep = $this->runProcessCommand('npm run build', ['npm', 'run', 'build'], $base, 1200, $npmEnvironment);
             $steps[] = $buildStep;
 
             return ['ok' => $buildStep['ok'], 'steps' => $steps];
@@ -284,11 +296,15 @@ class PortalDeployService
         string $displayCommand,
         array $command,
         string $workingDirectory,
-        int $timeoutSeconds = 120
+        int $timeoutSeconds = 120,
+        array $environment = []
     ): array {
         try {
             $process = new Process($command, $workingDirectory);
             $process->setTimeout($timeoutSeconds);
+            if ($environment !== []) {
+                $process->setEnv($environment + $_ENV);
+            }
             $process->run();
 
             $output = trim($process->getOutput() . "\n" . $process->getErrorOutput()) ?: '(cikti yok)';
@@ -317,6 +333,52 @@ class PortalDeployService
             return $process->isSuccessful();
         } catch (\Throwable) {
             return false;
+        }
+    }
+
+    private function prepareFrontendBuildEnvironment(string $base): array
+    {
+        $paths = [
+            'cache' => $base . '/storage/framework/npm-cache',
+            'home' => $base . '/storage/framework/npm-home',
+            'config' => $base . '/storage/framework/npm-config',
+            'public_build' => $base . '/public/build',
+            'node_modules' => $base . '/node_modules',
+        ];
+
+        try {
+            foreach ($paths as $path) {
+                if (! is_dir($path) && ! mkdir($path, 0775, true) && ! is_dir($path)) {
+                    throw new \RuntimeException($path . ' klasoru olusturulamadi.');
+                }
+            }
+
+            return [
+                'ok' => true,
+                'step' => [
+                    'cmd' => 'npm build ortamı hazırla',
+                    'output' => "NPM cache/config klasorleri storage/framework altinda hazirlandi.\n"
+                        . 'Cache: ' . $paths['cache'] . "\n"
+                        . 'Home: ' . $paths['home'],
+                    'ok' => true,
+                ],
+                'env' => [
+                    'HOME' => $paths['home'],
+                    'XDG_CONFIG_HOME' => $paths['config'],
+                    'npm_config_cache' => $paths['cache'],
+                    'NPM_CONFIG_CACHE' => $paths['cache'],
+                ],
+            ];
+        } catch (\Throwable $exception) {
+            return [
+                'ok' => false,
+                'step' => [
+                    'cmd' => 'npm build ortamı hazırla',
+                    'output' => $exception->getMessage(),
+                    'ok' => false,
+                ],
+                'env' => [],
+            ];
         }
     }
 }
