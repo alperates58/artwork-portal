@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 
 class PortalDeployService
@@ -97,11 +98,21 @@ class PortalDeployService
     private function applyUpdatePipeline(array $steps): array
     {
         $hasWarnings = false;
+        $base = base_path();
 
         $steps[] = $this->runArtisan('config:clear');
         $steps[] = $this->runArtisan('cache:clear');
 
-        $composerStep = $this->runComposerInstall();
+        $repositoryEnvironment = $this->prepareRepositoryEnvironment($base);
+        $repositoryStep = $repositoryEnvironment['step'];
+        if (! $repositoryEnvironment['ok']) {
+            $repositoryStep['cmd'] = 'UYARI · ' . $repositoryStep['cmd'];
+            $repositoryStep['ok'] = true;
+            $hasWarnings = true;
+        }
+        $steps[] = $repositoryStep;
+
+        $composerStep = $this->runComposerInstall($repositoryEnvironment['env']);
         if (! $composerStep['ok']) {
             $composerStep['cmd'] = 'UYARI · ' . $composerStep['cmd'];
             $composerStep['output'] = "Composer bagimliliklari guncellenemedi. Yeni PHP paketi eklendiyse manuel olarak calistirin:\n"
@@ -152,7 +163,7 @@ class PortalDeployService
         return ['ok' => true, 'steps' => $steps, 'warning' => $hasWarnings];
     }
 
-    private function runComposerInstall(): array
+    private function runComposerInstall(array $environment = []): array
     {
         $base = base_path();
 
@@ -160,7 +171,8 @@ class PortalDeployService
             'composer install --no-dev --optimize-autoloader',
             ['composer', 'install', '--no-dev', '--optimize-autoloader', '--no-interaction'],
             $base,
-            300
+            300,
+            $environment
         );
     }
 
@@ -374,6 +386,84 @@ class PortalDeployService
                 'ok' => false,
                 'step' => [
                     'cmd' => 'npm build ortamı hazırla',
+                    'output' => $exception->getMessage(),
+                    'ok' => false,
+                ],
+                'env' => [],
+            ];
+        }
+    }
+
+    private function prepareRepositoryEnvironment(string $base): array
+    {
+        $paths = [
+            'git_home' => $base . '/storage/framework/git-home',
+            'composer_home' => $base . '/storage/framework/composer-home',
+        ];
+
+        try {
+            foreach ($paths as $path) {
+                if (! is_dir($path) && ! mkdir($path, 0775, true) && ! is_dir($path)) {
+                    throw new \RuntimeException($path . ' klasoru olusturulamadi.');
+                }
+            }
+
+            $environment = [
+                'HOME' => $paths['git_home'],
+                'XDG_CONFIG_HOME' => $paths['git_home'],
+                'COMPOSER_HOME' => $paths['composer_home'],
+                'COMPOSER_ALLOW_SUPERUSER' => '1',
+            ];
+
+            $gitConfigStep = $this->runProcessCommand(
+                'git safe.directory hazırla',
+                ['git', 'config', '--global', '--add', 'safe.directory', $base],
+                $base,
+                30,
+                $environment
+            );
+
+            if (! $gitConfigStep['ok']) {
+                throw new \RuntimeException("safe.directory tanimi yapilamadi.\n" . ($gitConfigStep['output'] ?? '(cikti yok)'));
+            }
+
+            $nonWritablePaths = collect([
+                $base . '/vendor',
+                $base . '/storage',
+                $base . '/bootstrap/cache',
+            ])->filter(fn (string $path) => file_exists($path) && ! is_writable($path))->values()->all();
+
+            if ($nonWritablePaths !== []) {
+                return [
+                    'ok' => false,
+                    'step' => [
+                        'cmd' => 'repository ortamını hazırla',
+                        'output' => "Git safe.directory tanimi yapildi, ancak bazi klasorler yazilabilir degil:\n"
+                            . implode("\n", $nonWritablePaths)
+                            . "\n\nSunucuda bir kez su komutu calistirin:\n"
+                            . '  docker compose exec -u root app sh -lc "chown -R www-data:www-data /var/www/html /var/www/html/vendor /var/www/html/storage /var/www/html/bootstrap/cache"',
+                        'ok' => false,
+                    ],
+                    'env' => $environment,
+                ];
+            }
+
+            return [
+                'ok' => true,
+                'step' => [
+                    'cmd' => 'repository ortamını hazırla',
+                    'output' => "Git ve Composer klasorleri hazirlandi.\n"
+                        . 'Git home: ' . $paths['git_home'] . "\n"
+                        . 'Composer home: ' . $paths['composer_home'],
+                    'ok' => true,
+                ],
+                'env' => $environment,
+            ];
+        } catch (\Throwable $exception) {
+            return [
+                'ok' => false,
+                'step' => [
+                    'cmd' => 'repository ortamını hazırla',
                     'output' => $exception->getMessage(),
                     'ok' => false,
                 ],
