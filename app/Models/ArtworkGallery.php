@@ -175,6 +175,26 @@ class ArtworkGallery extends Model
             ?: $this->fallbackPreviewRevision()?->preview_original_filename;
     }
 
+    public function getDownloadFilenameAttribute(): string
+    {
+        $filename = trim((string) $this->name);
+
+        if ($filename !== '' && pathinfo($filename, PATHINFO_EXTENSION) !== '') {
+            return $filename;
+        }
+
+        $extension = $this->resolvedOriginalExtension();
+        $baseName = $filename !== ''
+            ? $filename
+            : pathinfo((string) $this->file_path, PATHINFO_FILENAME);
+
+        if ($baseName === '') {
+            $baseName = 'artwork';
+        }
+
+        return $extension !== '' ? $baseName . '.' . $extension : $baseName;
+    }
+
     private function isBrowserPreviewableOriginal(): bool
     {
         $extension = strtolower((string) pathinfo($this->name, PATHINFO_EXTENSION));
@@ -196,6 +216,27 @@ class ArtworkGallery extends Model
     private function fallbackPreviewPath(): ?string
     {
         return $this->fallbackPreviewRevision()?->preview_spaces_path;
+    }
+
+    private function resolvedOriginalExtension(): string
+    {
+        $pathExtension = strtolower((string) pathinfo((string) $this->file_path, PATHINFO_EXTENSION));
+
+        if ($pathExtension !== '') {
+            return $pathExtension;
+        }
+
+        return match (strtolower((string) $this->file_type)) {
+            'image/png' => 'png',
+            'image/jpeg' => 'jpg',
+            'image/gif' => 'gif',
+            'image/webp' => 'webp',
+            'image/bmp' => 'bmp',
+            'image/svg+xml' => 'svg',
+            'application/pdf' => 'pdf',
+            'application/postscript' => 'eps',
+            default => '',
+        };
     }
 
     public function getFileTypeIconAttribute(): string

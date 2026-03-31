@@ -50,7 +50,12 @@ class DownloadController extends Controller
         ]);
 
         if ($storageDisk === 'spaces') {
-            return redirect($this->spaces->presignedUrl($revision->spaces_path, 0, $storageDisk));
+            return redirect($this->spaces->presignedUrl(
+                $revision->spaces_path,
+                0,
+                $storageDisk,
+                $revision->original_filename
+            ));
         }
 
         return Storage::disk($storageDisk)

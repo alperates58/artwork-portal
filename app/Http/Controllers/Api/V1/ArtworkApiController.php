@@ -111,7 +111,7 @@ class ArtworkApiController extends Controller
             return response()->json(['error' => 'Sadece aktif revizyon indirilebilir.'], 403);
         }
 
-        $url = $this->spaces->presignedUrl($revision->spaces_path);
+        $url = $this->spaces->presignedUrl($revision->spaces_path, 0, null, $revision->original_filename);
 
         return response()->json([
             'download_url' => $url,

@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Kullanıcılar')
 @section('page-title', 'Kullanıcı Yönetimi')
+
 @section('header-actions')
     <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -12,7 +13,7 @@
 
 @section('content')
 <form method="GET" class="card mb-5 p-4">
-    <div class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
+    <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
         <input type="text" name="search" value="{{ request('search') }}" placeholder="İsim veya e-posta ara..." class="input w-full">
 
         <select name="role" class="input w-full">
@@ -31,11 +32,92 @@
             @endforeach
         </select>
 
-        <button type="submit" class="btn btn-secondary w-full lg:w-auto">Filtrele</button>
+        <button type="submit" class="btn btn-secondary w-full xl:w-auto">Filtrele</button>
     </div>
 </form>
 
-<div class="card overflow-hidden">
+<div class="space-y-4 md:hidden">
+    @forelse($users as $user)
+        @php
+            $initials = collect(explode(' ', $user->name))
+                ->filter()
+                ->take(2)
+                ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
+                ->implode('');
+            $avatarColor = match ($user->role->value) {
+                'admin' => 'bg-red-100 text-red-700',
+                'graphic' => 'bg-blue-100 text-blue-700',
+                'purchasing' => 'bg-amber-100 text-amber-700',
+                default => 'bg-slate-100 text-slate-600',
+            };
+            $roleCls = match ($user->role->value) {
+                'admin' => 'badge-danger',
+                'graphic' => 'badge-info',
+                'purchasing' => 'badge-warning',
+                default => 'badge-gray',
+            };
+        @endphp
+        <div class="card p-4">
+            <div class="flex items-start gap-3">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full {{ $avatarColor }} text-sm font-bold">
+                    {{ $initials }}
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <p class="truncate text-sm font-semibold text-slate-900">{{ $user->name }}</p>
+                        <span class="badge {{ $roleCls }}">{{ $user->role->label() }}</span>
+                        @if($user->is_active)
+                            <span class="badge badge-success">Aktif</span>
+                        @else
+                            <span class="badge badge-gray">Pasif</span>
+                        @endif
+                    </div>
+                    <p class="mt-1 break-all text-sm text-slate-500">{{ $user->email }}</p>
+                </div>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div class="rounded-2xl bg-slate-50 px-3 py-2">
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Departman</p>
+                    <p class="mt-1 text-sm text-slate-700">{{ $user->department?->name ?? '—' }}</p>
+                </div>
+                <div class="rounded-2xl bg-slate-50 px-3 py-2">
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Tedarikçi</p>
+                    <p class="mt-1 text-sm text-slate-700">{{ $user->supplier?->name ?? '—' }}</p>
+                </div>
+                <div class="rounded-2xl bg-slate-50 px-3 py-2 sm:col-span-2">
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Son Giriş</p>
+                    @if($user->last_login_at)
+                        <p class="mt-1 text-sm text-slate-700">{{ $user->last_login_at->format('d.m.Y H:i') }}</p>
+                    @else
+                        <p class="mt-1 text-sm text-slate-400">Henüz giriş yapmadı</p>
+                    @endif
+                </div>
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3 text-sm">
+                <a href="{{ route('admin.users.edit', $user) }}" class="font-medium text-brand-700 hover:underline">Düzenle</a>
+                @if($user->id !== auth()->id())
+                    <form method="POST" action="{{ route('admin.users.toggle', $user) }}">
+                        @csrf @method('PATCH')
+                        <button type="submit" class="font-medium {{ $user->is_active ? 'text-amber-600' : 'text-emerald-600' }} hover:underline">
+                            {{ $user->is_active ? 'Pasife Al' : 'Aktif Et' }}
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ route('admin.users.destroy', $user) }}"
+                          onsubmit="return confirm('{{ $user->name }} kullanıcısını silmek istediğinize emin misiniz?')">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="font-medium text-red-500 hover:underline">Sil</button>
+                    </form>
+                @endif
+            </div>
+        </div>
+    @empty
+        <div class="card px-4 py-10 text-center text-sm text-slate-400">Kullanıcı bulunamadı.</div>
+    @endforelse
+</div>
+
+<div class="card hidden overflow-hidden md:block">
     <table class="w-full min-w-[760px] text-xs">
         <thead>
             <tr class="border-b border-slate-200 bg-slate-50">
@@ -54,13 +136,19 @@
                     $initials = collect(explode(' ', $user->name))
                         ->filter()
                         ->take(2)
-                        ->map(fn($w) => mb_strtoupper(mb_substr($w, 0, 1)))
+                        ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))
                         ->implode('');
-                    $avatarColor = match($user->role->value) {
-                        'admin'      => 'bg-red-100 text-red-700',
-                        'graphic'    => 'bg-blue-100 text-blue-700',
+                    $avatarColor = match ($user->role->value) {
+                        'admin' => 'bg-red-100 text-red-700',
+                        'graphic' => 'bg-blue-100 text-blue-700',
                         'purchasing' => 'bg-amber-100 text-amber-700',
-                        default      => 'bg-slate-100 text-slate-600',
+                        default => 'bg-slate-100 text-slate-600',
+                    };
+                    $roleCls = match ($user->role->value) {
+                        'admin' => 'badge-danger',
+                        'graphic' => 'badge-info',
+                        'purchasing' => 'badge-warning',
+                        default => 'badge-gray',
                     };
                 @endphp
                 <tr class="hover:bg-slate-50 transition-colors">
@@ -76,7 +164,6 @@
                         </div>
                     </td>
                     <td class="px-4 py-3">
-                        @php $roleCls = match($user->role->value) {'admin' => 'badge-danger', 'graphic' => 'badge-info', 'purchasing' => 'badge-warning', default => 'badge-gray'}; @endphp
                         <span class="badge {{ $roleCls }}">{{ $user->role->label() }}</span>
                     </td>
                     <td class="px-4 py-3 text-slate-600">{{ $user->department?->name ?? '—' }}</td>
@@ -122,9 +209,9 @@
             @endforelse
         </tbody>
     </table>
-
-    @if($users->hasPages())
-        <div class="border-t border-slate-100 px-4 py-3">{{ $users->links() }}</div>
-    @endif
 </div>
+
+@if($users->hasPages())
+    <div class="mt-4">{{ $users->links() }}</div>
+@endif
 @endsection

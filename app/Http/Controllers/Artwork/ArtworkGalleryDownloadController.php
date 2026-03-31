@@ -26,6 +26,7 @@ class ArtworkGalleryDownloadController extends Controller
 
         $path = $artworkGallery->file_path;
         $disk = $artworkGallery->file_disk ?: $this->settings->filesystemDisk();
+        $downloadName = $artworkGallery->download_filename;
 
         abort_if(! $path, 404, 'Bu galeri öğesine ait dosya yolu bulunamadı.');
 
@@ -34,15 +35,16 @@ class ArtworkGalleryDownloadController extends Controller
         }
 
         $this->audit->log('artwork.gallery.download', $artworkGallery, [
-            'name'       => $artworkGallery->name,
+            'name' => $artworkGallery->name,
             'stock_code' => $artworkGallery->stock_code,
-            'file_size'  => $artworkGallery->file_size,
+            'file_size' => $artworkGallery->file_size,
+            'download_name' => $downloadName,
         ]);
 
         if ($disk === 'spaces') {
-            return redirect($this->spaces->presignedUrl($path, 0, $disk));
+            return redirect($this->spaces->presignedUrl($path, 0, $disk, $downloadName));
         }
 
-        return Storage::disk($disk)->download($path, $artworkGallery->name);
+        return Storage::disk($disk)->download($path, $downloadName);
     }
 }

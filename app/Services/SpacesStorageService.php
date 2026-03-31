@@ -99,7 +99,7 @@ class SpacesStorageService
         ];
     }
 
-    public function presignedUrl(string $path, int $minutes = 0, ?string $disk = null): string
+    public function presignedUrl(string $path, int $minutes = 0, ?string $disk = null, ?string $downloadName = null): string
     {
         if (! $this->usesSpaces($disk)) {
             throw new \RuntimeException('Presigned URL yalnizca Spaces diski yapilandirildiginda uretilebilir.');
@@ -115,7 +115,7 @@ class SpacesStorageService
         $command = $client->getCommand('GetObject', [
             'Bucket' => $spaces['bucket'],
             'Key' => $path,
-            'ResponseContentDisposition' => 'attachment; filename="' . basename($path) . '"',
+            'ResponseContentDisposition' => $this->contentDisposition('attachment', $downloadName ?: basename($path)),
         ]);
 
         $request = $client->createPresignedRequest($command, "+{$minutes} minutes");
@@ -183,5 +183,32 @@ class SpacesStorageService
         ]);
 
         return $this->client;
+    }
+
+    private function contentDisposition(string $disposition, string $filename): string
+    {
+        $filename = trim(str_replace(["\r", "\n", '"'], '', $filename));
+
+        if ($filename === '') {
+            $filename = 'download';
+        }
+
+        $fallbackName = trim((string) Str::ascii(pathinfo($filename, PATHINFO_FILENAME)));
+        $extension = trim((string) pathinfo($filename, PATHINFO_EXTENSION));
+
+        if ($fallbackName === '') {
+            $fallbackName = 'download';
+        }
+
+        if ($extension !== '') {
+            $fallbackName .= '.' . $extension;
+        }
+
+        return sprintf(
+            "%s; filename=\"%s\"; filename*=UTF-8''%s",
+            $disposition,
+            addcslashes($fallbackName, "\\\""),
+            rawurlencode($filename),
+        );
     }
 }
