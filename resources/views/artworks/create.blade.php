@@ -234,6 +234,31 @@
                             data-file-name="{{ e($candidate->name) }}"
                             data-search="{{ mb_strtolower($candidate->name . ' ' . $candidate->stock_code . ' ' . $candidateStockName . ' ' . $candidateCategoryName) }}"
                         >
+                            <div class="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white/80">
+                                <div class="aspect-[16/9] w-full bg-slate-100">
+                                    @if($candidate->has_preview)
+                                        <img
+                                            src="{{ route('artworks.gallery.preview', $candidate) }}"
+                                            alt="{{ $candidate->display_name }}"
+                                            class="h-full w-full object-contain"
+                                            loading="lazy"
+                                            onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden');"
+                                        >
+                                        <div class="hidden h-full w-full items-center justify-center text-slate-300">
+                                            <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2 1.586-1.586a2 2 0 012.828 0L20 14m-6-10h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                        </div>
+                                    @else
+                                        <div class="flex h-full w-full items-center justify-center text-slate-300">
+                                            <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 3.75h7l4 4V20.25A1.75 1.75 0 0 1 16.25 22h-8.5A1.75 1.75 0 0 1 6 20.25v-14.5A1.75 1.75 0 0 1 7.75 4Z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 3.75v4h4"/>
+                                            </svg>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
                             <div class="flex items-start justify-between gap-3">
                                 <div class="flex flex-col gap-2">
                                     <span class="inline-flex w-fit rounded-lg bg-slate-900 px-2.5 py-1 text-[11px] font-semibold tracking-[0.14em] text-white">{{ $revisionBadge }}</span>

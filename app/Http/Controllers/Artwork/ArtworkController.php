@@ -42,7 +42,24 @@ class ArtworkController extends Controller
             : null;
         $nextRevisionNo = max(1, (int) (($line->artwork?->revisions()->max('revision_no') ?? 0) + 1));
         $galleryCandidates = ArtworkGallery::query()
-            ->select(['id', 'name', 'stock_code', 'revision_no', 'stock_card_id', 'category_id', 'file_type', 'file_size', 'file_path', 'revision_note', 'created_at'])
+            ->select([
+                'id',
+                'name',
+                'stock_code',
+                'revision_no',
+                'stock_card_id',
+                'category_id',
+                'file_type',
+                'preview_file_type',
+                'file_size',
+                'file_path',
+                'file_disk',
+                'preview_file_path',
+                'preview_file_disk',
+                'preview_file_name',
+                'revision_note',
+                'created_at',
+            ])
             ->with(['stockCard:id,stock_code,stock_name,category_id', 'stockCard.category:id,name'])
             ->withMax('revisions', 'revision_no')
             ->whereNotNull('stock_code')
