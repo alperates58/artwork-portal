@@ -142,6 +142,20 @@
                                                 </div>
                                                 <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-medium text-slate-500">{{ $match->created_at->format('d.m.Y') }}</span>
                                             </div>
+                                            <div class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50" style="aspect-ratio: 4 / 3;">
+                                                @if($match->has_preview)
+                                                    <img
+                                                        src="{{ route('artworks.gallery.preview', $match, false) }}"
+                                                        alt="{{ $match->display_name }}"
+                                                        class="h-full w-full object-contain"
+                                                        loading="lazy"
+                                                    >
+                                                @else
+                                                    <div class="flex h-full w-full items-center justify-center">
+                                                        <span class="text-xs font-bold text-slate-500">{{ $match->extension ?: 'DOSYA' }}</span>
+                                                    </div>
+                                                @endif
+                                            </div>
                                             <p class="mt-4 truncate text-base font-semibold text-slate-900">{{ $match->display_name }}</p>
                                             <p class="mt-2 font-mono text-sm text-brand-700">{{ $match->stock_code ?: 'Stok kodu yok' }}</p>
                                             <div class="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-500">

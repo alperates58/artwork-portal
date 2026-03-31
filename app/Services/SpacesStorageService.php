@@ -6,6 +6,8 @@ use Aws\S3\S3Client;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use RuntimeException;
 
 class SpacesStorageService
@@ -264,6 +266,28 @@ class SpacesStorageService
         }
 
         $this->applyOwnership($absolutePath, false);
+
+        $this->normalizeArtworkTree($filesystem, $absolutePath);
+    }
+
+    private function normalizeArtworkTree($filesystem, string $absolutePath): void
+    {
+        $artworksRoot = rtrim($filesystem->path('artworks'), DIRECTORY_SEPARATOR);
+
+        if (! str_starts_with($absolutePath, $artworksRoot) || ! is_dir($artworksRoot)) {
+            return;
+        }
+
+        $this->applyOwnership($artworksRoot, true);
+
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($artworksRoot, RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($iterator as $item) {
+            $this->applyOwnership($item->getPathname(), $item->isDir());
+        }
     }
 
     private function applyOwnership(string $path, bool $isDirectory): void

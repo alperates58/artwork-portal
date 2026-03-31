@@ -3,9 +3,9 @@
 @section('page-title', 'Sipariş Detayı')
 
 @section('header-actions')
-    <a href="{{ route('orders.index') }}" class="btn btn-secondary">← Listeye Dön</a>
+    <a href="{{ route('orders.index') }}" class="btn btn-secondary px-4 py-2 text-sm">Listeye Dön</a>
     @can('update', $order)
-        <a href="{{ route('orders.edit', $order) }}" class="btn btn-secondary">Düzenle</a>
+        <a href="{{ route('orders.edit', $order) }}" class="btn btn-secondary px-4 py-2 text-sm">Düzenle</a>
     @endcan
 @endsection
 
@@ -15,7 +15,7 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Sipariş No</p>
-                <p class="mt-1 font-mono text-3xl font-bold tracking-tight text-slate-900">{{ $order->order_no }}</p>
+                <p class="mt-1 font-mono text-[2rem] font-bold tracking-tight text-slate-900">{{ $order->order_no }}</p>
                 <div class="mt-3 flex flex-wrap items-center gap-2">
                     <x-ui.badge :variant="match($order->status){'active' => 'success', 'draft' => 'gray', 'completed' => 'info', 'cancelled' => 'danger', default => 'gray'}">{{ $order->status_label }}</x-ui.badge>
                     <x-ui.badge :variant="match($order->shipment_status){'dispatched' => 'info', 'delivered' => 'success', 'not_found' => 'danger', default => 'warning'}">{{ $order->shipment_status_label }}</x-ui.badge>
@@ -60,7 +60,7 @@
         <div class="grid gap-0 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
             <div class="border-b border-slate-100 px-5 py-4 lg:border-b-0 lg:border-r">
                 <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Tedarikçi</p>
-                <p class="mt-1 text-lg font-semibold text-slate-900">{{ $order->supplier->name }}</p>
+                <p class="mt-1 text-base font-semibold text-slate-900">{{ $order->supplier->name }}</p>
                 <p class="text-sm text-slate-500">{{ $order->supplier->code ?: 'Kod yok' }}</p>
             </div>
             <div class="grid grid-cols-2 gap-4 border-b border-slate-100 px-5 py-4 md:grid-cols-4 lg:col-span-2 lg:border-b-0">
@@ -114,15 +114,15 @@
                     <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                         <div class="min-w-0 flex-1">
                             <div class="flex flex-wrap items-center gap-2">
-                                <a href="{{ route('order-lines.show', $line) }}" class="font-mono text-xl font-semibold text-slate-900 hover:text-brand-700 hover:underline">{{ $line->product_code }}</a>
+                                <a href="{{ route('order-lines.show', $line) }}" class="font-mono text-lg font-semibold text-slate-900 hover:text-brand-700 hover:underline">{{ $line->product_code }}</a>
                                 @if($line->is_manual_artwork_completed && ! $line->hasActiveArtwork())
                                     <x-ui.badge variant="info">Manuel gönderildi</x-ui.badge>
                                 @else
                                     <x-ui.badge :variant="match($line->artwork_status?->value ?? 'pending'){'uploaded' => 'success','revision' => 'danger','approved' => 'info',default => 'warning'}">{{ $line->artwork_status?->label() ?? 'Bekliyor' }}</x-ui.badge>
                                 @endif
                             </div>
-                            <p class="mt-2 text-lg leading-8 text-slate-700">{{ $line->description }}</p>
-                            <p class="mt-2 text-sm text-slate-500">
+                            <p class="mt-2 text-base leading-7 text-slate-700">{{ $line->description }}</p>
+                            <p class="mt-1.5 text-sm text-slate-500">
                                 {{ $line->quantity }} {{ $line->unit }}
                                 @if(! is_null($line->shipped_quantity))
                                     · Sevk edilen: {{ $line->shipped_quantity }}
@@ -141,13 +141,13 @@
                         <div class="flex flex-wrap items-center gap-2 xl:justify-end">
                             @if($line->hasActiveArtwork())
                                 <a href="{{ route('artwork.download', $line->activeRevision) }}" class="btn btn-secondary py-1.5 text-xs">İndir Rev.{{ $line->activeRevision->revision_no }}</a>
-                                <a href="{{ route('artworks.revisions', $line) }}" class="text-sm font-medium text-brand-700 hover:underline">Revizyonlar</a>
+                                <a href="{{ route('artworks.revisions', $line) }}" class="btn btn-secondary py-1.5 text-xs">Revizyonlar</a>
                             @else
                                 <span class="text-sm text-slate-400">{{ $line->is_manual_artwork_completed ? 'Portal dışı gönderim ile tamamlandı' : 'Artwork yok' }}</span>
                             @endif
 
                             @if(auth()->user()->canUploadArtwork())
-                                <a href="{{ route('artworks.create', $line) }}" class="btn btn-primary py-1.5 text-xs">
+                                <a href="{{ route('artworks.create', $line) }}" class="btn btn-primary px-4 py-1.5 text-xs">
                                     {{ $line->hasActiveArtwork() ? 'Yeni Revizyon' : 'Yükle' }}
                                 </a>
                             @endif
@@ -158,17 +158,56 @@
                         <div class="mt-4 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
                             <div class="flex flex-col gap-4 md:flex-row md:items-center">
                                 <div class="flex min-w-0 flex-1 items-center gap-3">
-                                    <div class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
-                                        <span class="text-xs font-bold text-slate-600">{{ $line->activeRevision->extension }}</span>
-                                    </div>
+                                    @if($line->activeRevision->has_preview)
+                                        <button type="button" data-dialog-open="order-line-preview-{{ $line->id }}" class="group relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ring-1 ring-slate-200 transition hover:border-brand-300">
+                                            <img
+                                                src="{{ route('artworks.preview', $line->activeRevision, false) }}"
+                                                alt="{{ $line->activeRevision->original_filename }}"
+                                                class="h-full w-full object-contain transition duration-300 group-hover:scale-[1.03]"
+                                            >
+                                        </button>
+                                    @else
+                                        <div class="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+                                            <span class="text-xs font-bold text-slate-600">{{ $line->activeRevision->extension }}</span>
+                                        </div>
+                                    @endif
                                     <div class="min-w-0">
                                         <p class="truncate text-sm font-semibold text-slate-800">{{ $line->activeRevision->original_filename }}</p>
                                         <p class="text-xs text-slate-500">Rev.{{ $line->activeRevision->revision_no }} · {{ $line->activeRevision->file_size_formatted }} · {{ $line->activeRevision->uploadedBy->name }} · {{ $line->activeRevision->created_at->format('d.m.Y H:i') }}</p>
+                                        @if($line->activeRevision->has_preview)
+                                            <button type="button" data-dialog-open="order-line-preview-{{ $line->id }}" class="mt-1 text-[11px] font-semibold text-brand-700 hover:underline">Önizlemeyi aç</button>
+                                        @endif
                                     </div>
                                 </div>
                                 <x-ui.badge variant="success" class="text-xs">Güncel</x-ui.badge>
                             </div>
                         </div>
+
+                        @if($line->activeRevision->has_preview)
+                            <dialog id="order-line-preview-{{ $line->id }}" class="w-[min(96vw,1500px)] max-w-none overflow-hidden rounded-[32px] border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-950/70">
+                                <div class="flex max-h-[92vh] flex-col bg-white">
+                                    <div class="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-4">
+                                        <div class="min-w-0">
+                                            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Satır önizleme</p>
+                                            <p class="mt-1 truncate text-lg font-semibold text-slate-900">{{ $line->activeRevision->original_filename }}</p>
+                                        </div>
+                                        <button type="button" data-dialog-close class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900">
+                                            <span class="sr-only">Kapat</span>
+                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div class="min-h-0 flex-1 overflow-auto bg-slate-100 p-4">
+                                        <img
+                                            src="{{ route('artworks.preview', $line->activeRevision, false) }}"
+                                            alt="{{ $line->activeRevision->original_filename }}"
+                                            class="mx-auto max-h-[82vh] w-full rounded-[24px] bg-white object-contain"
+                                        >
+                                    </div>
+                                </div>
+                            </dialog>
+                        @endif
                     @endif
 
                     <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80">
@@ -319,11 +358,9 @@
                                     };
                                     $barPct = min(100, max(14, $gap <= 0 ? 14 : intval(min(log($gap + 1, 2) * 30, 100))));
                                 @endphp
-                                <div class="mb-4 ml-0 flex items-center gap-2 pl-0">
-                                    <div class="relative h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                                        <div class="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r {{ $barBg }}" style="width: {{ $barPct }}%"></div>
-                                    </div>
-                                    <span class="w-16 text-right text-[10px] font-semibold {{ $textCls }}">{{ number_format($gap, 1, ',', '.') }} gün</span>
+                                <div class="mb-4 ml-[-38px] flex w-16 flex-col items-center">
+                                    <div class="w-1 rounded-full bg-gradient-to-b {{ $barBg }}" style="height: {{ min(120, max(32, intval($barPct * 1.1))) }}px"></div>
+                                    <span class="mt-2 text-center text-[10px] font-semibold {{ $textCls }}">{{ number_format($gap, 1, ',', '.') }} gün</span>
                                 </div>
                             @endif
                         </li>
