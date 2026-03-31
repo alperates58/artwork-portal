@@ -19,7 +19,7 @@
                     </div>
                     <a href="{{ route('artworks.preview', $revision) }}" class="btn btn-secondary text-xs">Önizlemeyi Aç</a>
                 </div>
-                <img src="{{ route('artworks.preview', $revision) }}" alt="Artwork önizleme" class="max-h-[520px] w-full object-contain bg-white">
+                <img src="{{ route('artworks.preview', $revision, false) }}" alt="Artwork önizleme" class="max-h-[520px] w-full object-contain bg-white">
             </div>
         @else
             <div class="mb-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">

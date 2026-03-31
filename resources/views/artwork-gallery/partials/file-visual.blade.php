@@ -6,7 +6,7 @@
 
 @if($artworkGallery->has_preview)
     <img
-        src="{{ route('artworks.gallery.preview', $artworkGallery) }}"
+        src="{{ route('artworks.gallery.preview', $artworkGallery, false) }}"
         alt="{{ $artworkGallery->display_name }}"
         class="{{ $sizeClass }} {{ $roundedClass }} object-cover ring-1 ring-slate-200 bg-slate-50"
         loading="lazy"

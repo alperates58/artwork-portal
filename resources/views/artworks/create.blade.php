@@ -238,7 +238,7 @@
                                 <div class="aspect-[16/9] w-full bg-slate-100">
                                     @if($candidate->has_preview)
                                         <img
-                                            src="{{ route('artworks.gallery.preview', $candidate) }}"
+                                            src="{{ route('artworks.gallery.preview', $candidate, false) }}"
                                             alt="{{ $candidate->display_name }}"
                                             class="h-full w-full object-contain"
                                             loading="lazy"

@@ -22,7 +22,7 @@
         <section class="rounded-3xl border border-slate-200 bg-slate-50 p-4">
             @if($artworkGallery->has_preview)
                 <img
-                    src="{{ route('artworks.gallery.preview', $artworkGallery) }}"
+                    src="{{ route('artworks.gallery.preview', $artworkGallery, false) }}"
                     alt="{{ $artworkGallery->display_name }}"
                     class="max-h-[28rem] w-full rounded-2xl bg-white object-contain"
                 >

@@ -314,7 +314,7 @@
                     <div class="relative overflow-hidden rounded-t-2xl bg-slate-50" style="aspect-ratio:4/3;">
                         @if($item->has_preview)
                             <img
-                                src="{{ route('artworks.gallery.preview', $item) }}"
+                                src="{{ route('artworks.gallery.preview', $item, false) }}"
                                 alt="{{ $item->display_name }}"
                                 class="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.03]"
                                 loading="lazy"

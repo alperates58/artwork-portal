@@ -9,7 +9,6 @@ use App\Services\SpacesStorageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ArtworkGalleryPreviewController extends Controller
 {
@@ -18,7 +17,7 @@ class ArtworkGalleryPreviewController extends Controller
         private PortalSettings $settings,
     ) {}
 
-    public function __invoke(ArtworkGallery $artworkGallery): RedirectResponse|BinaryFileResponse|StreamedResponse
+    public function __invoke(ArtworkGallery $artworkGallery): RedirectResponse|BinaryFileResponse
     {
         abort_unless(auth()->user()?->isInternal(), 403, 'Bu önizlemeyi görüntüleme yetkiniz bulunmamaktadır.');
         abort_unless($artworkGallery->has_preview, 404, 'Bu artwork için kullanılabilir önizleme bulunmuyor.');
@@ -36,12 +35,12 @@ class ArtworkGalleryPreviewController extends Controller
             return redirect($this->spaces->presignedInlineUrl($path, 5, $disk));
         }
 
-        return Storage::disk($disk)->response(
-            $path,
-            $filename,
+        return response()->file(
+            Storage::disk($disk)->path($path),
             [
                 'Content-Type' => $mimeType,
                 'Content-Disposition' => 'inline; filename="' . $filename . '"',
+                'Cache-Control' => 'private, max-age=300',
             ]
         );
     }

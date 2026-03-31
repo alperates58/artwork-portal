@@ -71,7 +71,7 @@
                             <button type="button" class="group block w-full overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 text-left transition hover:border-brand-200 hover:shadow-md" @if($rev->has_preview) @click="previewOpen = true" @endif>
                                 <div class="aspect-[4/3] w-full">
                                     @if($rev->has_preview)
-                                        <img src="{{ route('artworks.preview', $rev) }}" alt="{{ $rev->original_filename }}" class="h-full w-full object-contain transition duration-300 group-hover:scale-[1.02]" onerror="this.parentElement.innerHTML='<div class=\'flex h-full w-full items-center justify-center bg-slate-100\'><span class=\'text-lg font-bold text-slate-400\'>{{ $rev->extension }}</span></div>'">
+                                        <img src="{{ route('artworks.preview', $rev, false) }}" alt="{{ $rev->original_filename }}" class="h-full w-full object-contain transition duration-300 group-hover:scale-[1.02]" onerror="this.parentElement.innerHTML='<div class=\'flex h-full w-full items-center justify-center bg-slate-100\'><span class=\'text-lg font-bold text-slate-400\'>{{ $rev->extension }}</span></div>'">
                                     @else
                                         <div class="flex h-full w-full items-center justify-center">
                                             <span class="text-lg font-bold text-slate-400">{{ $rev->extension }}</span>
@@ -178,7 +178,7 @@
                     </svg>
                 </button>
                 <div class="bg-slate-100 p-4">
-                    <img src="{{ route('artworks.preview', $line->activeRevision) }}" alt="{{ $line->activeRevision->original_filename }}" class="max-h-[80vh] w-full rounded-2xl object-contain">
+                    <img src="{{ route('artworks.preview', $line->activeRevision, false) }}" alt="{{ $line->activeRevision->original_filename }}" class="max-h-[80vh] w-full rounded-2xl object-contain">
                 </div>
             </div>
         </div>

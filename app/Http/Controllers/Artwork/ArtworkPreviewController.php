@@ -9,7 +9,6 @@ use App\Services\SpacesStorageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ArtworkPreviewController extends Controller
 {
@@ -18,7 +17,7 @@ class ArtworkPreviewController extends Controller
         private PortalSettings $settings,
     ) {}
 
-    public function __invoke(ArtworkRevision $revision): RedirectResponse|BinaryFileResponse|StreamedResponse
+    public function __invoke(ArtworkRevision $revision): RedirectResponse|BinaryFileResponse
     {
         $this->authorize('view', $revision->artwork);
 
@@ -48,12 +47,12 @@ class ArtworkPreviewController extends Controller
             return redirect($this->spaces->presignedInlineUrl($path, 5, $disk));
         }
 
-        return Storage::disk($disk)->response(
-            $path,
-            $filename,
+        return response()->file(
+            Storage::disk($disk)->path($path),
             [
                 'Content-Type' => $mimeType,
                 'Content-Disposition' => 'inline; filename="' . $filename . '"',
+                'Cache-Control' => 'private, max-age=300',
             ]
         );
     }
