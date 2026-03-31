@@ -497,6 +497,13 @@ function resetUploadUI() {
     progressW.classList.add('hidden');
 }
 
+function setUploadError(message) {
+    const errorBox = document.getElementById('upload-error-msg');
+    if (!errorBox) return;
+    errorBox.textContent = message;
+    errorBox.classList.remove('hidden');
+}
+
 function startUpload() {
     const data = new FormData(form);
     const xhr = new XMLHttpRequest();
@@ -519,10 +526,39 @@ function startUpload() {
 
     xhr.addEventListener('load', () => {
         uploadInProgress = false;
-        if (xhr.responseURL && xhr.responseURL !== window.location.href) {
-            window.location.href = xhr.responseURL;
-        } else {
-            window.location.href = "{{ route('order-lines.show', $line) }}";
+
+        if (xhr.status >= 200 && xhr.status < 300) {
+            if (xhr.responseURL && xhr.responseURL !== window.location.href) {
+                window.location.href = xhr.responseURL;
+            } else {
+                window.location.href = "{{ route('order-lines.show', $line) }}";
+            }
+
+            return;
+        }
+
+        activeXhr = null;
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Tekrar dene';
+        progressBar.classList.add('bg-red-500');
+        progressBar.classList.remove('bg-brand-600');
+        progressPct.textContent = 'Hata';
+
+        let errorMessage = 'Yükleme sırasında bir hata oluştu. Form verisi korunur, yeniden deneyebilirsiniz.';
+
+        if (xhr.status === 422) {
+            try {
+                const payload = JSON.parse(xhr.responseText);
+                const firstError = payload?.errors ? Object.values(payload.errors).flat()[0] : null;
+                errorMessage = firstError || payload?.message || 'Lütfen form alanlarını kontrol edin.';
+            } catch (_error) {
+                errorMessage = 'Lütfen form alanlarını kontrol edin.';
+            }
+        }
+
+        setUploadError(errorMessage);
+        if (xhr.status === 422 && stockInput) {
+            stockInput.focus();
         }
     });
 
@@ -534,11 +570,12 @@ function startUpload() {
         progressBar.classList.add('bg-red-500');
         progressBar.classList.remove('bg-brand-600');
         progressPct.textContent = 'Hata';
-        document.getElementById('upload-error-msg').classList.remove('hidden');
+        setUploadError('Bağlantı hatası oluştu; form verisi korunur, yeniden deneyebilirsiniz.');
     });
 
     xhr.addEventListener('abort', resetUploadUI);
     xhr.open('POST', form.action);
+    xhr.setRequestHeader('Accept', 'application/json');
     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
     xhr.send(data);
 }
@@ -568,6 +605,7 @@ form.addEventListener('submit', function (event) {
     event.preventDefault();
     progressBar.classList.remove('bg-red-500');
     progressBar.classList.add('bg-brand-600');
+    setUploadError('');
     document.getElementById('upload-error-msg').classList.add('hidden');
     startUpload();
 });
