@@ -317,6 +317,45 @@ docker compose restart nginx app
 
 Tarayıcıda `http://SUNUCU_IP/setup` adresini açın ve kurulumu tamamlayın.
 
+### 3.12 Artwork Preview Doğrulaması â€” ZORUNLU
+
+Artwork upload akışında `.ai`, `.eps`, `.pdf` ve `.psd` dosyaları için önizleme PNG dosyası queue üzerinden otomatik üretilir. Yeni kurulumdan sonra bu akışın gerçekten çalıştığını mutlaka doğrulayın:
+
+```bash
+docker compose ps
+docker compose exec queue which gs
+docker compose exec queue which magick
+docker compose exec app php artisan migrate:status
+```
+
+Beklenen durum:
+
+- `artwork_queue` → `Up`
+- `artwork_scheduler` → `Up`
+- `which gs` çıktı vermeli
+- `which magick` çıktı vermeli
+- `2026_03_31_210000_add_preview_fields_to_artwork_files` migration kaydı `Ran` olmalı
+
+Bu doğrulama tamamlanmadan artwork preview akışı eksik çalışabilir.
+
+### 3.13 Canlıya Alma Sonrası Son Adımlar
+
+Kurulum bittiğinde ve site ilk kez açılır hale geldiğinde aşağıdaki adımları da çalıştırın:
+
+```bash
+cd /var/www/artwork-portal
+docker compose build app queue scheduler
+docker compose up -d --force-recreate app queue scheduler
+docker compose exec app php artisan migrate --force
+docker compose restart nginx
+```
+
+Notlar:
+
+- `Dockerfile` değiştiğinde bu adım zorunludur; sadece `git pull` yeterli olmaz.
+- `nginx` bazen eski `app` container IP'sini tutabilir; bu yüzden son adımda `docker compose restart nginx` önerilir.
+- Bu adımlar tamamlandıktan sonra yeni kurulumdaki preview PNG akışı hazır olur.
+
 ---
 
 ## 4. Production .env Tam Yapılandırması
@@ -436,6 +475,12 @@ docker compose restart app queue scheduler
 docker compose restart nginx app
 ```
 
+Eğer sorun `app`, `queue` veya `scheduler` recreate sonrasında başladıysa şu akışı uygulayın:
+```bash
+docker compose up -d --force-recreate app queue scheduler
+docker compose restart nginx
+```
+
 ---
 
 ### `500 — No application encryption key`
@@ -529,3 +574,5 @@ Kurulum sonrası sırayla kontrol edin:
 6. `docker compose ps` → queue ve scheduler Up mu?
 7. `php artisan about` → Cache/Queue/Session redis mi?
 8. `npm run build` başarılı mı?
+9. `docker compose exec queue which gs` ve `which magick` çalışıyor mu?
+10. AI/EPS/PDF/PSD artwork yüklemesinden sonra preview PNG oluşuyor mu?
