@@ -20,7 +20,7 @@ class ArtworkGalleryPreviewController extends Controller
 
     public function __invoke(ArtworkGallery $artworkGallery): RedirectResponse|BinaryFileResponse|StreamedResponse
     {
-        abort_unless(auth()->user()?->canUploadArtwork(), 403, 'Bu önizlemeyi görüntüleme yetkiniz bulunmamaktadır.');
+        abort_unless(auth()->user()?->isInternal(), 403, 'Bu önizlemeyi görüntüleme yetkiniz bulunmamaktadır.');
         abort_unless($artworkGallery->has_preview, 404, 'Bu artwork için kullanılabilir önizleme bulunmuyor.');
 
         $path = $artworkGallery->preview_path;

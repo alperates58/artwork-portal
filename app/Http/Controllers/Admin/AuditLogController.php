@@ -18,7 +18,7 @@ class AuditLogController extends Controller
     public const CATEGORIES = [
         'session' => ['user.login', 'user.logout'],
         'artwork' => ['artwork.upload', 'artwork.view', 'artwork.viewed', 'artwork.download', 'artwork.delete', 'artwork.approved', 'artwork.rejected', 'artwork.revision.activate', 'artwork.preview.started', 'artwork.preview.success', 'artwork.preview.failed'],
-        'gallery' => ['artwork.gallery.create', 'artwork.gallery.reuse', 'artwork.gallery.update', 'artwork.gallery.delete'],
+        'gallery' => ['artwork.gallery.create', 'artwork.gallery.reuse', 'artwork.gallery.update', 'artwork.gallery.delete', 'artwork.gallery.download'],
         'stock' => ['stock_card.create', 'stock_card.update', 'stock_card.delete', 'stock_card.import'],
         'order' => ['order.view', 'order.create', 'order.update', 'order.delete', 'order_line.view', 'portal.order.view', 'order_line.manual_artwork.complete'],
         'mail' => ['mail.notification.sent', 'mail.notification.failed', 'mail.notification.skipped', 'mail.notification.queued', 'mail.notification.queue_failed', 'mail.notification.test.sent', 'mail.notification.test.queued'],
@@ -53,6 +53,7 @@ class AuditLogController extends Controller
         'artwork.gallery.reuse' => 'Galeriden kullanıldı',
         'artwork.gallery.update' => 'Galeri güncellendi',
         'artwork.gallery.delete' => 'Galeride silindi',
+        'artwork.gallery.download' => 'Galeriden indirildi',
         'stock_card.create' => 'Stok kartı oluşturuldu',
         'stock_card.update' => 'Stok kartı güncellendi',
         'stock_card.delete' => 'Stok kartı silindi',

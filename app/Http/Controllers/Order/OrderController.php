@@ -29,7 +29,12 @@ class OrderController extends Controller
     public function index(Request $request): View
     {
         $orders = PurchaseOrder::query()
-            ->with('supplier:id,name')
+            ->with([
+                'supplier:id,name',
+                'lines:id,purchase_order_id,product_code,description,quantity,unit,artwork_status',
+                'lines.artwork:id,purchase_order_line_id',
+                'lines.artwork.activeRevision:id,artwork_id,created_at',
+            ])
             ->withListMetrics()
             ->when($request->supplier_id, fn ($query) => $query->where('supplier_id', $request->supplier_id))
             ->when($request->status, fn ($query) => $query->where('status', $request->status))
@@ -151,7 +156,14 @@ class OrderController extends Controller
             ]);
         }
 
-        $timeline = $timeline->sortByDesc('at')->values();
+        $sorted = $timeline->sortByDesc('at')->values();
+        $timeline = $sorted->map(function ($event, $idx) use ($sorted) {
+            $next = $sorted->get($idx + 1);
+            $event['days_gap'] = $next
+                ? round(abs($event['at']->diffInMinutes($next['at'])) / 1440, 1)
+                : null;
+            return $event;
+        });
 
         return view('orders.show', compact('order', 'timeline'));
     }

@@ -27,7 +27,15 @@ class SupplierController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        return view('admin.suppliers.index', compact('suppliers'));
+        $supplierIds = $suppliers->pluck('id');
+        $recentOrdersBySupplier = \App\Models\PurchaseOrder::whereIn('supplier_id', $supplierIds)
+            ->select(['id', 'supplier_id', 'order_no', 'order_date', 'status', 'shipment_status'])
+            ->orderByDesc('order_date')
+            ->get()
+            ->groupBy('supplier_id')
+            ->map(fn ($orders) => $orders->take(5));
+
+        return view('admin.suppliers.index', compact('suppliers', 'recentOrdersBySupplier'));
     }
 
     public function create(): View

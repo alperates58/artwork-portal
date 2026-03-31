@@ -6,7 +6,15 @@
                 <h3 class="mt-1 text-lg font-semibold text-slate-900">{{ $artworkGallery->display_name }}</h3>
                 <p class="mt-1 text-sm text-slate-500">{{ $artworkGallery->file_type_description }} · {{ $artworkGallery->file_size_formatted }}</p>
             </div>
-            <button type="button" class="btn-secondary px-3" data-dialog-close>Kapat</button>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('artworks.gallery.download', $artworkGallery) }}" class="btn btn-primary px-3 text-xs">
+                    <svg class="mr-1.5 h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    İndir
+                </a>
+                <button type="button" class="btn-secondary px-3" data-dialog-close>Kapat</button>
+            </div>
         </div>
     </div>
 

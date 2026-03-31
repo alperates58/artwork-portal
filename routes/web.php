@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\StockCardController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Artwork\ArtworkGalleryDownloadController;
 use App\Http\Controllers\Artwork\ArtworkGalleryPreviewController;
 use App\Http\Controllers\Artwork\ArtworkController;
 use App\Http\Controllers\Artwork\ArtworkPreviewController;
@@ -83,6 +84,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/indir/{revision}', [DownloadController::class, 'download'])->name('artwork.download');
         Route::get('/onizleme/{revision}', ArtworkPreviewController::class)->name('artworks.preview');
         Route::get('/galeri/{artworkGallery}/onizleme', ArtworkGalleryPreviewController::class)->name('artworks.gallery.preview');
+        Route::get('/galeri/{artworkGallery}/indir', ArtworkGalleryDownloadController::class)->name('artworks.gallery.download');
     });
 
     Route::middleware('role:admin,purchasing')

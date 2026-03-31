@@ -38,6 +38,17 @@ RUN docker-php-ext-install pdo_mysql
 RUN docker-php-ext-install pdo_sqlite
 RUN docker-php-ext-install zip
 
+# ImageMagick güvenlik politikasını gevşet: PDF/AI/EPS/PS dönüşümüne izin ver
+RUN find /etc/ImageMagick-* -name "policy.xml" -exec \
+    sed -i \
+        -e 's|<policy domain="coder" rights="none" pattern="PDF".*/>|<policy domain="coder" rights="read\|write" pattern="PDF"/>|g' \
+        -e 's|<policy domain="coder" rights="none" pattern="PS".*/>|<policy domain="coder" rights="read\|write" pattern="PS"/>|g' \
+        -e 's|<policy domain="coder" rights="none" pattern="PS2".*/>|<policy domain="coder" rights="read\|write" pattern="PS2"/>|g' \
+        -e 's|<policy domain="coder" rights="none" pattern="PS3".*/>|<policy domain="coder" rights="read\|write" pattern="PS3"/>|g' \
+        -e 's|<policy domain="coder" rights="none" pattern="EPS".*/>|<policy domain="coder" rights="read\|write" pattern="EPS"/>|g' \
+        -e 's|<policy domain="coder" rights="none" pattern="XPS".*/>|<policy domain="coder" rights="read\|write" pattern="XPS"/>|g' \
+    {} + 2>/dev/null || true
+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html

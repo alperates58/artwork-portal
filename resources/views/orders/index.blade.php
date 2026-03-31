@@ -36,57 +36,138 @@
 </form>
 
 <div class="card overflow-x-auto">
-    <table class="w-full min-w-[640px] text-sm">
+    <table class="w-full min-w-[900px] text-xs">
         <thead>
             <tr class="border-b border-slate-200 bg-slate-50">
-                <th class="text-left px-4 py-3 font-medium text-slate-600">Sipariş No</th>
-                <th class="text-left px-4 py-3 font-medium text-slate-600">Tedarikçi</th>
-                <th class="text-left px-4 py-3 font-medium text-slate-600">Tarih</th>
-                <th class="text-left px-4 py-3 font-medium text-slate-600">Durum</th>
-                <th class="text-left px-4 py-3 font-medium text-slate-600">Sevk</th>
-                <th class="text-left px-4 py-3 font-medium text-slate-600">Satır</th>
-                <th class="text-left px-4 py-3 font-medium text-slate-600">Artwork</th>
-                <th class="px-4 py-3"></th>
+                <th class="w-8 px-3 py-2.5"></th>
+                <th class="text-left px-3 py-2.5 font-semibold text-slate-500 uppercase tracking-wide">Sipariş No</th>
+                <th class="text-left px-3 py-2.5 font-semibold text-slate-500 uppercase tracking-wide">Tedarikçi</th>
+                <th class="text-left px-3 py-2.5 font-semibold text-slate-500 uppercase tracking-wide">Sipariş Tarihi</th>
+                <th class="text-left px-3 py-2.5 font-semibold text-slate-500 uppercase tracking-wide">Artwork Tarihi</th>
+                <th class="text-left px-3 py-2.5 font-semibold text-slate-500 uppercase tracking-wide">Geçen Gün</th>
+                <th class="text-left px-3 py-2.5 font-semibold text-slate-500 uppercase tracking-wide">Durum</th>
+                <th class="text-left px-3 py-2.5 font-semibold text-slate-500 uppercase tracking-wide">Sevk</th>
+                <th class="text-left px-3 py-2.5 font-semibold text-slate-500 uppercase tracking-wide">Satır</th>
+                <th class="text-left px-3 py-2.5 font-semibold text-slate-500 uppercase tracking-wide">Artwork</th>
+                <th class="px-3 py-2.5"></th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100">
-            @forelse($orders as $order)
-                <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="px-4 py-3">
-                        <a href="{{ route('orders.show', $order) }}" class="font-mono font-medium text-slate-900 hover:text-brand-700 hover:underline transition-colors">{{ $order->order_no }}</a>
-                    </td>
-                    <td class="px-4 py-3 text-slate-700">{{ $order->supplier->name }}</td>
-                    <td class="px-4 py-3 text-slate-500">{{ $order->order_date->format('d.m.Y') }}</td>
-                    <td class="px-4 py-3">
-                        <x-ui.badge :variant="match($order->status){'active' => 'success', 'draft' => 'gray', 'completed' => 'info', 'cancelled' => 'danger', default => 'gray'}">{{ $order->status_label }}</x-ui.badge>
-                    </td>
-                    <td class="px-4 py-3">
-                        <x-ui.badge :variant="match($order->shipment_status){'dispatched' => 'info', 'delivered' => 'success', 'not_found' => 'danger', default => 'warning'}">{{ $order->shipment_status_label }}</x-ui.badge>
-                    </td>
-                    <td class="px-4 py-3 text-slate-700">{{ $order->lines_count }} satır</td>
-                    <td class="px-4 py-3">
-                        <div class="flex flex-wrap gap-1.5">
+        @forelse($orders as $order)
+                @php
+                    $latestArtworkAt = $order->lines
+                        ->map(fn($l) => $l->artwork?->activeRevision?->created_at)
+                        ->filter()
+                        ->max();
+                    $daysElapsed = $order->order_date->diffInDays(now());
+                @endphp
+                <tbody x-data="{ open: false }">
+                    <tr class="border-b border-slate-100 hover:bg-slate-50/70 transition-colors">
+                        <td class="px-3 py-2.5 text-center">
+                            <button
+                                type="button"
+                                @click="open = !open"
+                                class="inline-flex h-6 w-6 items-center justify-center rounded-lg text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600"
+                                :class="open ? 'bg-brand-50 text-brand-600 rotate-0' : ''"
+                            >
+                                <svg class="h-3.5 w-3.5 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                        </td>
+                        <td class="px-3 py-2.5">
+                            <a href="{{ route('orders.show', $order) }}" class="font-mono font-semibold text-slate-900 hover:text-brand-700 transition-colors">{{ $order->order_no }}</a>
+                        </td>
+                        <td class="px-3 py-2.5 text-slate-600">{{ $order->supplier->name }}</td>
+                        <td class="px-3 py-2.5">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-slate-600">{{ $order->order_date->format('d.m.Y') }}</span>
+                                @can('update', $order)
+                                    <a href="{{ route('orders.edit', $order) }}" class="text-slate-300 hover:text-brand-600 transition-colors" title="Tarihi güncelle">
+                                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                    </a>
+                                @endcan
+                            </div>
+                        </td>
+                        <td class="px-3 py-2.5">
+                            @if($latestArtworkAt)
+                                <span class="text-slate-600">{{ $latestArtworkAt->format('d.m.Y') }}</span>
+                            @else
+                                <span class="text-slate-300">—</span>
+                            @endif
+                        </td>
+                        <td class="px-3 py-2.5">
+                            @php
+                                $dayClass = match(true) {
+                                    $daysElapsed > 30 => 'text-red-600 font-semibold',
+                                    $daysElapsed > 14 => 'text-amber-600',
+                                    default => 'text-slate-500',
+                                };
+                            @endphp
+                            <span class="{{ $dayClass }}">{{ $daysElapsed }}g</span>
+                        </td>
+                        <td class="px-3 py-2.5">
+                            <x-ui.badge :variant="match($order->status){'active' => 'success', 'draft' => 'gray', 'completed' => 'info', 'cancelled' => 'danger', default => 'gray'}">{{ $order->status_label }}</x-ui.badge>
+                        </td>
+                        <td class="px-3 py-2.5">
+                            <x-ui.badge :variant="match($order->shipment_status){'dispatched' => 'info', 'delivered' => 'success', 'not_found' => 'danger', default => 'warning'}">{{ $order->shipment_status_label }}</x-ui.badge>
+                        </td>
+                        <td class="px-3 py-2.5 text-slate-500">{{ $order->lines_count }}</td>
+                        <td class="px-3 py-2.5">
                             @if($order->pending_artwork_count > 0)
                                 <x-ui.badge variant="warning">{{ $order->pending_artwork_count }} bekliyor</x-ui.badge>
                             @else
-                                <x-ui.badge variant="success">Tamamlandı</x-ui.badge>
+                                <x-ui.badge variant="success">Tamam</x-ui.badge>
                             @endif
-
-                            @if($order->manual_artwork_count > 0)
-                                <x-ui.badge variant="info">{{ $order->manual_artwork_count }} manuel</x-ui.badge>
-                            @endif
-                        </div>
-                    </td>
-                    <td class="px-4 py-3 text-right">
-                        <a href="{{ route('orders.show', $order) }}" class="text-brand-700 hover:text-brand-800 text-xs font-medium">Detay</a>
-                    </td>
-                </tr>
+                        </td>
+                        <td class="px-3 py-2.5 text-right">
+                            <a href="{{ route('orders.show', $order) }}" class="font-medium text-brand-700 hover:text-brand-800">Detay →</a>
+                        </td>
+                    </tr>
+                    <tr x-show="open" x-cloak class="border-b border-slate-100 bg-slate-50/50">
+                        <td></td>
+                        <td colspan="10" class="px-3 py-3">
+                            <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+                                <table class="w-full text-xs">
+                                    <thead>
+                                        <tr class="border-b border-slate-100 bg-slate-50">
+                                            <th class="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Satır No</th>
+                                            <th class="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Stok Kodu</th>
+                                            <th class="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Açıklama</th>
+                                            <th class="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Miktar</th>
+                                            <th class="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Artwork</th>
+                                            <th class="px-3 py-2 text-left font-semibold text-slate-400 uppercase tracking-wide">Yüklenme</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-50">
+                                        @foreach($order->lines as $line)
+                                            <tr class="hover:bg-slate-50">
+                                                <td class="px-3 py-2 font-mono text-slate-500">{{ $line->line_no }}</td>
+                                                <td class="px-3 py-2">
+                                                    <a href="{{ route('order-lines.show', $line) }}" class="font-mono font-medium text-slate-800 hover:text-brand-700 hover:underline">{{ $line->product_code }}</a>
+                                                </td>
+                                                <td class="px-3 py-2 text-slate-600 max-w-[240px] truncate">{{ $line->description }}</td>
+                                                <td class="px-3 py-2 text-slate-600">{{ $line->quantity }} {{ $line->unit }}</td>
+                                                <td class="px-3 py-2">
+                                                    <x-ui.badge :variant="match($line->artwork_status?->value ?? 'pending'){'uploaded' => 'success','revision' => 'danger','approved' => 'info',default => 'warning'}">{{ $line->artwork_status?->label() ?? 'Bekliyor' }}</x-ui.badge>
+                                                </td>
+                                                <td class="px-3 py-2 text-slate-400">
+                                                    {{ $line->artwork?->activeRevision?->created_at?->format('d.m.Y') ?? '—' }}
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
             @empty
-                <tr>
-                    <td colspan="8" class="px-4 py-10 text-center text-slate-400">Sipariş bulunamadı.</td>
-                </tr>
+                <tbody>
+                    <tr>
+                        <td colspan="11" class="px-4 py-10 text-center text-slate-400">Sipariş bulunamadı.</td>
+                    </tr>
+                </tbody>
             @endforelse
-        </tbody>
     </table>
 
     @if($orders->hasPages())

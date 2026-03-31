@@ -11,25 +11,6 @@
 @endsection
 
 @section('content')
-<style>
-    @media (min-width: 768px) {
-        .users-desktop-table {
-            display: block !important;
-        }
-        .users-mobile-cards {
-            display: none !important;
-        }
-    }
-    @media (max-width: 767.98px) {
-        .users-desktop-table {
-            display: none !important;
-        }
-        .users-mobile-cards {
-            display: block !important;
-        }
-    }
-</style>
-
 <form method="GET" class="card mb-5 p-4">
     <div class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
         <input type="text" name="search" value="{{ request('search') }}" placeholder="İsim veya e-posta ara..." class="input w-full">
@@ -55,111 +36,92 @@
 </form>
 
 <div class="card overflow-hidden">
-    <div class="users-desktop-table overflow-x-auto">
-        <table class="w-full min-w-[860px] text-sm">
-            <thead>
-                <tr class="border-b border-slate-200 bg-slate-50">
-                    <th class="px-4 py-3 text-left font-medium text-slate-600">Kullanıcı</th>
-                    <th class="px-4 py-3 text-left font-medium text-slate-600">Rol</th>
-                    <th class="px-4 py-3 text-left font-medium text-slate-600">Departman</th>
-                    <th class="px-4 py-3 text-left font-medium text-slate-600">Tedarikçi</th>
-                    <th class="px-4 py-3 text-left font-medium text-slate-600">Son Giriş</th>
-                    <th class="px-4 py-3 text-left font-medium text-slate-600">Durum</th>
-                    <th class="px-4 py-3"></th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-                @forelse($users as $user)
-                    <tr class="hover:bg-slate-50">
-                        <td class="px-4 py-3">
-                            <p class="font-medium text-slate-900">{{ $user->name }}</p>
-                            <p class="text-xs text-slate-500">{{ $user->email }}</p>
-                        </td>
-                        <td class="px-4 py-3">
-                            @php $roleCls = match($user->role->value) {'admin' => 'badge-danger', 'graphic' => 'badge-info', 'purchasing' => 'badge-warning', default => 'badge-gray'}; @endphp
-                            <span class="badge {{ $roleCls }}">{{ $user->role->label() }}</span>
-                        </td>
-                        <td class="px-4 py-3 text-sm text-slate-600">{{ $user->department?->name ?? '—' }}</td>
-                        <td class="px-4 py-3 text-sm text-slate-600">{{ $user->supplier?->name ?? '—' }}</td>
-                        <td class="px-4 py-3 text-xs text-slate-500">{{ $user->last_login_at?->format('d.m.Y H:i') ?? 'Henüz giriş yapmadı' }}</td>
-                        <td class="px-4 py-3">
-                            @if($user->is_active)
-                                <span class="badge badge-success">Aktif</span>
-                            @else
-                                <span class="badge badge-gray">Pasif</span>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 text-right">
-                            <div class="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-                                <a href="{{ route('admin.users.edit', $user) }}" class="text-xs text-brand-700 hover:underline">Düzenle</a>
-                                @if($user->id !== auth()->id())
-                                    <form method="POST" action="{{ route('admin.users.toggle', $user) }}">
-                                        @csrf @method('PATCH')
-                                        <button type="submit" class="text-xs {{ $user->is_active ? 'text-amber-600' : 'text-emerald-600' }} hover:underline">
-                                            {{ $user->is_active ? 'Pasife Al' : 'Aktif Et' }}
-                                        </button>
-                                    </form>
-                                    <form method="POST" action="{{ route('admin.users.destroy', $user) }}"
-                                          onsubmit="return confirm('{{ $user->name }} kullanıcısını silmek istediğinize emin misiniz?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="text-xs text-red-500 hover:underline">Sil</button>
-                                    </form>
-                                @endif
+    <table class="w-full min-w-[760px] text-xs">
+        <thead>
+            <tr class="border-b border-slate-200 bg-slate-50">
+                <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-slate-500">Kullanıcı</th>
+                <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-slate-500">Rol</th>
+                <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-slate-500">Departman</th>
+                <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-slate-500">Tedarikçi</th>
+                <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-slate-500">Son Giriş</th>
+                <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-slate-500">Durum</th>
+                <th class="px-4 py-2.5"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+            @forelse($users as $user)
+                @php
+                    $initials = collect(explode(' ', $user->name))
+                        ->filter()
+                        ->take(2)
+                        ->map(fn($w) => mb_strtoupper(mb_substr($w, 0, 1)))
+                        ->implode('');
+                    $avatarColor = match($user->role->value) {
+                        'admin'      => 'bg-red-100 text-red-700',
+                        'graphic'    => 'bg-blue-100 text-blue-700',
+                        'purchasing' => 'bg-amber-100 text-amber-700',
+                        default      => 'bg-slate-100 text-slate-600',
+                    };
+                @endphp
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-3">
+                            <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full {{ $avatarColor }} text-xs font-bold">
+                                {{ $initials }}
                             </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="px-4 py-10 text-center text-slate-400">Kullanıcı bulunamadı.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-
-    <div class="users-mobile-cards divide-y divide-slate-100">
-        @forelse($users as $user)
-            <div class="p-4">
-                <div class="flex items-start justify-between gap-3">
-                    <div>
-                        <p class="font-medium text-slate-900">{{ $user->name }}</p>
-                        <p class="text-xs text-slate-500">{{ $user->email }}</p>
-                    </div>
-                    @if($user->is_active)
-                        <span class="badge badge-success">Aktif</span>
-                    @else
-                        <span class="badge badge-gray">Pasif</span>
-                    @endif
-                </div>
-
-                <div class="mt-3 space-y-1 text-xs text-slate-600">
-                    <p><span class="text-slate-400">Rol:</span> {{ $user->role->label() }}</p>
-                    <p><span class="text-slate-400">Departman:</span> {{ $user->department?->name ?? '—' }}</p>
-                    <p><span class="text-slate-400">Tedarikçi:</span> {{ $user->supplier?->name ?? '—' }}</p>
-                    <p><span class="text-slate-400">Son giriş:</span> {{ $user->last_login_at?->format('d.m.Y H:i') ?? 'Henüz giriş yapmadı' }}</p>
-                </div>
-
-                <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <a href="{{ route('admin.users.edit', $user) }}" class="text-xs text-brand-700 hover:underline">Düzenle</a>
-                    @if($user->id !== auth()->id())
-                        <form method="POST" action="{{ route('admin.users.toggle', $user) }}">
-                            @csrf @method('PATCH')
-                            <button type="submit" class="text-xs {{ $user->is_active ? 'text-amber-600' : 'text-emerald-600' }} hover:underline">
-                                {{ $user->is_active ? 'Pasife Al' : 'Aktif Et' }}
-                            </button>
-                        </form>
-                        <form method="POST" action="{{ route('admin.users.destroy', $user) }}"
-                              onsubmit="return confirm('{{ $user->name }} kullanıcısını silmek istediğinize emin misiniz?')">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="text-xs text-red-500 hover:underline">Sil</button>
-                        </form>
-                    @endif
-                </div>
-            </div>
-        @empty
-            <div class="px-4 py-10 text-center text-slate-400">Kullanıcı bulunamadı.</div>
-        @endforelse
-    </div>
+                            <div>
+                                <p class="font-semibold text-slate-900">{{ $user->name }}</p>
+                                <p class="text-slate-400">{{ $user->email }}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        @php $roleCls = match($user->role->value) {'admin' => 'badge-danger', 'graphic' => 'badge-info', 'purchasing' => 'badge-warning', default => 'badge-gray'}; @endphp
+                        <span class="badge {{ $roleCls }}">{{ $user->role->label() }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-slate-600">{{ $user->department?->name ?? '—' }}</td>
+                    <td class="px-4 py-3 text-slate-600">{{ $user->supplier?->name ?? '—' }}</td>
+                    <td class="px-4 py-3 text-slate-400">
+                        @if($user->last_login_at)
+                            <span class="text-slate-600">{{ $user->last_login_at->format('d.m.Y') }}</span>
+                            <span class="text-slate-400"> {{ $user->last_login_at->format('H:i') }}</span>
+                        @else
+                            <span class="text-slate-300">Henüz giriş yapmadı</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3">
+                        @if($user->is_active)
+                            <span class="badge badge-success">Aktif</span>
+                        @else
+                            <span class="badge badge-gray">Pasif</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <div class="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+                            <a href="{{ route('admin.users.edit', $user) }}" class="font-medium text-brand-700 hover:underline">Düzenle</a>
+                            @if($user->id !== auth()->id())
+                                <form method="POST" action="{{ route('admin.users.toggle', $user) }}">
+                                    @csrf @method('PATCH')
+                                    <button type="submit" class="font-medium {{ $user->is_active ? 'text-amber-600' : 'text-emerald-600' }} hover:underline">
+                                        {{ $user->is_active ? 'Pasife Al' : 'Aktif Et' }}
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ route('admin.users.destroy', $user) }}"
+                                      onsubmit="return confirm('{{ $user->name }} kullanıcısını silmek istediğinize emin misiniz?')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="font-medium text-red-500 hover:underline">Sil</button>
+                                </form>
+                            @endif
+                        </div>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="7" class="px-4 py-10 text-center text-slate-400">Kullanıcı bulunamadı.</td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
 
     @if($users->hasPages())
         <div class="border-t border-slate-100 px-4 py-3">{{ $users->links() }}</div>

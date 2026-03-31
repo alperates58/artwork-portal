@@ -212,15 +212,30 @@ class ArtworkPreviewGenerator
 
     private function previewDestinationPath(ArtworkRevision $revision): string
     {
-        $orderLine = $revision->artwork->orderLine;
+        // Gallery-only revisions have no artwork (order) association
+        if ($revision->artwork && $revision->artwork->orderLine) {
+            $orderLine = $revision->artwork->orderLine;
 
-        return $this->spaces->buildVariantPath(
-            supplierId: $orderLine->purchaseOrder->supplier_id,
-            orderNo: $orderLine->purchaseOrder->order_no,
-            lineId: $orderLine->id,
-            revisionNo: $revision->revision_no,
-            variant: 'preview',
-            extension: self::PREVIEW_EXTENSION,
+            return $this->spaces->buildVariantPath(
+                supplierId: $orderLine->purchaseOrder->supplier_id,
+                orderNo: $orderLine->purchaseOrder->order_no,
+                lineId: $orderLine->id,
+                revisionNo: $revision->revision_no,
+                variant: 'preview',
+                extension: self::PREVIEW_EXTENSION,
+            );
+        }
+
+        // Gallery-only revision: use gallery item path convention
+        $galleryId = $revision->artwork_gallery_id ?? 0;
+        $uuid = (string) \Illuminate\Support\Str::uuid();
+
+        return sprintf(
+            'artworks/gallery/%d/rev/%d/preview/%s.%s',
+            $galleryId,
+            $revision->revision_no ?? 0,
+            $uuid,
+            self::PREVIEW_EXTENSION
         );
     }
 

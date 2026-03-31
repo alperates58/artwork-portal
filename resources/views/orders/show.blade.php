@@ -10,90 +10,104 @@
 @endsection
 
 @section('content')
-<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-    <div class="space-y-4 lg:col-span-1">
-        <div class="card space-y-4 p-5">
+{{-- ─── Order Header ───────────────────────────────────────────────────────── --}}
+<div x-data="{ showDelete: false }" class="mb-6">
+    <div class="card px-6 py-5">
+        <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
-                <p class="mb-0.5 text-xs text-slate-500">Sipariş No</p>
-                <p class="font-mono text-lg font-semibold text-slate-900">{{ $order->order_no }}</p>
-            </div>
-            <div>
-                <p class="mb-0.5 text-xs text-slate-500">Tedarikçi</p>
-                <p class="text-sm font-medium text-slate-900">{{ $order->supplier->name }}</p>
-                <p class="text-xs text-slate-500">{{ $order->supplier->code }}</p>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <p class="mb-0.5 text-xs text-slate-500">Sipariş Tarihi</p>
-                    <p class="text-sm text-slate-900">{{ $order->order_date->format('d.m.Y') }}</p>
-                </div>
-                <div>
-                    <p class="mb-0.5 text-xs text-slate-500">Teslim Tarihi</p>
-                    <p class="text-sm text-slate-900">{{ $order->due_date?->format('d.m.Y') ?? '—' }}</p>
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <p class="mb-0.5 text-xs text-slate-500">Durum</p>
+                <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Sipariş No</p>
+                <p class="mt-1 font-mono text-3xl font-bold tracking-tight text-slate-900">{{ $order->order_no }}</p>
+                <div class="mt-2 flex flex-wrap items-center gap-2">
                     <x-ui.badge :variant="match($order->status){'active' => 'success', 'draft' => 'gray', 'completed' => 'info', 'cancelled' => 'danger', default => 'gray'}">{{ $order->status_label }}</x-ui.badge>
-                </div>
-                <div>
-                    <p class="mb-0.5 text-xs text-slate-500">Sevk</p>
                     <x-ui.badge :variant="match($order->shipment_status){'dispatched' => 'info', 'delivered' => 'success', 'not_found' => 'danger', default => 'warning'}">{{ $order->shipment_status_label }}</x-ui.badge>
-                </div>
-            </div>
-            @if($order->shipment_reference || $order->shipment_synced_at)
-                <div>
-                    <p class="mb-0.5 text-xs text-slate-500">Mikro Bilgisi</p>
-                    <p class="text-sm text-slate-700">{{ $order->shipment_reference ?: 'Referans bekleniyor' }}</p>
-                    <p class="text-xs text-slate-400">{{ $order->shipment_synced_at?->format('d.m.Y H:i') ?? 'Henüz senkronlanmadı' }}</p>
-                </div>
-            @endif
-            @if($order->notes)
-                <div>
-                    <p class="mb-0.5 text-xs text-slate-500">Notlar</p>
-                    <p class="text-sm text-slate-700">{{ $order->notes }}</p>
-                </div>
-            @endif
-            <div>
-                <p class="mb-0.5 text-xs text-slate-500">Artwork Süreci</p>
-                <div class="flex flex-wrap gap-1.5">
                     @if($order->pending_artwork_count > 0)
-                        <x-ui.badge variant="warning">{{ $order->pending_artwork_count }} satır bekliyor</x-ui.badge>
+                        <x-ui.badge variant="warning">{{ $order->pending_artwork_count }} satır artwork bekliyor</x-ui.badge>
                     @else
-                        <x-ui.badge variant="success">Tamamlandı</x-ui.badge>
+                        <x-ui.badge variant="success">Artwork tamamlandı</x-ui.badge>
                     @endif
-
                     @if($order->manual_artwork_count > 0)
                         <x-ui.badge variant="info">{{ $order->manual_artwork_count }} satır manuel</x-ui.badge>
                     @endif
                 </div>
             </div>
-            <div>
-                <p class="mb-0.5 text-xs text-slate-500">Oluşturan</p>
-                <p class="text-sm text-slate-700">{{ $order->createdBy->name }}</p>
-                <p class="text-xs text-slate-400">{{ $order->created_at->format('d.m.Y H:i') }}</p>
-            </div>
+            @can('delete', $order)
+                <button
+                    type="button"
+                    @click="showDelete = !showDelete"
+                    class="btn btn-secondary border-red-200 text-red-600 hover:bg-red-50"
+                    :class="showDelete ? 'bg-red-50' : ''"
+                >
+                    <svg class="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    Siparişi Sil
+                </button>
+            @endcan
         </div>
 
         @can('delete', $order)
-            <div class="card border border-red-100 p-5">
-                <h2 class="text-sm font-semibold text-red-700">Siparişi Sil</h2>
-                <p class="mt-2 text-xs text-slate-500">Bu işlem bağlı satırları, artwork kayıtlarını ve revizyon loglarını da kaldırır. Onay için sipariş numarasını yazın.</p>
-                <form method="POST" action="{{ route('orders.destroy', $order) }}" class="mt-4 space-y-3" onsubmit="return confirm('Bu siparişi kalıcı olarak silmek istediğinize emin misiniz?');">
-                    @csrf
-                    @method('DELETE')
-                    <input type="text" name="confirmation_text" class="input" placeholder="{{ $order->order_no }}">
-                    <button type="submit" class="btn btn-secondary border-red-200 text-red-600 hover:bg-red-50">Siparişi Sil</button>
-                </form>
+            <div x-show="showDelete" x-cloak class="mt-5 border-t border-red-100 pt-5">
+                <div class="rounded-2xl border border-red-100 bg-red-50/60 px-5 py-4">
+                    <p class="text-sm font-semibold text-red-700">Siparişi kalıcı olarak sil</p>
+                    <p class="mt-1 text-xs text-slate-500">Bu işlem bağlı satırları, artwork kayıtlarını ve revizyon loglarını da kaldırır. Onay için sipariş numarasını (<span class="font-mono font-semibold">{{ $order->order_no }}</span>) yazın.</p>
+                    <form method="POST" action="{{ route('orders.destroy', $order) }}" class="mt-3 flex flex-wrap items-center gap-3" onsubmit="return confirm('Bu siparişi kalıcı olarak silmek istediğinize emin misiniz?');">
+                        @csrf
+                        @method('DELETE')
+                        <input type="text" name="confirmation_text" class="input w-48 text-sm" placeholder="{{ $order->order_no }}">
+                        <button type="submit" class="btn btn-secondary border-red-300 bg-red-600 text-white hover:bg-red-700">Evet, Sil</button>
+                        <button type="button" class="btn btn-secondary" @click="showDelete = false">Vazgeç</button>
+                    </form>
+                </div>
             </div>
         @endcan
     </div>
+</div>
 
+{{-- ─── Main Content Grid ─────────────────────────────────────────────────── --}}
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+
+    {{-- Left: Metadata ──────────────────────────────────────────────────────── --}}
+    <div class="space-y-4 lg:col-span-1">
+        <div class="card divide-y divide-slate-100">
+            <div class="px-5 py-3">
+                <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Tedarikçi</p>
+                <p class="mt-0.5 text-sm font-semibold text-slate-900">{{ $order->supplier->name }}</p>
+                <p class="text-xs text-slate-500">{{ $order->supplier->code }}</p>
+            </div>
+            <div class="grid grid-cols-2 divide-x divide-slate-100">
+                <div class="px-5 py-3">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Sipariş Tarihi</p>
+                    <p class="mt-0.5 text-sm text-slate-900">{{ $order->order_date->format('d.m.Y') }}</p>
+                </div>
+                <div class="px-5 py-3">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Teslim Tarihi</p>
+                    <p class="mt-0.5 text-sm text-slate-900">{{ $order->due_date?->format('d.m.Y') ?? '—' }}</p>
+                </div>
+            </div>
+            @if($order->shipment_reference || $order->shipment_synced_at)
+                <div class="px-5 py-3">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Mikro Bilgisi</p>
+                    <p class="mt-0.5 text-sm text-slate-700">{{ $order->shipment_reference ?: 'Referans bekleniyor' }}</p>
+                    <p class="text-xs text-slate-400">{{ $order->shipment_synced_at?->format('d.m.Y H:i') ?? 'Henüz senkronlanmadı' }}</p>
+                </div>
+            @endif
+            @if($order->notes)
+                <div class="px-5 py-3">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Notlar</p>
+                    <p class="mt-0.5 text-sm text-slate-700">{{ $order->notes }}</p>
+                </div>
+            @endif
+            <div class="px-5 py-3">
+                <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Oluşturan</p>
+                <p class="mt-0.5 text-sm text-slate-700">{{ $order->createdBy->name }}</p>
+                <p class="text-xs text-slate-400">{{ $order->created_at->format('d.m.Y H:i') }}</p>
+            </div>
+        </div>
+    </div>
+
+    {{-- Right: Lines + Notes ────────────────────────────────────────────────── --}}
     <div class="space-y-6 lg:col-span-2">
         <div class="card">
             <div class="border-b border-slate-100 px-5 py-4">
-                <h2 class="text-sm font-semibold text-slate-900">Sipariş Satırları ({{ $order->lines->count() }})</h2>
+                <h2 class="text-sm font-semibold text-slate-900">Sipariş Satırları <span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">{{ $order->lines->count() }}</span></h2>
             </div>
 
             <div class="divide-y divide-slate-100">
@@ -103,7 +117,7 @@
                             <div class="min-w-0 flex-1">
                                 <div class="mb-1 flex flex-wrap items-center gap-2">
                                     <span class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">{{ $line->line_no }}</span>
-                                    <a href="{{ route('order-lines.show', $line) }}" class="text-sm font-medium text-slate-900 hover:text-brand-700 hover:underline">{{ $line->product_code }}</a>
+                                    <a href="{{ route('order-lines.show', $line) }}" class="text-sm font-semibold text-slate-900 hover:text-brand-700 hover:underline">{{ $line->product_code }}</a>
                                     @if($line->is_manual_artwork_completed && ! $line->hasActiveArtwork())
                                         <x-ui.badge variant="info">Manuel gönderildi</x-ui.badge>
                                     @else
@@ -145,6 +159,21 @@
                             </div>
                         </div>
 
+                        @if($line->hasActiveArtwork())
+                            <div class="mt-3 flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                                <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-slate-200">
+                                    <span class="text-[10px] font-bold text-slate-600">{{ $line->activeRevision->extension }}</span>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-xs font-medium text-slate-700">{{ $line->activeRevision->original_filename }}</p>
+                                    <p class="text-xs text-slate-400">
+                                        Rev.{{ $line->activeRevision->revision_no }} · {{ $line->activeRevision->file_size_formatted }} · {{ $line->activeRevision->uploadedBy->name }} · {{ $line->activeRevision->created_at->format('d.m.Y H:i') }}
+                                    </p>
+                                </div>
+                                <x-ui.badge variant="success" class="text-xs">Güncel</x-ui.badge>
+                            </div>
+                        @endif
+
                         <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50/80">
                             <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
                                 <div>
@@ -153,7 +182,7 @@
                                 </div>
                                 <button type="button" class="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800" @click="showCreate = !showCreate; if (showCreate) { replyTo = null; }">
                                     <span class="text-base leading-none">+</span>
-                                    <span>Sipariş açıklama ekle</span>
+                                    <span>Açıklama ekle</span>
                                 </button>
                             </div>
 
@@ -161,7 +190,7 @@
                                 @forelse($line->lineNotes as $note)
                                     @include('orders.partials.note-thread', ['note' => $note, 'order' => $order, 'line' => $line])
                                 @empty
-                                    <p class="text-sm text-slate-400">Bu satır için henüz açıklama eklenmemiş.</p>
+                                    <p class="text-sm text-slate-400">Henüz açıklama eklenmemiş.</p>
                                 @endforelse
 
                                 <form method="POST" action="{{ route('orders.notes.store', $order) }}" class="rounded-lg border border-dashed border-slate-300 bg-white p-3" x-show="showCreate" x-cloak>
@@ -201,21 +230,6 @@
                                 </form>
                             @endif
                         @endcan
-
-                        @if($line->hasActiveArtwork())
-                            <div class="mt-3 flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2">
-                                <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded bg-slate-200">
-                                    <span class="text-xs font-bold text-slate-600">{{ $line->activeRevision->extension }}</span>
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                    <p class="truncate text-xs font-medium text-slate-700">{{ $line->activeRevision->original_filename }}</p>
-                                    <p class="text-xs text-slate-400">
-                                        Rev.{{ $line->activeRevision->revision_no }} · {{ $line->activeRevision->file_size_formatted }} · {{ $line->activeRevision->uploadedBy->name }} · {{ $line->activeRevision->created_at->format('d.m.Y H:i') }}
-                                    </p>
-                                </div>
-                                <x-ui.badge variant="success" class="text-xs">Güncel</x-ui.badge>
-                            </div>
-                        @endif
                     </div>
                 @endforeach
             </div>
@@ -260,6 +274,7 @@
         </div>
     </div>
 
+    {{-- ─── Timeline (full width) ─────────────────────────────────────────── --}}
     <div class="lg:col-span-3">
         <div class="card">
             <div class="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
@@ -267,15 +282,17 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 <h3 class="text-sm font-semibold text-slate-800">Aktivite Zaman Çizelgesi</h3>
+                <span class="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">{{ $timeline->count() }} olay</span>
             </div>
 
             @if($timeline->isEmpty())
                 <div class="px-5 py-8 text-center text-sm text-slate-400">Henüz aktivite yok.</div>
             @else
-                <div class="px-5 py-4">
-                    <ol class="relative ml-3 space-y-0 border-l border-slate-200">
+                <div class="px-5 py-6">
+                    <ol class="relative ml-3 border-l border-slate-200">
                         @foreach($timeline as $event)
-                            <li class="mb-6 ml-6">
+                            <li class="mb-0 ml-6">
+                                {{-- Event node --}}
                                 <span class="absolute -left-3 flex h-6 w-6 items-center justify-center rounded-full ring-4 ring-white
                                     @if($event['color'] === 'violet') bg-violet-100 text-violet-600
                                     @elseif($event['color'] === 'blue') bg-blue-100 text-blue-600
@@ -294,17 +311,39 @@
                                         <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8m-2 10H5a2 2 0 01-2-2V8a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2z"/></svg>
                                     @endif
                                 </span>
-                                <div>
-                                    <p class="text-sm font-medium text-slate-800">{{ $event['title'] }}</p>
+
+                                {{-- Event content --}}
+                                <div class="pb-5 pt-0.5">
+                                    <p class="text-sm font-semibold text-slate-800">{{ $event['title'] }}</p>
                                     <p class="text-xs text-slate-500">{{ $event['sub'] }}</p>
                                     @if(! empty($event['body']))
-                                        <p class="mt-1 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">{{ $event['body'] }}</p>
+                                        <p class="mt-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">{{ $event['body'] }}</p>
                                     @endif
-                                    <time class="mt-0.5 block text-[11px] text-slate-400">
+                                    <time class="mt-1 block text-[11px] text-slate-400">
                                         {{ $event['at']->format('d.m.Y H:i') }}
-                                        <span class="ml-1">({{ $event['at']->diffForHumans() }})</span>
+                                        <span class="ml-1 text-slate-300">({{ $event['at']->diffForHumans() }})</span>
                                     </time>
                                 </div>
+
+                                {{-- Time-gap bar between events --}}
+                                @if(! $loop->last && ! is_null($event['days_gap']))
+                                    @php
+                                        $gap = $event['days_gap'];
+                                        [$barBg, $textCls] = match(true) {
+                                            $gap < 1   => ['bg-emerald-400', 'text-emerald-600'],
+                                            $gap < 3   => ['bg-amber-400',   'text-amber-600'],
+                                            $gap < 7   => ['bg-orange-400',  'text-orange-600'],
+                                            default    => ['bg-red-500',     'text-red-600'],
+                                        };
+                                        $barPct = min(100, max(6, $gap <= 0 ? 6 : intval(min(log($gap + 1, 2) * 28, 100))));
+                                    @endphp
+                                    <div class="mb-4 ml-0 flex items-center gap-2 pl-0">
+                                        <div class="relative h-1 flex-1 overflow-hidden rounded-full bg-slate-100">
+                                            <div class="{{ $barBg }} absolute left-0 top-0 h-full rounded-full" style="width: {{ $barPct }}%"></div>
+                                        </div>
+                                        <span class="w-16 text-right text-[10px] font-semibold {{ $textCls }}">{{ number_format($gap, 1, ',', '.') }} gün</span>
+                                    </div>
+                                @endif
                             </li>
                         @endforeach
                     </ol>

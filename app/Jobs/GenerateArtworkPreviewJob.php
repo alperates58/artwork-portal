@@ -26,7 +26,7 @@ class GenerateArtworkPreviewJob implements ShouldQueue
     {
         $revision = ArtworkRevision::query()
             ->with([
-                'galleryItem:id,file_disk',
+                'galleryItem:id,file_disk,preview_file_disk',
                 'artwork.orderLine.purchaseOrder:id,supplier_id,order_no',
             ])
             ->find($this->revisionId);
