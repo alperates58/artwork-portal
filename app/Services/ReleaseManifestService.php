@@ -8,6 +8,10 @@ class ReleaseManifestService
 {
     private const MANIFEST_PATH = 'releases/manifest.json';
 
+    public function __construct(
+        private PortalSettings $settings,
+    ) {}
+
     public function localManifest(): array
     {
         $path = base_path(self::MANIFEST_PATH);
@@ -40,25 +44,34 @@ class ReleaseManifestService
 
     public function remoteManifest(?string $branch = null): ?array
     {
-        $repository = (string) config('services.github_updates.repository');
-        $branch ??= config('services.github_updates.branch', 'main');
+        $githubUpdate = $this->settings->githubUpdatesConfig();
+        $repository = (string) ($githubUpdate['repository'] ?? '');
+        $branch ??= $githubUpdate['branch'] ?? 'main';
 
         if ($repository === '' || $branch === '') {
             return null;
         }
 
-        $response = Http::baseUrl('https://raw.githubusercontent.com')
+        $response = Http::baseUrl('https://api.github.com')
+            ->acceptJson()
             ->timeout(10)
             ->withHeaders([
                 'User-Agent' => config('app.name', 'Lider Portal') . ' release-manifest-check',
             ])
-            ->get('/' . trim($repository, '/') . '/' . rawurlencode($branch) . '/' . self::MANIFEST_PATH);
+            ->when(
+                filled($githubUpdate['token'] ?? null),
+                fn ($request) => $request->withToken((string) $githubUpdate['token'])
+            )
+            ->get('/repos/' . trim($repository, '/') . '/contents/' . self::MANIFEST_PATH, [
+                'ref' => $branch,
+            ]);
 
         if (! $response->successful()) {
             return null;
         }
 
-        $decoded = json_decode($response->body(), true);
+        $content = base64_decode((string) data_get($response->json(), 'content'), true);
+        $decoded = json_decode($content ?: '', true);
 
         return is_array($decoded) ? $decoded : null;
     }

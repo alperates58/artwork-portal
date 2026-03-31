@@ -216,6 +216,9 @@
                                 ? \Illuminate\Support\Carbon::parse($updateStatus['last_checked_at'])->timezone($displayTimezone)
                                 : null;
                             $updateAvailable = $updateStatus['update_available'];
+                            $githubRepository = old('github_updates.repository', $githubUpdate['repository'] ?? '');
+                            $githubBranch = old('github_updates.branch', $githubUpdate['branch'] ?? 'main');
+                            $githubRepositoryUrl = $githubUpdate['repository_url'] ?? (filled($githubRepository) ? 'https://github.com/' . trim((string) preg_replace('#^https?://github\.com/#i', '', $githubRepository), '/') : null);
                         @endphp
                         <div class="space-y-5">
 
@@ -276,6 +279,56 @@
                             </div>
 
                             {{-- ── Eylemler ── --}}
+                            <form method="POST" action="{{ route('admin.settings.update', ['tab' => 'updates']) }}" class="rounded-2xl border border-slate-200 bg-white p-5 space-y-5">
+                                @csrf
+                                @method('PUT')
+                                <input type="hidden" name="tab" value="updates">
+                                <input type="hidden" name="settings_section" value="github_updates">
+
+                                <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+                                    <div>
+                                        <h3 class="text-sm font-semibold text-slate-900">GitHub Update Bağlantısı</h3>
+                                        <p class="mt-1 text-xs leading-5 text-slate-500">
+                                            Private repo kullanacaksanız repository, branch ve token bilgisini burada kaydedin.
+                                            Web update akışı bu ayarı kullanır; terminal için ayrıca SSH deploy key veya credential helper tanımlı kalmalıdır.
+                                        </p>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        @if(!empty($githubUpdate['has_token']))
+                                            <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">Token kayıtlı</span>
+                                        @else
+                                            <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">Public repo veya harici git yetkisi gerekir</span>
+                                        @endif
+                                        @if($githubRepositoryUrl)
+                                            <a href="{{ $githubRepositoryUrl }}" target="_blank" rel="noreferrer" class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-200">Repoyu Aç</a>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <div class="grid gap-4 md:grid-cols-3">
+                                    <div class="md:col-span-2">
+                                        <label class="label">Repository</label>
+                                        <input class="input font-mono" type="text" name="github_updates[repository]" value="{{ $githubRepository }}" placeholder="alperates58/artwork-portal veya https://github.com/alperates58/artwork-portal">
+                                        <p class="mt-1 text-xs text-slate-500">Owner/repo veya tam GitHub URL kabul edilir.</p>
+                                    </div>
+                                    <div>
+                                        <label class="label">Branch</label>
+                                        <input class="input font-mono" type="text" name="github_updates[branch]" value="{{ $githubBranch }}" placeholder="main">
+                                        <p class="mt-1 text-xs text-slate-500">Commit kontrolü ve deploy bu branch üzerinden çalışır.</p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="label">GitHub Token</label>
+                                    <input class="input" type="password" name="github_updates[token]" value="" placeholder="{{ !empty($githubUpdate['has_token']) ? 'Kayıtlı token var, değiştirmek için yeniden girin' : 'Private repo için read access token girin' }}">
+                                    <p class="mt-1 text-xs text-slate-500">Öneri: Fine-grained PAT, yalnızca bu repo için <code class="font-mono text-[11px]">Contents: Read</code> izni.</p>
+                                </div>
+
+                                <div class="flex justify-end">
+                                    <button type="submit" class="btn btn-primary">GitHub Bağlantısını Kaydet</button>
+                                </div>
+                            </form>
+
                             <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 px-5 py-3">
                                 <p class="text-xs text-slate-500">
                                     GitHub'dan commit geçmişini yükleyin veya sunucuyu güncelleyin.

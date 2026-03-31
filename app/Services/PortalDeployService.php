@@ -7,8 +7,12 @@ use Symfony\Component\Process\Process;
 
 class PortalDeployService
 {
+    public function __construct(
+        private PortalSettings $settings,
+    ) {}
+
     /**
-     * GitHub'dan kodu çek ve update adımlarını uygula.
+     * GitHub'dan kodu cek ve update adimlarini uygula.
      */
     public function deploy(): array
     {
@@ -25,7 +29,7 @@ class PortalDeployService
     }
 
     /**
-     * Sadece update adımlarını uygula (git pull manuel yapıldıysa).
+     * Sadece update adimlarini uygula (git pull manuel yapildiysa).
      */
     public function applyOnly(): array
     {
@@ -35,9 +39,27 @@ class PortalDeployService
     private function runGitPull(): array
     {
         $base = base_path();
-        $gitArgs = ['git', '-c', "safe.directory={$base}", '-C', $base, 'pull', 'origin', 'main'];
+        $githubUpdate = $this->settings->githubUpdatesConfig();
+        $branch = $githubUpdate['branch'] ?? 'main';
+        $repository = $githubUpdate['repository'] ?? null;
+        $token = $githubUpdate['token'] ?? null;
+        $gitArgs = ['git', '-c', "safe.directory={$base}", '-C', $base];
+        $displayCommand = 'git pull origin ' . $branch;
 
-        $step = $this->runProcessCommand('git pull origin main', $gitArgs, $base);
+        if (filled($repository) && filled($token)) {
+            $displayCommand = 'git pull github-auth ' . $branch;
+            $gitArgs[] = '-c';
+            $gitArgs[] = 'http.extraHeader=Authorization: Basic ' . base64_encode('x-access-token:' . $token);
+            $gitArgs[] = 'pull';
+            $gitArgs[] = 'https://github.com/' . trim($repository, '/') . '.git';
+            $gitArgs[] = $branch;
+        } else {
+            $gitArgs[] = 'pull';
+            $gitArgs[] = 'origin';
+            $gitArgs[] = $branch;
+        }
+
+        $step = $this->runProcessCommand($displayCommand, $gitArgs, $base);
         if ($step['ok']) {
             return $step;
         }
@@ -46,7 +68,7 @@ class PortalDeployService
 
         if (str_contains(strtolower($firstOutput), 'permission denied')) {
             $sudoStep = $this->runProcessCommand(
-                'git pull origin main (sudo)',
+                $displayCommand . ' (sudo)',
                 ['sudo', '-n', ...$gitArgs],
                 $base
             );
@@ -55,16 +77,16 @@ class PortalDeployService
                 return $sudoStep;
             }
 
-            $hint = "\n\n──────────────────────────────────────\n"
-                . "İzin hatası: PHP konteyneri .git/ dizinine yazamıyor.\n"
-                . "Sunucuda şu komutu çalıştırın:\n\n"
+            $hint = "\n\n--------------------------------------\n"
+                . "Izin hatasi: PHP konteyneri .git/ dizinine yazamiyor.\n"
+                . "Sunucuda su komutu calistirin:\n\n"
                 . "  sudo chown -R www-data:www-data /var/www/artwork-portal\n\n"
-                . "Veya git pull'u host'tan manuel çalıştırın,\n"
-                . "ardından \"Artisan Adımlarını Uygula\" butonunu kullanın.";
+                . "Veya git pull'u host'tan manuel calistirin,\n"
+                . "ardindan \"Artisan Adimlarini Uygula\" butonunu kullanin.";
 
             return [
-                'cmd' => 'git pull origin main',
-                'output' => trim(($firstOutput ?: '(çıktı yok)') . $hint),
+                'cmd' => $displayCommand,
+                'output' => trim(($firstOutput ?: '(cikti yok)') . $hint),
                 'ok' => false,
             ];
         }
@@ -82,9 +104,9 @@ class PortalDeployService
         $composerStep = $this->runComposerInstall();
         if (! $composerStep['ok']) {
             $composerStep['cmd'] = 'UYARI · ' . $composerStep['cmd'];
-            $composerStep['output'] = "Composer bağımlılıkları güncellenemedi. Yeni PHP paketi eklendiyse manuel olarak çalıştırın:\n"
+            $composerStep['output'] = "Composer bagimliliklari guncellenemedi. Yeni PHP paketi eklendiyse manuel olarak calistirin:\n"
                 . "  docker compose exec app composer install --no-dev --optimize-autoloader\n\n"
-                . ($composerStep['output'] ?? '(çıktı yok)');
+                . ($composerStep['output'] ?? '(cikti yok)');
             $composerStep['ok'] = true;
             $hasWarnings = true;
         }
@@ -101,8 +123,8 @@ class PortalDeployService
         foreach ($frontendBuild['steps'] as $frontendStep) {
             if (! ($frontendStep['ok'] ?? false)) {
                 $frontendStep['cmd'] = 'UYARI · ' . $frontendStep['cmd'];
-                $frontendStep['output'] = "Frontend build adımı başarısız oldu. Kod güncellendi, gerekirse manuel build çalıştırın.\n\n"
-                    . ($frontendStep['output'] ?? '(çıktı yok)');
+                $frontendStep['output'] = "Frontend build adimi basarisiz oldu. Kod guncellendi, gerekirse manuel build calistirin.\n\n"
+                    . ($frontendStep['output'] ?? '(cikti yok)');
                 $frontendStep['ok'] = true;
                 $hasWarnings = true;
             }
@@ -112,7 +134,7 @@ class PortalDeployService
         $finalConfigClear = $this->runArtisan('config:clear');
         if (! $finalConfigClear['ok']) {
             $finalConfigClear['cmd'] = 'UYARI · ' . $finalConfigClear['cmd'];
-            $finalConfigClear['output'] = "Final config temizliği başarısız oldu.\n\n" . ($finalConfigClear['output'] ?? '(çıktı yok)');
+            $finalConfigClear['output'] = "Final config temizligi basarisiz oldu.\n\n" . ($finalConfigClear['output'] ?? '(cikti yok)');
             $finalConfigClear['ok'] = true;
             $hasWarnings = true;
         }
@@ -121,7 +143,7 @@ class PortalDeployService
         $finalCacheClear = $this->runArtisan('cache:clear');
         if (! $finalCacheClear['ok']) {
             $finalCacheClear['cmd'] = 'UYARI · ' . $finalCacheClear['cmd'];
-            $finalCacheClear['output'] = "Final cache temizliği başarısız oldu.\n\n" . ($finalCacheClear['output'] ?? '(çıktı yok)');
+            $finalCacheClear['output'] = "Final cache temizligi basarisiz oldu.\n\n" . ($finalCacheClear['output'] ?? '(cikti yok)');
             $finalCacheClear['ok'] = true;
             $hasWarnings = true;
         }
@@ -160,7 +182,6 @@ class PortalDeployService
             $steps[] = $installStep;
 
             if (! $installStep['ok']) {
-                // Bazı ortamlarda lock dosyası eski olabilir; npm install ile ikinci deneme yap.
                 if ($hasLock) {
                     $fallbackInstall = $this->runProcessCommand(
                         'npm install --no-audit --no-fund (fallback)',
@@ -228,8 +249,8 @@ class PortalDeployService
 
         $steps[] = [
             'cmd' => 'frontend asset build',
-            'output' => "Node.js ortamı bulunamadı.\n"
-                . "Otomatik build için app konteynerinde npm kurulmalı veya deploy ortamında docker compose erişimi olmalı.\n"
+            'output' => "Node.js ortami bulunamadi.\n"
+                . "Otomatik build icin app konteynerinde npm kurulmali veya deploy ortaminda docker compose erisimi olmali.\n"
                 . "Manuel fallback:\n"
                 . "docker compose run --rm node npm ci\n"
                 . "docker compose run --rm node npm run build",
@@ -243,7 +264,7 @@ class PortalDeployService
     {
         try {
             $exitCode = Artisan::call($command, $params);
-            $output = trim(Artisan::output()) ?: '(çıktı yok)';
+            $output = trim(Artisan::output()) ?: '(cikti yok)';
 
             return [
                 'cmd' => 'php artisan ' . $command,
@@ -270,7 +291,7 @@ class PortalDeployService
             $process->setTimeout($timeoutSeconds);
             $process->run();
 
-            $output = trim($process->getOutput() . "\n" . $process->getErrorOutput()) ?: '(çıktı yok)';
+            $output = trim($process->getOutput() . "\n" . $process->getErrorOutput()) ?: '(cikti yok)';
 
             return [
                 'cmd' => $displayCommand,

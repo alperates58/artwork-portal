@@ -14,12 +14,15 @@ class GithubUpdateChecker
         private PortalVersionService $versionService,
         private PortalUpdateStatus $updateStatus,
         private ReleaseManifestService $manifestService,
+        private PortalSettings $settings,
     ) {}
 
     public function checkAndStore(?User $actor = null, string $triggerSource = 'manual'): array
     {
         $current = $this->versionService->current();
-        $branch = $current['branch'] ?: config('services.github_updates.branch', 'main');
+        $githubUpdate = $this->settings->githubUpdatesConfig();
+        $repository = $githubUpdate['repository'] ?? null;
+        $branch = $githubUpdate['branch'] ?? ($current['branch'] ?: 'main');
         $checkedAt = now();
         $status = 'failed';
         $message = 'GitHub kontrolu yapilamadi.';
@@ -30,6 +33,32 @@ class GithubUpdateChecker
         $meta = [];
         $updateAvailable = null;
 
+        if (blank($repository)) {
+            $message = 'GitHub repository ayari eksik. Once Ayarlar > Guncelleme sekmesinden repository bilgisini kaydedin.';
+            $meta = ['reason' => 'missing_repository'];
+            $this->updateStatus->markCheck(
+                status: $status,
+                message: $message,
+                branch: $branch,
+                remoteCommit: null,
+                checkedAt: $checkedAt->toIso8601String(),
+                updateAvailable: null
+            );
+
+            return [
+                'status' => $status,
+                'checked_at' => $checkedAt,
+                'message' => $message,
+                'branch' => $branch,
+                'current_commit' => $current['commit'],
+                'remote_commit' => null,
+                'remote_version' => null,
+                'update_available' => null,
+                'incoming_changes' => null,
+                'meta' => $meta,
+            ];
+        }
+
         try {
             $response = Http::baseUrl('https://api.github.com')
                 ->acceptJson()
@@ -38,10 +67,10 @@ class GithubUpdateChecker
                     'User-Agent' => config('app.name', 'Lider Portal') . ' update-check',
                 ])
                 ->when(
-                    filled(config('services.github_updates.token')),
-                    fn ($request) => $request->withToken((string) config('services.github_updates.token'))
+                    filled($githubUpdate['token'] ?? null),
+                    fn ($request) => $request->withToken((string) $githubUpdate['token'])
                 )
-                ->get('/repos/' . config('services.github_updates.repository') . '/commits/' . $branch)
+                ->get('/repos/' . $repository . '/commits/' . rawurlencode($branch))
                 ->throw();
 
             $data = $response->json();

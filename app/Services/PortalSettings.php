@@ -22,6 +22,10 @@ class PortalSettings
         'mail.password',
     ];
 
+    private const GITHUB_UPDATE_SECRET_KEYS = [
+        'github_updates.token',
+    ];
+
     private const MAIL_NOTIFICATION_DEFAULT_SUBJECT = 'Yeni siparis geldi: {order_no}';
 
     public function get(string $key, mixed $default = null): mixed
@@ -212,6 +216,61 @@ class PortalSettings
         ];
     }
 
+    public function githubUpdatesConfig(): array
+    {
+        return [
+            'repository' => $this->normalizeGithubRepository(
+                $this->get('github_updates.repository', config('services.github_updates.repository'))
+            ),
+            'branch' => (string) $this->get('github_updates.branch', config('services.github_updates.branch', 'main')),
+            'token' => $this->get('github_updates.token', config('services.github_updates.token')),
+        ];
+    }
+
+    public function githubUpdatesFormConfig(): array
+    {
+        $config = $this->githubUpdatesConfig();
+
+        return [
+            'repository' => $config['repository'],
+            'branch' => $config['branch'],
+            'token' => '',
+            'has_token' => filled($config['token']),
+            'repository_url' => $config['repository']
+                ? 'https://github.com/' . $config['repository']
+                : null,
+        ];
+    }
+
+    public function syncGithubUpdateSettings(array $settings): void
+    {
+        $repository = $this->normalizeGithubRepository($settings['repository'] ?? null);
+
+        $this->set('github_updates', 'github_updates.repository', $repository);
+        $this->set('github_updates', 'github_updates.branch', $settings['branch'] ?? 'main');
+
+        foreach (self::GITHUB_UPDATE_SECRET_KEYS as $key) {
+            $field = str($key)->after('github_updates.')->toString();
+
+            if (! array_key_exists($field, $settings)) {
+                continue;
+            }
+
+            $value = $settings[$field];
+
+            if ($value === '__KEEP__') {
+                continue;
+            }
+
+            if (blank($value)) {
+                $this->forget($key);
+                continue;
+            }
+
+            $this->set('github_updates', $key, $value, true);
+        }
+    }
+
     public function syncMailServerSettings(array $settings): void
     {
         $this->set('mail', 'mail.host', $settings['host'] ?? null);
@@ -375,5 +434,20 @@ class PortalSettings
             'smtps' => 'ssl',
             default => null,
         };
+    }
+
+    private function normalizeGithubRepository(mixed $value): ?string
+    {
+        $repository = trim((string) $value);
+
+        if ($repository === '') {
+            return null;
+        }
+
+        $repository = preg_replace('#^https?://github\.com/#i', '', $repository) ?? $repository;
+        $repository = preg_replace('#\.git$#i', '', $repository) ?? $repository;
+        $repository = trim($repository, '/');
+
+        return $repository !== '' ? $repository : null;
     }
 }

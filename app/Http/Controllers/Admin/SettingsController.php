@@ -87,6 +87,7 @@ class SettingsController extends Controller
             'mikroViewMapping' => $this->mikroViewMappings->formConfig(),
             'mailServer' => $this->settings->mailServerFormConfig(),
             'mailNotifications' => $this->settings->mailNotificationFormConfig(),
+            'githubUpdate' => $this->settings->githubUpdatesFormConfig(),
             'updateStatus' => $this->updateStatus->snapshot(),
             'generalSystem' => $this->generalSystemConfig(),
             'portalConfig'  => $this->settings->portalConfig(),
@@ -127,6 +128,10 @@ class SettingsController extends Controller
 
         if (array_key_exists('mail_notifications', $validated)) {
             $this->settings->syncMailNotificationSettings($validated['mail_notifications']);
+        }
+
+        if (array_key_exists('github_updates', $validated)) {
+            $this->syncGithubUpdateSettings($validated['github_updates']);
         }
 
         if (array_key_exists('formats', $validated)) {
@@ -199,9 +204,10 @@ class SettingsController extends Controller
     {
         abort_if(! $request->user()->isAdmin(), 403);
 
-        $repo   = config('services.github_updates.repository');
-        $branch = config('services.github_updates.branch', 'main');
-        $token  = config('services.github_updates.token');
+        $githubUpdate = $this->settings->githubUpdatesConfig();
+        $repo   = $githubUpdate['repository'] ?? null;
+        $branch = $githubUpdate['branch'] ?? 'main';
+        $token  = $githubUpdate['token'] ?? null;
 
         if (blank($repo)) {
             return response()->json(['error' => 'GitHub repository tanımlı değil.'], 422);
@@ -438,6 +444,14 @@ class SettingsController extends Controller
             ];
         }
 
+        if ($section === 'updates' || $section === 'github_updates' || $request->has('github_updates')) {
+            $rules += [
+                'github_updates.repository' => ['required', 'string', 'max:255', 'regex:/^(https?:\/\/github\.com\/)?[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(\.git)?$/'],
+                'github_updates.branch' => ['required', 'string', 'max:255'],
+                'github_updates.token' => ['nullable', 'string', 'max:255'],
+            ];
+        }
+
         $validated = $this->validateWithTabRedirect($request, $activeTab, $rules);
 
         if (($validated['spaces']['disk'] ?? null) === 'spaces') {
@@ -519,6 +533,13 @@ class SettingsController extends Controller
             : $mailServer['encryption'];
 
         $this->settings->syncMailServerSettings($mailServer);
+    }
+
+    private function syncGithubUpdateSettings(array $githubUpdates): void
+    {
+        $githubUpdates['token'] = filled($githubUpdates['token'] ?? null) ? $githubUpdates['token'] : '__KEEP__';
+
+        $this->settings->syncGithubUpdateSettings($githubUpdates);
     }
 
     private function resolveTab(Request $request): string

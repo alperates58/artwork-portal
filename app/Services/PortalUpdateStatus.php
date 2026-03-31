@@ -11,6 +11,7 @@ class PortalUpdateStatus
     public function __construct(
         private PortalVersionService $versionService,
         private ReleaseManifestService $manifestService,
+        private PortalSettings $settings,
     ) {}
 
     public function snapshot(): array
@@ -28,6 +29,8 @@ class PortalUpdateStatus
         $updateAvailable = $this->normalizeNullableBoolean($this->setting('system.update.update_available'));
         $currentRelease = $this->manifestService->currentRelease($currentVersion['version']);
         $pendingPreparation = $this->pendingPreparation();
+        $githubUpdate = $this->settings->githubUpdatesConfig();
+        $updateBranch = $githubUpdate['branch'] ?? ($currentVersion['branch'] ?: 'main');
 
         return [
             'current_version' => $currentVersion['version'],
@@ -49,11 +52,11 @@ class PortalUpdateStatus
             'pending_preparation' => $pendingPreparation,
             'history' => $this->history(),
             'check_command' => 'php artisan portal:update:check',
-            'update_command' => 'git pull origin ' . ($currentVersion['branch'] ?: 'main') . ' && php artisan portal:update',
+            'update_command' => 'git pull origin ' . $updateBranch . ' && php artisan portal:update',
             'safe_update_steps' => [
                 'git fetch --all --prune',
                 'git status',
-                'git pull origin ' . ($currentVersion['branch'] ?: 'main'),
+                'git pull origin ' . $updateBranch,
                 'composer install --no-dev --optimize-autoloader',
                 'php artisan portal:update',
             ],

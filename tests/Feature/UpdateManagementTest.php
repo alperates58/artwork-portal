@@ -29,40 +29,42 @@ class UpdateManagementTest extends TestCase
                     ],
                 ],
             ], 200),
-            'https://raw.githubusercontent.com/alperates58/artwork-portal/*/releases/manifest.json' => Http::response([
-                'schema_version' => 1,
-                'generated_at' => now()->toIso8601String(),
-                'latest' => '1.9.2',
-                'releases' => [
-                    [
-                        'version' => '1.9.2',
-                        'title' => 'Yeni release',
-                        'summary' => 'Update release ozeti',
-                        'release_date' => now()->toDateString(),
-                        'changes' => [
-                            'Admin ekranina release notlari eklendi.',
-                        ],
-                        'changed_modules' => [
-                            'Admin Ayarlari',
-                        ],
-                        'migrations_included' => true,
-                        'schema_changes' => [
-                            'new_tables' => [],
-                            'new_columns' => [
-                                'portal_update_events.release_title',
+            'https://api.github.com/repos/alperates58/artwork-portal/contents/releases/manifest.json*' => Http::response([
+                'content' => base64_encode(json_encode([
+                    'schema_version' => 1,
+                    'generated_at' => now()->toIso8601String(),
+                    'latest' => '1.9.2',
+                    'releases' => [
+                        [
+                            'version' => '1.9.2',
+                            'title' => 'Yeni release',
+                            'summary' => 'Update release ozeti',
+                            'release_date' => now()->toDateString(),
+                            'changes' => [
+                                'Admin ekranina release notlari eklendi.',
+                            ],
+                            'changed_modules' => [
+                                'Admin Ayarlari',
+                            ],
+                            'migrations_included' => true,
+                            'schema_changes' => [
+                                'new_tables' => [],
+                                'new_columns' => [
+                                    'portal_update_events.release_title',
+                                ],
+                            ],
+                            'warnings' => [
+                                'Yedek alin.',
+                            ],
+                            'post_update_notes' => [
+                                'php artisan portal:update',
+                            ],
+                            'applied_migrations' => [
+                                '2026_03_25_010000_add_release_metadata_to_portal_update_events_table',
                             ],
                         ],
-                        'warnings' => [
-                            'Yedek alin.',
-                        ],
-                        'post_update_notes' => [
-                            'php artisan portal:update',
-                        ],
-                        'applied_migrations' => [
-                            '2026_03_25_010000_add_release_metadata_to_portal_update_events_table',
-                        ],
                     ],
-                ],
+                ])),
             ], 200),
         ]);
     }
@@ -411,5 +413,89 @@ class UpdateManagementTest extends TestCase
             ->get(route('admin.settings.edit', ['tab' => 'updates']))
             ->assertOk()
             ->assertSee('npm run build', false);
+    }
+
+    public function test_admin_can_store_private_github_update_settings(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.settings.update', ['tab' => 'updates']), [
+                'tab' => 'updates',
+                'settings_section' => 'github_updates',
+                'github_updates' => [
+                    'repository' => 'https://github.com/alperates58/artwork-portal',
+                    'branch' => 'main',
+                    'token' => 'github_pat_123456',
+                ],
+            ])
+            ->assertRedirect(route('admin.settings.edit', ['tab' => 'updates']));
+
+        $this->assertDatabaseHas('system_settings', [
+            'key' => 'github_updates.repository',
+            'value' => 'alperates58/artwork-portal',
+        ]);
+
+        $tokenSetting = SystemSetting::query()->where('key', 'github_updates.token')->first();
+
+        $this->assertNotNull($tokenSetting);
+        $this->assertTrue((bool) $tokenSetting->is_encrypted);
+        $this->assertNotSame('github_pat_123456', $tokenSetting->value);
+    }
+
+    public function test_update_check_uses_runtime_github_settings_and_token_for_private_repo(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        app(PortalSettings::class)->syncGithubUpdateSettings([
+            'repository' => 'alperates58/artwork-portal',
+            'branch' => 'release/private',
+            'token' => 'github_pat_private',
+        ]);
+
+        Http::fake([
+            'https://api.github.com/repos/alperates58/artwork-portal/commits/release%2Fprivate' => Http::response([
+                'sha' => 'abcdef1234567890abcdef1234567890abcdef12',
+                'html_url' => 'https://github.com/alperates58/artwork-portal/commit/abcdef1',
+                'commit' => [
+                    'message' => 'Private release commit',
+                    'author' => [
+                        'date' => now()->toIso8601String(),
+                    ],
+                ],
+            ], 200),
+            'https://api.github.com/repos/alperates58/artwork-portal/contents/releases/manifest.json?ref=release%2Fprivate' => Http::response([
+                'content' => base64_encode(json_encode([
+                    'schema_version' => 1,
+                    'generated_at' => now()->toIso8601String(),
+                    'latest' => '1.9.9',
+                    'releases' => [
+                        [
+                            'version' => '1.9.9',
+                            'title' => 'Private release',
+                            'summary' => 'Private summary',
+                            'release_date' => now()->toDateString(),
+                            'changes' => ['Private repo release'],
+                        ],
+                    ],
+                ])),
+            ], 200),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.settings.update-check'))
+            ->assertRedirect();
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'https://api.github.com/repos/alperates58/artwork-portal/commits/')
+                && $request->hasHeader('Authorization', 'Bearer github_pat_private');
+        });
+
+        $this->assertDatabaseHas('portal_update_events', [
+            'type' => 'check',
+            'status' => 'success',
+            'branch' => 'release/private',
+            'to_version' => '1.9.9',
+        ]);
     }
 }
