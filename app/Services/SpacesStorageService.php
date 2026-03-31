@@ -52,11 +52,15 @@ class SpacesStorageService
     {
         $stream = fopen($file->getRealPath(), 'rb');
         $resolvedDisk = $this->diskName($disk);
-
-        Storage::disk($resolvedDisk)->put($path, $stream, [
-            'visibility' => 'private',
+        $options = [
             'ContentType' => $file->getMimeType(),
-        ]);
+        ];
+
+        if ($this->usesSpaces($resolvedDisk)) {
+            $options['visibility'] = 'private';
+        }
+
+        Storage::disk($resolvedDisk)->put($path, $stream, $options);
 
         if (is_resource($stream)) {
             fclose($stream);
@@ -82,15 +86,19 @@ class SpacesStorageService
     ): array {
         $stream = fopen($sourcePath, 'rb');
         $resolvedDisk = $this->diskName($disk);
+        $options = [
+            'ContentType' => $mimeType ?? 'image/png',
+        ];
 
         if (! is_resource($stream)) {
             throw new RuntimeException('Önizleme dosyası okunamadı.');
         }
 
-        Storage::disk($resolvedDisk)->put($destinationPath, $stream, [
-            'visibility' => 'private',
-            'ContentType' => $mimeType ?? 'image/png',
-        ]);
+        if ($this->usesSpaces($resolvedDisk)) {
+            $options['visibility'] = 'private';
+        }
+
+        Storage::disk($resolvedDisk)->put($destinationPath, $stream, $options);
 
         fclose($stream);
 
