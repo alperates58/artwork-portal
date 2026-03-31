@@ -11,6 +11,7 @@ use App\Models\ArtworkRevision;
 use App\Models\ArtworkViewLog;
 use App\Models\PurchaseOrderLine;
 use App\Models\StockCard;
+use App\Support\ArtworkFileName;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
@@ -33,6 +34,12 @@ class ArtworkUploadService
             $stockCard = $this->resolveStockCard($meta['stock_code'] ?? null);
             $artwork = $this->resolveArtwork($line, $stockCard?->stock_name ?? pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
             $revisionNo = (int) ($meta['revision_no'] ?? $artwork->next_revision_no);
+            $standardizedFilename = ArtworkFileName::original(
+                stockCode: $stockCard?->stock_code ?? $meta['stock_code'] ?? $line->product_code,
+                revisionNo: $revisionNo,
+                extension: $file->getClientOriginalExtension(),
+                fallback: $line->product_code,
+            );
 
             $path = $this->spaces->buildPath(
                 $line->purchaseOrder->supplier_id,
@@ -43,9 +50,10 @@ class ArtworkUploadService
             );
 
             $fileData = $this->multipart->upload($file, $path);
+            $fileData['original_filename'] = $standardizedFilename;
 
             $galleryItem = ArtworkGallery::create([
-                'name' => $fileData['original_filename'],
+                'name' => $standardizedFilename,
                 'stock_code' => $stockCard?->stock_code,
                 'revision_no' => $revisionNo,
                 'stock_card_id' => $stockCard?->id,
@@ -95,6 +103,12 @@ class ArtworkUploadService
             $stockCard = $this->resolveStockCard($meta['stock_code'] ?? $galleryItem->stock_code);
             $artwork = $this->resolveArtwork($line, $stockCard?->stock_name ?? pathinfo($galleryItem->name, PATHINFO_FILENAME));
             $revisionNo = (int) ($meta['revision_no'] ?? $artwork->next_revision_no);
+            $standardizedFilename = ArtworkFileName::original(
+                stockCode: $stockCard?->stock_code ?? $galleryItem->stock_code ?? $line->product_code,
+                revisionNo: $revisionNo,
+                extension: pathinfo($galleryItem->name ?: $galleryItem->file_path, PATHINFO_EXTENSION) ?: 'pdf',
+                fallback: $line->product_code,
+            );
 
             if ($stockCard) {
                 $galleryItem->update([
@@ -109,7 +123,7 @@ class ArtworkUploadService
                 'artwork_gallery_id' => $galleryItem->id,
                 'spaces_path' => $galleryItem->file_path,
                 'preview_spaces_path' => $galleryItem->preview_file_path,
-                'original_filename' => $galleryItem->name,
+                'original_filename' => $standardizedFilename,
                 'preview_original_filename' => $galleryItem->preview_file_name,
                 'stored_filename' => basename($galleryItem->file_path),
                 'preview_stored_filename' => $galleryItem->preview_file_path ? basename($galleryItem->preview_file_path) : null,

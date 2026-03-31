@@ -13,7 +13,8 @@
       "Bash(php artisan:*)",
       "Bash(docker exec artwork_app php -r \":*)",
       "Bash(grep -v \"^$\")",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({**d.get\\(''''require'''',{}\\), **d.get\\(''''require-dev'''',{}\\)}, indent=2\\)\\)\")"
     ]
   }
 }

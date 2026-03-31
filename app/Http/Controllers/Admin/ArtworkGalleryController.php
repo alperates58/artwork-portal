@@ -4,16 +4,20 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ArtworkGalleryUpdateRequest;
+use App\Jobs\GenerateArtworkPreviewJob;
 use App\Models\ArtworkCategory;
 use App\Models\ArtworkGallery;
 use App\Models\ArtworkRevision;
 use App\Models\ArtworkTag;
 use App\Models\StockCard;
 use App\Services\ArtworkCategoryService;
+use App\Services\ArtworkPreviewGenerator;
 use App\Services\AuditLogService;
 use App\Services\PortalSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -23,6 +27,7 @@ class ArtworkGalleryController extends Controller
         private AuditLogService $audit,
         private PortalSettings $settings,
         private ArtworkCategoryService $categories,
+        private ArtworkPreviewGenerator $previewGenerator,
     ) {}
 
     public function index(): View
@@ -58,6 +63,7 @@ class ArtworkGalleryController extends Controller
         $stockCodeFilter = trim((string) request('stock_code', ''));
         $stockQuickMatches = $this->buildStockQuickMatches($stockCodeFilter);
         $stockHistory = $this->buildStockHistory($stockCodeFilter);
+        $this->queueMissingGalleryPreviews($galleryItems->getCollection());
 
         return view('admin.artwork-gallery.index', compact(
             'galleryItems',
@@ -69,6 +75,37 @@ class ArtworkGalleryController extends Controller
             'stockHistory',
             'stockCodeFilter',
         ));
+    }
+
+    private function queueMissingGalleryPreviews(Collection $galleryItems): void
+    {
+        $galleryIds = $galleryItems->pluck('id')->filter()->values();
+
+        if ($galleryIds->isEmpty()) {
+            return;
+        }
+
+        $revisions = ArtworkRevision::query()
+            ->select(['id', 'artwork_gallery_id', 'original_filename', 'preview_spaces_path', 'revision_no'])
+            ->whereIn('artwork_gallery_id', $galleryIds)
+            ->whereNull('preview_spaces_path')
+            ->orderByDesc('revision_no')
+            ->get()
+            ->unique('artwork_gallery_id');
+
+        foreach ($revisions as $revision) {
+            if (! $this->previewGenerator->supports($revision)) {
+                continue;
+            }
+
+            $cacheKey = 'artwork-preview:queued:' . $revision->id;
+
+            if (! Cache::add($cacheKey, true, now()->addMinutes(10))) {
+                continue;
+            }
+
+            GenerateArtworkPreviewJob::dispatch($revision->id);
+        }
     }
 
     public function manage(): View

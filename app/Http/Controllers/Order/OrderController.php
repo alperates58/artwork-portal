@@ -32,7 +32,7 @@ class OrderController extends Controller
             ->with([
                 'supplier:id,name',
                 'lines:id,purchase_order_id,product_code,description,quantity,unit,artwork_status',
-                'lines.artwork:id,purchase_order_line_id',
+                'lines.artwork:id,order_line_id',
                 'lines.artwork.activeRevision:id,artwork_id,created_at',
             ])
             ->withListMetrics()

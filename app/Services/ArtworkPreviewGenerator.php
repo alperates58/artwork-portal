@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ArtworkRevision;
+use App\Support\ArtworkFileName;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -64,7 +65,14 @@ class ArtworkPreviewGenerator
             $previewData = $this->spaces->uploadFileFromPath(
                 sourcePath: $outputPath,
                 destinationPath: $this->previewDestinationPath($revision),
-                originalFilename: pathinfo($revision->original_filename, PATHINFO_FILENAME) . '-preview.png',
+                originalFilename: ArtworkFileName::preview(
+                    stockCode: $revision->artwork?->orderLine?->product_code
+                        ?? $revision->galleryItem?->stock_code
+                        ?? pathinfo($revision->original_filename, PATHINFO_FILENAME),
+                    revisionNo: (int) $revision->revision_no,
+                    fallback: $revision->artwork?->orderLine?->product_code
+                        ?? $revision->galleryItem?->stock_code,
+                ),
                 mimeType: 'image/png',
                 disk: $revision->galleryItem?->file_disk ?: $this->settings->filesystemDisk(),
             );
