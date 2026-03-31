@@ -131,8 +131,8 @@ ArtworkRevision >── ArtworkGallery (reused from gallery)
 | `PurchaseOrder` | `purchase_orders` | `order_no`, `supplier_id`, `status`, `erp_source`, `source_metadata` (json) |
 | `PurchaseOrderLine` | `purchase_order_lines` | `product_code`, `line_no`, `artwork_status` (enum), `quantity`, `shipped_quantity` |
 | `Artwork` | `artworks` | `order_line_id`, `active_revision_id` |
-| `ArtworkRevision` | `artwork_revisions` | `revision_no`, `is_active`, `uploaded_by`, `approval_status`, `spaces_path` |
-| `ArtworkGallery` | `artwork_gallery` | `name`, `stock_code`, `category_id`, `file_path`, `file_disk` |
+| `ArtworkRevision` | `artwork_revisions` | `revision_no`, `is_active`, `uploaded_by`, `approval_status`, `spaces_path`, `preview_spaces_path`, `preview_mime_type`, `preview_file_size` |
+| `ArtworkGallery` | `artwork_gallery` | `name`, `stock_code`, `revision_no`, `category_id`, `file_path`, `preview_file_path`, `file_disk`, `preview_file_disk` |
 | `AuditLog` | `audit_logs` | `user_id`, `action`, `model_type`, `model_id`, `payload` (json) |
 | `SystemSetting` | `system_settings` | `key`, `value` — runtime config, NEVER expose secrets in UI |
 | `DataTransferRecord` | `data_transfer_records` | `direction`, `entity_type`, `entity_key`, `selection_hash`, `payload_hash` |
@@ -415,6 +415,11 @@ app(AuditLogService::class)->log($action, $model, $payload);
 6. Portal and download flows MUST use `artwork->activeRevision()` — never assume latest = active
 7. Upload is only allowed for: `admin`, `graphic`
 8. Approval flow (`Faz2`): supplier confirms seen → supplier approves → status propagates back to `purchase_order_lines.artwork_status`
+9. `stock_code` and `revision_no` are mandatory in the upload flow before completion; upload validation must not allow missing or mismatched values
+10. Original artwork file is the source of truth; preview PNG is always derived and optional
+11. Supported derived preview formats are currently `ai`, `eps`, `pdf`, `psd`
+12. Preview generation must stay queue-based (`GenerateArtworkPreviewJob`) and must not block the HTTP upload request
+13. Old records without preview must continue working; UI must fall back gracefully to “preview unavailable”
 
 ---
 
@@ -424,6 +429,24 @@ app(AuditLogService::class)->log($action, $model, $payload);
 - `local` — temporary uploads, non-sensitive files
 - `spaces` — DigitalOcean Spaces (S3-compatible) for artwork files
   - Env: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT`, `AWS_BUCKET`
+
+### Artwork File Strategy
+- Original production file and preview PNG are stored separately
+- `spaces_path` / gallery `file_path` = original file path
+- `preview_spaces_path` / gallery `preview_file_path` = derived preview PNG path
+- UI should use preview PNG for browser display where possible
+- Download and production flows must continue to use the original file
+- Do NOT compress, overwrite, or replace the original file during preview generation
+
+### Preview Generation
+- Service: `app/Services/ArtworkPreviewGenerator.php`
+- Job: `app/Jobs/GenerateArtworkPreviewJob.php`
+- Queue-only flow: upload/reuse → save revision/gallery → dispatch preview job → generate PNG → save preview metadata
+- Preview failure is non-fatal: original artwork remains valid and downloadable
+- Preview-related audit actions include:
+  - `artwork.preview.started`
+  - `artwork.preview.success`
+  - `artwork.preview.failed`
 
 ### Secure Download Flow
 ```
@@ -517,6 +540,12 @@ Key setting groups: `mail_*`, `brand_*`, `erp_*`
 - Lists recent commits (fetched from GitHub API via `GithubUpdateChecker`)
 - Allows admin to trigger `git pull` + migrations + asset rebuild via `PortalDeployService`
 - Update history stored in `portal_update_events`
+
+### Operational Notes
+- If Docker image contents change (for example `docker/php/Dockerfile`), panel update alone is NOT enough; containers must be rebuilt and recreated
+- Preview generation depends on server-side conversion tools inside the image (`ghostscript`, `imagemagick`)
+- `PortalDeployService` now prepares writable runtime homes for `git`, `composer`, and `npm` under `storage/framework`
+- If repository ownership is wrong, web-driven update may still need a one-time manual `chown` fix on the server
 
 ### Rules
 - Never change version in only one place
@@ -674,8 +703,15 @@ docker compose exec app bash
 # Run migrations
 docker compose exec app php artisan migrate
 
+# Rebuild runtime image when Dockerfile changes
+docker compose build app queue scheduler
+docker compose up -d --force-recreate app queue scheduler
+
 # Build frontend
 docker compose run --rm node npm run build
+
+# Backfill missing artwork previews
+docker compose exec app php artisan artwork:preview-backfill --active-only --limit=200
 
 # Clear cache
 docker compose exec app php artisan optimize:clear
