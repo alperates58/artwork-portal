@@ -1,5 +1,6 @@
 <dialog id="{{ $dialogId }}" class="w-[min(96vw,1440px)] max-w-none overflow-hidden rounded-[32px] border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-950/60">
-    <div class="border-b border-slate-200 px-6 py-5">
+    <div class="flex max-h-[92vh] flex-col">
+    <div class="shrink-0 border-b border-slate-200 px-6 py-5">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="min-w-0">
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Artwork galerisi</p>
@@ -23,15 +24,15 @@
         </div>
     </div>
 
-    <div class="grid gap-6 px-6 py-6 xl:grid-cols-[minmax(0,1.8fr)_340px]">
-        <section class="space-y-3">
+    <div class="grid min-h-0 flex-1 gap-6 overflow-y-auto px-6 py-6 xl:grid-cols-[minmax(0,1.8fr)_340px]">
+        <section class="min-h-0 space-y-3">
             <div class="rounded-[28px] border border-slate-200 bg-slate-50 p-3">
                 @if($artworkGallery->has_preview)
-                    <button type="button" data-dialog-open="{{ $dialogId }}-zoom" class="group relative block w-full overflow-hidden rounded-[24px] bg-white text-left">
+                    <button type="button" data-dialog-open="{{ $dialogId }}-zoom" class="group relative block max-h-[calc(92vh-14rem)] w-full overflow-hidden rounded-[24px] bg-white text-left">
                         <img
                             src="{{ route('artworks.gallery.preview', $artworkGallery, false) }}"
                             alt="{{ $artworkGallery->display_name }}"
-                            class="h-[min(68vh,780px)] w-full object-contain transition duration-300 group-hover:scale-[1.01]"
+                            class="max-h-[calc(92vh-14rem)] w-full object-contain transition duration-300 group-hover:scale-[1.01]"
                         >
                         <div class="pointer-events-none absolute inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-2xl bg-slate-950/70 px-4 py-3 text-sm text-white backdrop-blur-sm">
                             <span>Artwork’e tıklayıp büyütün</span>
@@ -54,7 +55,7 @@
             @endif
         </section>
 
-        <aside class="space-y-4">
+        <aside class="space-y-4 xl:max-h-full xl:overflow-y-auto xl:pr-1">
             <div class="rounded-[28px] border border-slate-200 bg-white p-5">
                 <dl class="space-y-4">
                     <div>
@@ -96,6 +97,7 @@
                 <p class="mt-2 text-sm leading-6 text-slate-700">{{ $artworkGallery->display_revision_note ?: 'Not bulunmuyor.' }}</p>
             </div>
         </aside>
+    </div>
     </div>
 </dialog>
 
