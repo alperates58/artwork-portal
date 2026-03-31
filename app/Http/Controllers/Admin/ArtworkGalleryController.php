@@ -43,7 +43,6 @@ class ArtworkGalleryController extends Controller
                 'tags:id,name',
                 'uploadedBy:id,name',
                 'stockCard.category:id,name',
-                'latestPreviewRevision:id,artwork_gallery_id,preview_spaces_path,preview_original_filename,preview_mime_type,preview_file_size',
             ])
             ->withCount('usages')
             ->withMax('usages', 'used_at')
@@ -226,7 +225,6 @@ class ArtworkGalleryController extends Controller
             'stockCard.category:id,name',
             'tags:id,name',
             'uploadedBy:id,name',
-            'latestPreviewRevision:id,artwork_gallery_id,preview_spaces_path,preview_original_filename,preview_mime_type,preview_file_size',
             'usages.supplier:id,name',
             'usages.order:id,order_no,order_date',
             'usages.line:id,product_code,line_no',
@@ -312,7 +310,6 @@ class ArtworkGalleryController extends Controller
             ->with([
                 'stockCard:id,stock_code,stock_name,category_id',
                 'stockCard.category:id,name',
-                'latestPreviewRevision:id,artwork_gallery_id,preview_spaces_path,preview_original_filename,preview_mime_type,preview_file_size',
             ])
             ->withCount('usages')
             ->withMax('revisions', 'revision_no')

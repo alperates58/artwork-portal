@@ -51,9 +51,11 @@ class ArtworkGalleryPreviewController extends Controller
             return $preview;
         }
 
-        $fallbackRevision = $artworkGallery->relationLoaded('latestPreviewRevision')
-            ? $artworkGallery->latestPreviewRevision
-            : $artworkGallery->latestPreviewRevision()->first();
+        $fallbackRevision = $artworkGallery->revisions()
+            ->whereNotNull('preview_spaces_path')
+            ->orderByDesc('revision_no')
+            ->orderByDesc('id')
+            ->first();
 
         if (! $fallbackRevision instanceof ArtworkRevision) {
             return null;

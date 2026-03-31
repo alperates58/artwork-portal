@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ArtworkGallery extends Model
@@ -74,13 +73,6 @@ class ArtworkGallery extends Model
     public function revisions(): HasMany
     {
         return $this->hasMany(ArtworkRevision::class, 'artwork_gallery_id');
-    }
-
-    public function latestPreviewRevision(): HasOne
-    {
-        return $this->hasOne(ArtworkRevision::class, 'artwork_gallery_id')
-            ->whereNotNull('preview_spaces_path')
-            ->latestOfMany('revision_no');
     }
 
     public function getFileSizeFormattedAttribute(): string
@@ -206,11 +198,11 @@ class ArtworkGallery extends Model
 
     private function fallbackPreviewRevision(): ?ArtworkRevision
     {
-        if ($this->relationLoaded('latestPreviewRevision')) {
-            return $this->getRelation('latestPreviewRevision');
-        }
-
-        return $this->latestPreviewRevision()->first();
+        return $this->revisions()
+            ->whereNotNull('preview_spaces_path')
+            ->orderByDesc('revision_no')
+            ->orderByDesc('id')
+            ->first();
     }
 
     private function fallbackPreviewPath(): ?string
