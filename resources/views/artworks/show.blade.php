@@ -17,7 +17,7 @@
                         <p class="text-sm font-semibold text-slate-900">Artwork Önizleme</p>
                         <p class="text-xs text-slate-500">Orijinal dosya korunur, ekranda PNG önizleme gösterilir.</p>
                     </div>
-                    <a href="{{ route('artworks.preview', $revision) }}" target="_blank" rel="noopener" class="btn btn-secondary text-xs">Önizlemeyi Aç</a>
+                    <a href="{{ route('artworks.preview', $revision) }}" class="btn btn-secondary text-xs">Önizlemeyi Aç</a>
                 </div>
                 <img src="{{ route('artworks.preview', $revision) }}" alt="Artwork önizleme" class="max-h-[520px] w-full object-contain bg-white">
             </div>

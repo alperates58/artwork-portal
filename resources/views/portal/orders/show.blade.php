@@ -73,7 +73,7 @@
 
                                 <div class="flex flex-wrap gap-2">
                                     @if($rev->has_preview)
-                                        <a href="{{ route('portal.preview', $rev) }}" target="_blank" rel="noopener" class="btn btn-secondary text-sm">Önizleme</a>
+                                        <a href="{{ route('portal.preview', $rev) }}" class="btn btn-secondary text-sm">Önizleme</a>
                                     @endif
                                     <a href="{{ route('portal.download', $rev) }}" class="btn btn-primary text-sm">İndir</a>
                                     <form method="POST" action="{{ route('approval.seen', $rev) }}" class="inline">
