@@ -155,7 +155,7 @@ class ArtworkPreviewGenerator
         $extension = $this->extension($revision);
         $commands = [];
 
-        if (in_array($extension, self::GHOSTSCRIPT_EXTENSIONS, true)) {
+        if (in_array($extension, self::GHOSTSCRIPT_EXTENSIONS, true) && $this->binaryAvailable('gs')) {
             $ghostscript = [
                 'gs',
                 '-dSAFER',
@@ -181,6 +181,10 @@ class ArtworkPreviewGenerator
 
         if (in_array($extension, self::MAGICK_EXTENSIONS, true)) {
             foreach (['magick', 'convert'] as $binary) {
+                if (! $this->binaryAvailable($binary)) {
+                    continue;
+                }
+
                 $commands[] = [
                     $binary,
                     '-density',
@@ -223,6 +227,17 @@ class ArtworkPreviewGenerator
     private function extension(ArtworkRevision $revision): string
     {
         return strtolower((string) pathinfo($revision->original_filename, PATHINFO_EXTENSION));
+    }
+
+    private function binaryAvailable(string $binary): bool
+    {
+        try {
+            $result = Process::timeout(5)->run([$binary, '-version']);
+
+            return $result->successful();
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     private function deleteDirectory(string $path): void
