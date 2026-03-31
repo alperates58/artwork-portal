@@ -12,7 +12,7 @@
 
     <div class="grid gap-6 px-6 py-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,1fr)]">
         <section class="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-            @if($artworkGallery->is_image)
+            @if($artworkGallery->has_preview)
                 <img
                     src="{{ route('artworks.gallery.preview', $artworkGallery) }}"
                     alt="{{ $artworkGallery->display_name }}"
@@ -32,8 +32,19 @@
         <section class="space-y-5">
             <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
                 <div>
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Stok kodu / Revizyon</dt>
+                    <dd class="mt-1 text-sm font-medium text-slate-900">
+                        <span class="font-mono">{{ $artworkGallery->stock_code ?: '—' }}</span>
+                        · Rev.{{ $artworkGallery->revision_no ?: '—' }}
+                    </dd>
+                </div>
+                <div>
                     <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Dosya adı</dt>
                     <dd class="mt-1 text-sm font-medium text-slate-900">{{ $artworkGallery->display_name }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Önizleme PNG</dt>
+                    <dd class="mt-1 text-sm font-medium text-slate-900">{{ $artworkGallery->has_preview ? ($artworkGallery->preview_filename ?? 'Hazır') : 'Yok' }}</dd>
                 </div>
                 <div>
                     <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Kategori</dt>

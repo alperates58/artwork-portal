@@ -17,14 +17,19 @@ class ArtworkGallery extends Model
 
     protected $fillable = [
         'name',
+        'preview_file_name',
         'stock_code',
         'revision_no',
         'stock_card_id',
         'category_id',
         'file_path',
+        'preview_file_path',
         'file_disk',
+        'preview_file_disk',
         'file_size',
+        'preview_file_size',
         'file_type',
+        'preview_file_type',
         'uploaded_by',
         'revision_note',
     ];
@@ -33,6 +38,7 @@ class ArtworkGallery extends Model
     {
         return [
             'file_size' => 'integer',
+            'preview_file_size' => 'integer',
             'revision_no' => 'integer',
         ];
     }
@@ -124,6 +130,31 @@ class ArtworkGallery extends Model
     public function getIsImageAttribute(): bool
     {
         return $this->file_type_group === 'image';
+    }
+
+    public function getHasPreviewAttribute(): bool
+    {
+        return filled($this->getAttributeFromArray('preview_file_path')) || $this->is_image;
+    }
+
+    public function getPreviewDiskAttribute(): ?string
+    {
+        return $this->getAttributeFromArray('preview_file_disk') ?: $this->file_disk;
+    }
+
+    public function getPreviewPathAttribute(): ?string
+    {
+        return $this->getAttributeFromArray('preview_file_path') ?: ($this->is_image ? $this->file_path : null);
+    }
+
+    public function getPreviewMimeTypeAttribute(): ?string
+    {
+        return $this->getAttributeFromArray('preview_file_type') ?: ($this->is_image ? $this->file_type : null);
+    }
+
+    public function getPreviewFilenameAttribute(): ?string
+    {
+        return $this->getAttributeFromArray('preview_file_name') ?: ($this->is_image ? $this->name : null);
     }
 
     public function getFileTypeIconAttribute(): string

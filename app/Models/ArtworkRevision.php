@@ -16,9 +16,14 @@ class ArtworkRevision extends Model
         'revision_no',
         'original_filename',
         'stored_filename',
+        'preview_original_filename',
+        'preview_stored_filename',
         'spaces_path',
+        'preview_spaces_path',
         'mime_type',
+        'preview_mime_type',
         'file_size',
+        'preview_file_size',
         'is_active',
         'uploaded_by',
         'notes',
@@ -33,6 +38,7 @@ class ArtworkRevision extends Model
         return [
             'is_active'   => 'boolean',
             'file_size'   => 'integer',
+            'preview_file_size' => 'integer',
             'revision_no' => 'integer',
             'archived_at' => 'datetime',
             'approved_at' => 'datetime',
@@ -89,6 +95,11 @@ class ArtworkRevision extends Model
     public function getExtensionAttribute(): string
     {
         return strtoupper(pathinfo($this->original_filename, PATHINFO_EXTENSION));
+    }
+
+    public function getHasPreviewAttribute(): bool
+    {
+        return filled($this->preview_spaces_path);
     }
 
     /**

@@ -56,7 +56,8 @@ class ArtworkGalleryController extends Controller
         $tags = ArtworkTag::query()->orderBy('name')->get(['id', 'name']);
         $fileGroups = $this->settings->fileGroups();
         $stockCodeFilter = trim((string) request('stock_code', ''));
-        $stockRevisionGroups = $this->buildStockRevisionGroups($stockCodeFilter);
+        $stockQuickMatches = $this->buildStockQuickMatches($stockCodeFilter);
+        $stockHistory = $this->buildStockHistory($stockCodeFilter);
 
         return view('admin.artwork-gallery.index', compact(
             'galleryItems',
@@ -64,7 +65,8 @@ class ArtworkGalleryController extends Controller
             'tags',
             'totalCount',
             'fileGroups',
-            'stockRevisionGroups',
+            'stockQuickMatches',
+            'stockHistory',
             'stockCodeFilter',
         ));
     }
@@ -252,7 +254,30 @@ class ArtworkGalleryController extends Controller
             ->with('success', 'Artwork galerisi kaydı güncellendi.');
     }
 
-    private function buildStockRevisionGroups(string $stockCodeFilter)
+    private function buildStockQuickMatches(string $stockCodeFilter)
+    {
+        if ($stockCodeFilter === '') {
+            return collect();
+        }
+
+        $normalized = mb_strtoupper($stockCodeFilter);
+
+        return ArtworkGallery::query()
+            ->with([
+                'stockCard:id,stock_code,stock_name,category_id',
+                'stockCard.category:id,name',
+            ])
+            ->withCount('usages')
+            ->withMax('revisions', 'revision_no')
+            ->where('stock_code', 'like', '%' . $normalized . '%')
+            ->orderByRaw('CASE WHEN stock_code = ? THEN 0 ELSE 1 END', [$normalized])
+            ->orderByDesc('revision_no')
+            ->orderByDesc('created_at')
+            ->get()
+            ->groupBy(fn (ArtworkGallery $item) => $item->stock_code ?: 'Belirsiz');
+    }
+
+    private function buildStockHistory(string $stockCodeFilter)
     {
         if ($stockCodeFilter === '') {
             return collect();
@@ -263,14 +288,24 @@ class ArtworkGalleryController extends Controller
         return ArtworkRevision::query()
             ->with([
                 'uploadedBy:id,name',
-                'galleryItem:id,stock_code,stock_card_id,category_id,name',
+                'galleryItem:id,stock_code,stock_card_id,category_id,name,revision_no',
                 'galleryItem.stockCard:id,stock_code,stock_name,category_id',
                 'galleryItem.stockCard.category:id,name',
-                'artwork.orderLine.purchaseOrder:id,order_no',
+                'artwork.orderLine.purchaseOrder:id,order_no,supplier_id,order_date',
+                'artwork.orderLine.purchaseOrder.supplier:id,name',
                 'artwork.orderLine:id,purchase_order_id,line_no,product_code',
             ])
             ->whereHas('galleryItem', fn ($query) => $query->where('stock_code', 'like', '%' . $normalized . '%'))
-            ->orderByDesc('revision_no')
+            ->orderByRaw(
+                'CASE WHEN EXISTS (
+                    SELECT 1
+                    FROM artwork_gallery
+                    WHERE artwork_gallery.id = artwork_revisions.artwork_gallery_id
+                      AND artwork_gallery.stock_code = ?
+                ) THEN 0 ELSE 1 END',
+                [$normalized]
+            )
+            ->orderByDesc('created_at')
             ->get()
             ->groupBy(fn (ArtworkRevision $revision) => $revision->galleryItem?->stock_code ?: 'Belirsiz');
     }

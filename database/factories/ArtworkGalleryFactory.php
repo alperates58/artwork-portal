@@ -35,14 +35,19 @@ class ArtworkGalleryFactory extends Factory
 
         return [
             'name' => fake()->words(3, true),
+            'preview_file_name' => null,
             'stock_code' => null,
             'revision_no' => fake()->numberBetween(1, 6),
             'stock_card_id' => StockCard::factory(),
             'category_id' => ArtworkCategory::factory(),
             'file_path' => 'artworks/gallery/' . fake()->uuid() . '.' . $ext,
+            'preview_file_path' => null,
             'file_disk' => 'spaces',
+            'preview_file_disk' => null,
             'file_size' => fake()->numberBetween(100_000, 50_000_000),
+            'preview_file_size' => null,
             'file_type' => 'application/pdf',
+            'preview_file_type' => null,
             'uploaded_by' => User::factory()->graphic(),
             'revision_note' => fake()->sentence(),
         ];

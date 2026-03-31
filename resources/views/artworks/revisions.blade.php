@@ -49,7 +49,9 @@
                             </div>
                             <p class="text-sm text-slate-700 truncate">{{ $rev->original_filename }}</p>
                             <p class="text-xs text-slate-400 mt-0.5">
+                                <span class="font-mono">{{ $line->product_code }}</span> ·
                                 {{ $rev->file_size_formatted }} ·
+                                {{ $rev->has_preview ? 'PNG önizleme var' : 'PNG önizleme yok' }} ·
                                 @if(!auth()->user()->isSupplier())
                                     <a href="{{ route('profile.edit') }}" class="hover:text-violet-600 hover:underline">{{ $rev->uploadedBy->name }}</a>
                                 @else

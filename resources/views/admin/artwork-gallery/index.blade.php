@@ -30,6 +30,16 @@
     <div class="rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
         <form method="GET" action="{{ route('admin.artwork-gallery.index') }}" id="gallery-filter-form">
             <div class="flex flex-wrap items-end gap-3">
+                <div class="w-full sm:min-w-[260px] lg:min-w-[320px] lg:flex-[1.25]">
+                    <div class="relative">
+                        <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <input name="stock_code" value="{{ request('stock_code') }}" placeholder="Stok kodu yapıştırın veya arayın..." class="input pl-9 font-mono" autocomplete="off" id="gallery-stock-input">
+                    </div>
+                    <p class="mt-1.5 text-xs text-slate-400">Revizyon kartları ve artwork geçmişi bu aramaya göre anında güncellenir.</p>
+                </div>
+
                 <div class="w-full flex-1 sm:min-w-[180px]">
                     <div class="relative">
                         <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -37,10 +47,6 @@
                         </svg>
                         <input name="search" value="{{ request('search') }}" placeholder="Dosya adı ile ara..." class="input pl-9" autocomplete="off" id="gallery-search-input">
                     </div>
-                </div>
-
-                <div class="w-full sm:w-48">
-                    <input name="stock_code" value="{{ request('stock_code') }}" placeholder="Stok kodu ara..." class="input font-mono" autocomplete="off" id="gallery-stock-input">
                 </div>
 
                 <div class="w-full sm:w-48">
@@ -88,57 +94,194 @@
         <a href="{{ route('admin.artwork-gallery.manage') }}" class="btn btn-secondary text-xs">Kategori & Etiket Yönetimi</a>
     </div>
 
-    @if($stockRevisionGroups->isNotEmpty())
+    @if($stockCodeFilter !== '')
+        <div class="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+            <div class="card overflow-hidden">
+                <div class="border-b border-slate-100 px-5 py-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-900">Stok Koduna Göre Hızlı Eşleşmeler</h3>
+                            <p class="mt-1 text-xs text-slate-500">Sipariş detayındaki seçim deneyimine benzer şekilde, uygun artwork revizyonları burada öne çıkarılır.</p>
+                        </div>
+                        <span class="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">{{ $stockQuickMatches->sum->count() }} artwork</span>
+                    </div>
+                </div>
+
+                @if($stockQuickMatches->isEmpty())
+                    <div class="px-5 py-8 text-sm text-slate-500">
+                        <span class="font-mono font-semibold text-slate-700">{{ $stockCodeFilter }}</span> için galeride hızlı eşleşme bulunamadı.
+                    </div>
+                @else
+                    <div class="space-y-4 p-5">
+                        @foreach($stockQuickMatches as $stockCode => $matches)
+                            @php
+                                $first = $matches->first();
+                                $stockName = $first?->stockCard?->stock_name ?? 'Stok adı bulunamadı';
+                                $categoryName = $first?->stockCard?->category?->display_name ?? ($first?->category?->display_name ?? 'Kategorisiz');
+                            @endphp
+                            <div class="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
+                                <div class="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                        <p class="text-sm font-semibold text-slate-900">{{ $stockName }}</p>
+                                        <p class="mt-1 text-xs text-slate-500">
+                                            <span class="font-mono font-semibold text-brand-700">{{ $stockCode }}</span>
+                                            · {{ $categoryName }}
+                                        </p>
+                                    </div>
+                                    <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">{{ $matches->count() }} revizyon</span>
+                                </div>
+
+                                <div class="mt-4 grid gap-3 md:grid-cols-2">
+                                    @foreach($matches as $match)
+                                        @php
+                                            $revisionBadge = 'REV' . str_pad((string) ((int) ($match->revision_no ?? 0)), 2, '0', STR_PAD_LEFT);
+                                            $systemRevision = (int) ($match->revisions_max_revision_no ?? 0);
+                                        @endphp
+                                        <a href="{{ route('admin.artwork-gallery.edit', $match) }}" class="block rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-brand-300 hover:bg-brand-50/30 hover:shadow-sm">
+                                            <div class="flex items-start justify-between gap-3">
+                                                <div class="flex flex-col gap-2">
+                                                    <span class="inline-flex w-fit rounded-lg bg-slate-900 px-2.5 py-1 text-[11px] font-semibold tracking-[0.14em] text-white">{{ $revisionBadge }}</span>
+                                                    <span class="inline-flex w-fit rounded-full bg-brand-100 px-3 py-1 text-[11px] font-semibold text-brand-700">
+                                                        {{ $systemRevision > 0 ? 'Sistemde Rev.' . str_pad((string) $systemRevision, 2, '0', STR_PAD_LEFT) : 'Henüz kullanılmadı' }}
+                                                    </span>
+                                                </div>
+                                                <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-medium text-slate-500">{{ $match->created_at->format('d.m.Y') }}</span>
+                                            </div>
+                                            <p class="mt-4 truncate text-base font-semibold text-slate-900">{{ $match->display_name }}</p>
+                                            <p class="mt-2 font-mono text-sm text-brand-700">{{ $match->stock_code ?: 'Stok kodu yok' }}</p>
+                                            <div class="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                                                <span class="rounded-full bg-slate-100 px-2.5 py-1">{{ $categoryName }}</span>
+                                                <span class="rounded-full bg-slate-100 px-2.5 py-1">{{ $match->usage_count }} kullanım</span>
+                                            </div>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
+            <div class="card overflow-hidden">
+                <div class="border-b border-slate-100 px-5 py-4">
+                    <h3 class="text-sm font-semibold text-slate-900">Arama Özeti</h3>
+                    <p class="mt-1 text-xs text-slate-500">Stok kodu aramasına göre galerideki revizyon ve kullanım yoğunluğu.</p>
+                </div>
+                <div class="space-y-3 p-5 text-sm">
+                    <div class="rounded-2xl bg-slate-50 px-4 py-3">
+                        <p class="text-xs text-slate-500">Aranan stok kodu</p>
+                        <p class="mt-1 font-mono text-sm font-semibold text-slate-900">{{ $stockCodeFilter }}</p>
+                    </div>
+                    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                        <div class="rounded-2xl border border-slate-200 px-4 py-3">
+                            <p class="text-xs text-slate-500">Galeri eşleşmesi</p>
+                            <p class="mt-1 text-lg font-semibold text-slate-900">{{ $stockQuickMatches->sum->count() }}</p>
+                        </div>
+                        <div class="rounded-2xl border border-slate-200 px-4 py-3">
+                            <p class="text-xs text-slate-500">Yükleme geçmişi</p>
+                            <p class="mt-1 text-lg font-semibold text-slate-900">{{ $stockHistory->sum->count() }}</p>
+                        </div>
+                    </div>
+                    <div class="rounded-2xl border border-dashed border-slate-200 px-4 py-3 text-xs text-slate-500">
+                        Stok kodunu değiştirdikçe üstte tekrar kullanılabilir artwork kartları, altta ise sipariş ve tedarikçi bazlı revizyon geçmişi gösterilir.
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card overflow-hidden">
             <div class="border-b border-slate-100 px-5 py-4">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <h3 class="text-sm font-semibold text-slate-900">Stok Kodu Revizyon Görünümü</h3>
-                        <p class="mt-1 text-xs text-slate-500">“{{ $stockCodeFilter }}” aramasına uyan tüm revizyonlar stok koduna göre gruplanmıştır.</p>
+                        <h3 class="text-sm font-semibold text-slate-900">Artwork Geçmişi</h3>
+                        <p class="mt-1 text-xs text-slate-500">Bu stok kodunun hangi revizyonlarla hangi sipariş ve tedarikçilere yüklendiğini gösterir.</p>
                     </div>
-                    <span class="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">{{ $stockRevisionGroups->sum->count() }} revizyon</span>
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{{ $stockHistory->sum->count() }} kayıt</span>
                 </div>
             </div>
-            <div class="space-y-4 p-5">
-                @foreach($stockRevisionGroups as $stockCode => $revisions)
-                    @php
-                        $first = $revisions->first();
-                        $stockName = $first?->galleryItem?->stockCard?->stock_name ?? 'Stok adı bulunamadı';
-                        $categoryName = $first?->galleryItem?->stockCard?->category?->display_name ?? ($first?->galleryItem?->category?->display_name ?? 'Kategorisiz');
-                    @endphp
-                    <div class="rounded-2xl border border-slate-200">
-                        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3">
-                            <div>
-                                <p class="text-sm font-semibold text-slate-900">{{ $stockName }}</p>
-                                <p class="mt-0.5 text-xs text-slate-500"><span class="font-mono">{{ $stockCode }}</span> · {{ $categoryName }}</p>
-                            </div>
-                            <span class="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">{{ $revisions->count() }} revizyon</span>
-                        </div>
-                        <div class="divide-y divide-slate-100">
-                            @foreach($revisions as $revision)
-                                <div class="grid gap-3 px-4 py-3 md:grid-cols-[110px_minmax(0,1fr)_130px_130px] md:items-center">
-                                    <div class="flex items-center gap-2">
-                                        <span class="rounded bg-slate-100 px-2 py-1 text-xs font-mono text-slate-700">Rev.{{ $revision->revision_no }}</span>
-                                        @if($revision->is_active)
-                                            <span class="badge badge-success">Aktif</span>
-                                        @endif
-                                    </div>
-                                    <div class="min-w-0">
-                                        <p class="truncate text-sm font-medium text-slate-900">{{ $revision->original_filename }}</p>
-                                        <p class="mt-0.5 text-xs text-slate-500">
-                                            {{ $revision->artwork?->orderLine?->purchaseOrder?->order_no ?? 'Sipariş yok' }}
-                                            · {{ $revision->artwork?->orderLine?->product_code ?? 'Ürün kodu yok' }}
-                                            · Satır {{ $revision->artwork?->orderLine?->line_no ?? '—' }}
-                                        </p>
-                                    </div>
-                                    <div class="text-xs text-slate-500">{{ $revision->uploadedBy?->name ?? 'Bilinmiyor' }}</div>
-                                    <div class="text-xs text-slate-500">{{ $revision->created_at->format('d.m.Y H:i') }}</div>
+
+            @if($stockHistory->isEmpty())
+                <div class="px-5 py-8 text-sm text-slate-500">
+                    <span class="font-mono font-semibold text-slate-700">{{ $stockCodeFilter }}</span> için artwork geçmişi bulunamadı.
+                </div>
+            @else
+                <div class="space-y-5 p-5">
+                    @foreach($stockHistory as $stockCode => $revisions)
+                        @php
+                            $firstRevision = $revisions->first();
+                            $stockName = $firstRevision?->galleryItem?->stockCard?->stock_name ?? 'Stok adı bulunamadı';
+                            $categoryName = $firstRevision?->galleryItem?->stockCard?->category?->display_name ?? ($firstRevision?->galleryItem?->category?->display_name ?? 'Kategorisiz');
+                        @endphp
+                        <div class="overflow-hidden rounded-2xl border border-slate-200">
+                            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3">
+                                <div>
+                                    <p class="text-sm font-semibold text-slate-900">{{ $stockName }}</p>
+                                    <p class="mt-0.5 text-xs text-slate-500">
+                                        <span class="font-mono">{{ $stockCode }}</span> · {{ $categoryName }}
+                                    </p>
                                 </div>
-                            @endforeach
+                                <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700">{{ $revisions->count() }} yükleme</span>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full min-w-[860px] text-sm">
+                                    <thead>
+                                        <tr class="border-b border-slate-100 bg-white text-left">
+                                            <th class="px-4 py-3 font-medium text-slate-600">Revizyon</th>
+                                            <th class="px-4 py-3 font-medium text-slate-600">Artwork</th>
+                                            <th class="px-4 py-3 font-medium text-slate-600">Sipariş</th>
+                                            <th class="px-4 py-3 font-medium text-slate-600">Tedarikçi</th>
+                                            <th class="px-4 py-3 font-medium text-slate-600">Yükleyen</th>
+                                            <th class="px-4 py-3 font-medium text-slate-600">Tarih</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        @foreach($revisions as $revision)
+                                            <tr class="hover:bg-slate-50/70">
+                                                <td class="px-4 py-3">
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-mono text-slate-700">Rev.{{ $revision->revision_no }}</span>
+                                                        @if($revision->is_active)
+                                                            <span class="badge badge-success">Aktif</span>
+                                                        @endif
+                                                    </div>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <p class="font-medium text-slate-900">{{ $revision->original_filename }}</p>
+                                                    <p class="mt-0.5 text-xs text-slate-500">
+                                                        Galeri: {{ $revision->galleryItem?->display_name ?? '—' }}
+                                                    </p>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    @if($revision->artwork?->orderLine?->purchaseOrder)
+                                                        <a href="{{ route('orders.show', $revision->artwork->orderLine->purchaseOrder) }}" class="font-medium text-brand-700 hover:underline">
+                                                            {{ $revision->artwork->orderLine->purchaseOrder->order_no }}
+                                                        </a>
+                                                    @else
+                                                        <span class="text-slate-400">Sipariş yok</span>
+                                                    @endif
+                                                    <p class="mt-0.5 text-xs text-slate-500">
+                                                        {{ $revision->artwork?->orderLine?->product_code ?? 'Ürün kodu yok' }}
+                                                        · Satır {{ $revision->artwork?->orderLine?->line_no ?? '—' }}
+                                                    </p>
+                                                </td>
+                                                <td class="px-4 py-3 text-slate-600">{{ $revision->artwork?->orderLine?->purchaseOrder?->supplier?->name ?? 'Bilinmiyor' }}</td>
+                                                <td class="px-4 py-3 text-slate-600">{{ $revision->uploadedBy?->name ?? 'Bilinmiyor' }}</td>
+                                                <td class="px-4 py-3 text-xs text-slate-500">
+                                                    {{ $revision->created_at->format('d.m.Y H:i') }}
+                                                    @if($revision->artwork?->orderLine?->purchaseOrder?->order_date)
+                                                        <div class="mt-1 text-[11px] text-slate-400">Sipariş: {{ $revision->artwork->orderLine->purchaseOrder->order_date->format('d.m.Y') }}</div>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
-                @endforeach
-            </div>
+                    @endforeach
+                </div>
+            @endif
         </div>
     @endif
 
@@ -184,6 +327,8 @@
                                 <p class="mt-0.5 text-xs text-slate-500">
                                     @if($item->stock_code)
                                         <span class="font-mono font-semibold text-brand-700">{{ $item->stock_code }}</span>
+                                        <span class="mx-1">·</span>
+                                        <span class="font-semibold text-slate-600">Rev.{{ $item->revision_no ?: '—' }}</span>
                                     @else
                                         <span class="text-slate-300">Stok kodu yok</span>
                                     @endif

@@ -7,10 +7,12 @@ use App\Models\Artwork;
 use App\Models\ArtworkCategory;
 use App\Models\ArtworkGallery;
 use App\Models\ArtworkGalleryUsage;
+use App\Models\PurchaseOrder;
 use App\Models\ArtworkRevision;
 use App\Models\ArtworkTag;
 use App\Models\PurchaseOrderLine;
 use App\Models\StockCard;
+use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -154,6 +156,7 @@ class ArtworkGalleryAdminTest extends TestCase
     public function test_gallery_stock_code_filter_renders_revision_summary_panel(): void
     {
         $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        $supplier = Supplier::factory()->create(['name' => 'Lider Tedarik']);
         $category = ArtworkCategory::factory()->create(['name' => 'Kutu']);
         $stockCard = StockCard::factory()->create([
             'stock_code' => 'STK-555',
@@ -167,7 +170,12 @@ class ArtworkGalleryAdminTest extends TestCase
             'category_id' => $category->id,
             'name' => 'lider-kutu.pdf',
         ]);
+        $order = PurchaseOrder::factory()->create([
+            'supplier_id' => $supplier->id,
+            'order_no' => 'SIP-555',
+        ]);
         $line = PurchaseOrderLine::factory()->create([
+            'purchase_order_id' => $order->id,
             'product_code' => $stockCard->stock_code,
         ]);
         $artwork = Artwork::factory()->create(['order_line_id' => $line->id]);
@@ -184,8 +192,13 @@ class ArtworkGalleryAdminTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.artwork-gallery.index', ['stock_code' => 'STK-555']))
             ->assertOk()
+            ->assertSee('Stok Koduna Göre Hızlı Eşleşmeler')
+            ->assertSee('Artwork Geçmişi')
             ->assertSee('Lider Kutu')
             ->assertSee('STK-555')
-            ->assertSee('Rev.5');
+            ->assertSee('Sistemde Rev.05')
+            ->assertSee('Rev.5')
+            ->assertSee('SIP-555')
+            ->assertSee('Lider Tedarik');
     }
 }

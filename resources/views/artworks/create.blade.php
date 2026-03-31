@@ -60,11 +60,12 @@
 
             <div id="upload-panel" class="space-y-4">
                 <input type="file" id="artwork_file" name="artwork_file" class="hidden" accept=".pdf,.ai,.eps,.zip,.svg,.png,.jpg,.jpeg,.tif,.tiff,.psd,.indd">
+                <input type="file" id="preview_file" name="preview_file" class="hidden" accept=".png,image/png">
 
                 <div>
                     <div class="mb-2 flex items-center justify-between gap-3">
-                        <label class="label mb-0">Dosya</label>
-                        <span class="text-xs text-slate-400">PDF, AI, EPS, ZIP, PSD, INDD, PNG, TIF</span>
+                        <label class="label mb-0">Orijinal Kaynak Dosya</label>
+                        <span class="text-xs text-slate-400">Zorunlu · PDF, AI, EPS, ZIP, PSD, INDD, PNG, TIF</span>
                     </div>
                     <div id="dropZone" class="cursor-pointer rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50/40 p-6 text-center transition hover:border-brand-400 hover:bg-brand-50/20" onclick="document.getElementById('artwork_file').click()">
                         <div id="drop-empty">
@@ -84,6 +85,27 @@
                         </div>
                     </div>
                     @error('artwork_file')
+                        <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <div class="mb-2 flex items-center justify-between gap-3">
+                        <label class="label mb-0">Önizleme PNG</label>
+                        <span class="text-xs text-slate-400">{{ $previewPngRequired ? 'Zorunlu' : 'İsteğe bağlı' }} · Sadece PNG</span>
+                    </div>
+                    <button type="button" id="previewPicker" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-brand-300 hover:bg-brand-50/20">
+                        <span>
+                            <span class="block text-sm font-medium text-slate-900">Ekran önizleme dosyasını seçin</span>
+                            <span class="mt-1 block text-xs text-slate-400">Galeri ve detay ekranlarında bu PNG kullanılacaktır.</span>
+                        </span>
+                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">PNG</span>
+                    </button>
+                    <div id="previewSelected" class="mt-3 hidden rounded-2xl border border-emerald-200 bg-emerald-50/60 px-4 py-3">
+                        <p id="previewFileName" class="text-sm font-semibold text-emerald-700">—</p>
+                        <p id="previewFileMeta" class="mt-1 text-xs text-emerald-600">—</p>
+                    </div>
+                    @error('preview_file')
                         <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
                     @enderror
 
@@ -106,11 +128,11 @@
                 </div>
             </div>
 
-            <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+                <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
                 <div>
                     <label class="label" for="stock_code">Stok Kodu</label>
                     <input type="text" id="stock_code" name="stock_code" value="{{ old('stock_code', $resolvedStockCard?->stock_code ?? $line->product_code) }}" class="input font-mono" placeholder="Stok kodu girin" required>
-                    <p class="mt-1 text-xs text-slate-400">Stok kodu doğrulandığında stok adı ve kategori otomatik doldurulur.</p>
+                    <p class="mt-1 text-xs text-slate-400">Stok kodu tamamlanmadan upload tamamlanamaz; doğrulandığında stok adı ve kategori otomatik doldurulur.</p>
                     @error('stock_code')
                         <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
                     @enderror
@@ -119,7 +141,7 @@
                 <div>
                     <label class="label" for="revision_no">Revizyon No</label>
                     <input type="number" id="revision_no" name="revision_no" value="{{ old('revision_no', $nextRevisionNo) }}" min="{{ $nextRevisionNo }}" class="input w-full" required>
-                    <p class="mt-1 text-xs text-slate-400">En az Rev.{{ $nextRevisionNo }} olmalıdır.</p>
+                    <p class="mt-1 text-xs text-slate-400">Revizyon numarası tamamlanmadan upload tamamlanamaz. En az Rev.{{ $nextRevisionNo }} olmalıdır.</p>
                     @error('revision_no')
                         <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
                     @enderror
@@ -255,6 +277,11 @@
 @push('scripts')
 <script>
 const fileInput = document.getElementById('artwork_file');
+const previewFileInput = document.getElementById('preview_file');
+const previewPicker = document.getElementById('previewPicker');
+const previewSelected = document.getElementById('previewSelected');
+const previewFileName = document.getElementById('previewFileName');
+const previewFileMeta = document.getElementById('previewFileMeta');
 const dropZone = document.getElementById('dropZone');
 const progressW = document.getElementById('progressWrapper');
 const progressBar = document.getElementById('progressBar');
@@ -445,6 +472,19 @@ if (fileInput) {
     });
 }
 
+if (previewPicker && previewFileInput) {
+    previewPicker.addEventListener('click', () => {
+        setSourceMode('upload');
+        previewFileInput.click();
+    });
+}
+
+if (previewFileInput) {
+    previewFileInput.addEventListener('change', event => {
+        showPreviewFile(event.target.files[0]);
+    });
+}
+
 if (dropZone) {
     dropZone.addEventListener('dragover', event => {
         event.preventDefault();
@@ -475,6 +515,20 @@ function showFile(file) {
     dropZone.classList.add('border-emerald-400', 'bg-emerald-50/40');
     progressFn.textContent = file.name;
     progressSz.textContent = `${mb} MB`;
+}
+
+function showPreviewFile(file) {
+    if (!file) {
+        previewSelected.classList.add('hidden');
+        previewFileName.textContent = '—';
+        previewFileMeta.textContent = '—';
+        return;
+    }
+
+    const mb = (file.size / 1048576).toFixed(1);
+    previewSelected.classList.remove('hidden');
+    previewFileName.textContent = file.name;
+    previewFileMeta.textContent = `PNG · ${mb} MB`;
 }
 
 window.addEventListener('beforeunload', function (event) {
@@ -556,6 +610,13 @@ form.addEventListener('submit', function (event) {
         return;
     }
 
+    if (sourceTypeInput.value === 'upload' && {{ $previewPngRequired ? 'true' : 'false' }} && (!previewFileInput || !previewFileInput.files.length)) {
+        event.preventDefault();
+        setLookupState('Kaydetmeden önce önizleme PNG dosyasını seçin.', 'error');
+        previewPicker.focus();
+        return;
+    }
+
     if (sourceTypeInput.value === 'gallery') {
         return;
     }
@@ -572,6 +633,7 @@ window.addEventListener('DOMContentLoaded', () => {
     revisionInput.min = '1';
     setSourceMode(sourceTypeInput.value || 'upload');
     filterGalleryCards();
+    if (previewFileInput && previewFileInput.files.length) showPreviewFile(previewFileInput.files[0]);
 
     if (galleryItemInput.value) {
         const selectedCard = galleryCards.find(card => card.dataset.galleryId === galleryItemInput.value);

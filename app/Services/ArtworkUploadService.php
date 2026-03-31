@@ -25,9 +25,9 @@ class ArtworkUploadService
         private DashboardCacheService $dashboardCache,
     ) {}
 
-    public function storeUploadedFile(PurchaseOrderLine $line, UploadedFile $file, array $meta, User $uploader): ArtworkRevision
+    public function storeUploadedFile(PurchaseOrderLine $line, UploadedFile $file, ?UploadedFile $previewFile, array $meta, User $uploader): ArtworkRevision
     {
-        return DB::transaction(function () use ($line, $file, $meta, $uploader) {
+        return DB::transaction(function () use ($line, $file, $previewFile, $meta, $uploader) {
             $stockCard = $this->resolveStockCard($meta['stock_code'] ?? null);
             $artwork = $this->resolveArtwork($line, $stockCard?->stock_name ?? pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
             $revisionNo = (int) ($meta['revision_no'] ?? $artwork->next_revision_no);
@@ -41,23 +41,30 @@ class ArtworkUploadService
             );
 
             $fileData = $this->multipart->upload($file, $path);
+            $previewData = $previewFile ? $this->storePreviewFile($line, $revisionNo, $previewFile) : null;
 
             $galleryItem = ArtworkGallery::create([
                 'name' => $fileData['original_filename'],
+                'preview_file_name' => $previewData['original_filename'] ?? null,
                 'stock_code' => $stockCard?->stock_code,
                 'revision_no' => $revisionNo,
                 'stock_card_id' => $stockCard?->id,
                 'category_id' => $stockCard?->category_id,
                 'file_path' => $fileData['spaces_path'],
+                'preview_file_path' => $previewData['spaces_path'] ?? null,
                 'file_disk' => $this->settings->filesystemDisk(),
+                'preview_file_disk' => $previewData ? $this->settings->filesystemDisk() : null,
                 'file_size' => $fileData['file_size'],
+                'preview_file_size' => $previewData['file_size'] ?? null,
                 'file_type' => $fileData['mime_type'],
+                'preview_file_type' => $previewData['mime_type'] ?? null,
                 'uploaded_by' => $uploader->id,
                 'revision_note' => $meta['notes'] ?? null,
             ]);
 
             $revision = $this->createRevision($artwork, $line, $uploader, $revisionNo, [
                 ...$fileData,
+                ...$this->mapPreviewDataForRevision($previewData),
                 'artwork_gallery_id' => $galleryItem->id,
                 'notes' => $meta['notes'] ?? null,
             ]);
@@ -71,6 +78,7 @@ class ArtworkUploadService
                 'strategy' => $file->getSize() >= 100 * 1024 * 1024 ? 'multipart' : 'single',
                 'stock_code' => $stockCard?->stock_code,
                 'stock_name' => $stockCard?->stock_name,
+                'preview_available' => $previewData !== null,
             ]);
             $this->audit->log('artwork.gallery.create', $galleryItem, [
                 'purchase_order_id' => $line->purchase_order_id,
@@ -104,10 +112,15 @@ class ArtworkUploadService
             $revision = $this->createRevision($artwork, $line, $uploader, $revisionNo, [
                 'artwork_gallery_id' => $galleryItem->id,
                 'spaces_path' => $galleryItem->file_path,
+                'preview_spaces_path' => $galleryItem->preview_file_path,
                 'original_filename' => $galleryItem->name,
+                'preview_original_filename' => $galleryItem->preview_file_name,
                 'stored_filename' => basename($galleryItem->file_path),
+                'preview_stored_filename' => $galleryItem->preview_file_path ? basename($galleryItem->preview_file_path) : null,
                 'mime_type' => $galleryItem->file_type,
+                'preview_mime_type' => $galleryItem->preview_file_type,
                 'file_size' => $galleryItem->file_size,
+                'preview_file_size' => $galleryItem->preview_file_size,
                 'notes' => $meta['notes'] ?? $galleryItem->revision_note,
             ]);
 
@@ -119,6 +132,7 @@ class ArtworkUploadService
                 'file_size' => $revision->file_size,
                 'strategy' => 'gallery-reuse',
                 'stock_code' => $stockCard?->stock_code ?? $galleryItem->stock_code,
+                'preview_available' => $galleryItem->has_preview,
             ]);
             $this->audit->log('artwork.gallery.reuse', $galleryItem, [
                 'purchase_order_id' => $line->purchase_order_id,
@@ -257,5 +271,40 @@ class ArtworkUploadService
         return StockCard::query()
             ->where('stock_code', mb_strtoupper(trim($stockCode)))
             ->first();
+    }
+
+    private function storePreviewFile(PurchaseOrderLine $line, int $revisionNo, UploadedFile $previewFile): array
+    {
+        $previewPath = $this->spaces->buildVariantPath(
+            $line->purchaseOrder->supplier_id,
+            $line->purchaseOrder->order_no,
+            $line->id,
+            $revisionNo,
+            'preview',
+            'png'
+        );
+
+        return $this->multipart->upload($previewFile, $previewPath);
+    }
+
+    private function mapPreviewDataForRevision(?array $previewData): array
+    {
+        if ($previewData === null) {
+            return [
+                'preview_original_filename' => null,
+                'preview_stored_filename' => null,
+                'preview_spaces_path' => null,
+                'preview_mime_type' => null,
+                'preview_file_size' => null,
+            ];
+        }
+
+        return [
+            'preview_original_filename' => $previewData['original_filename'],
+            'preview_stored_filename' => $previewData['stored_filename'],
+            'preview_spaces_path' => $previewData['spaces_path'],
+            'preview_mime_type' => $previewData['mime_type'],
+            'preview_file_size' => $previewData['file_size'],
+        ];
     }
 }

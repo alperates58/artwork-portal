@@ -100,12 +100,12 @@ class ArtworkUploadTest extends TestCase
         ]);
 
         $this->mock(SpacesStorageService::class, function ($mock) {
-            $mock->shouldReceive('buildPath')->andReturn('artworks/supplier/1/orders/PO-001/lines/1/rev/3/uuid.pdf');
+            $mock->shouldReceive('buildPath')->andReturn('artworks/supplier/1/orders/PO-001/lines/1/rev/3/original/uuid.pdf');
         });
 
         $this->mock(MultipartUploadService::class, function ($mock) {
-            $mock->shouldReceive('upload')->andReturn([
-                'spaces_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/3/uuid.pdf',
+            $mock->shouldReceive('upload')->once()->andReturn([
+                'spaces_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/3/original/uuid.pdf',
                 'original_filename' => 'test-artwork.pdf',
                 'stored_filename' => 'uuid.pdf',
                 'mime_type' => 'application/pdf',
@@ -143,10 +143,70 @@ class ArtworkUploadTest extends TestCase
             'category_id' => $this->stockCard->category_id,
             'uploaded_by' => $this->graphicUser->id,
             'file_disk' => 'spaces',
+            'preview_file_path' => null,
         ]);
         $this->assertDatabaseHas('artwork_gallery_usages', [
             'purchase_order_line_id' => $this->line->id,
             'usage_type' => 'upload',
+        ]);
+    }
+
+    public function test_upload_stores_preview_png_with_same_stock_code_and_revision(): void
+    {
+        SystemSetting::query()->create([
+            'group' => 'spaces',
+            'key' => 'spaces.disk',
+            'value' => 'spaces',
+        ]);
+
+        $this->mock(SpacesStorageService::class, function ($mock) {
+            $mock->shouldReceive('buildPath')->andReturn('artworks/supplier/1/orders/PO-001/lines/1/rev/4/original/uuid.ai');
+            $mock->shouldReceive('buildVariantPath')->andReturn('artworks/supplier/1/orders/PO-001/lines/1/rev/4/preview/uuid.png');
+        });
+
+        $this->mock(MultipartUploadService::class, function ($mock) {
+            $mock->shouldReceive('upload')->twice()->andReturn(
+                [
+                    'spaces_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/4/original/uuid.ai',
+                    'original_filename' => 'master.ai',
+                    'stored_filename' => 'uuid.ai',
+                    'mime_type' => 'application/postscript',
+                    'file_size' => 4096,
+                ],
+                [
+                    'spaces_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/4/preview/uuid.png',
+                    'original_filename' => 'master-preview.png',
+                    'stored_filename' => 'uuid.png',
+                    'mime_type' => 'image/png',
+                    'file_size' => 512,
+                ]
+            );
+        });
+
+        $file = UploadedFile::fake()->create('master.ai', 100, 'application/postscript');
+        $preview = UploadedFile::fake()->image('master-preview.png');
+
+        $this->actingAs($this->graphicUser)
+            ->post(route('artworks.store', $this->line), [
+                'source_type' => 'upload',
+                'artwork_file' => $file,
+                'preview_file' => $preview,
+                'stock_code' => $this->stockCard->stock_code,
+                'revision_no' => 4,
+            ])
+            ->assertRedirect(route('order-lines.show', $this->line));
+
+        $this->assertDatabaseHas('artwork_gallery', [
+            'stock_code' => $this->stockCard->stock_code,
+            'revision_no' => 4,
+            'file_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/4/original/uuid.ai',
+            'preview_file_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/4/preview/uuid.png',
+        ]);
+        $this->assertDatabaseHas('artwork_revisions', [
+            'revision_no' => 4,
+            'spaces_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/4/original/uuid.ai',
+            'preview_spaces_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/4/preview/uuid.png',
+            'preview_original_filename' => 'master-preview.png',
         ]);
     }
 
@@ -312,6 +372,26 @@ class ArtworkUploadTest extends TestCase
                 'stock_code' => $this->stockCard->stock_code,
             ])
             ->assertSessionHasErrors('revision_no');
+    }
+
+    public function test_upload_requires_preview_png_when_setting_enabled(): void
+    {
+        SystemSetting::query()->create([
+            'group' => 'portal',
+            'key' => 'portal.preview_png_required',
+            'value' => '1',
+        ]);
+
+        $file = UploadedFile::fake()->create('test.pdf', 50, 'application/pdf');
+
+        $this->actingAs($this->graphicUser)
+            ->post(route('artworks.store', $this->line), [
+                'source_type' => 'upload',
+                'artwork_file' => $file,
+                'stock_code' => $this->stockCard->stock_code,
+                'revision_no' => 1,
+            ])
+            ->assertSessionHasErrors('preview_file');
     }
 
     public function test_upload_rejects_unknown_stock_code(): void

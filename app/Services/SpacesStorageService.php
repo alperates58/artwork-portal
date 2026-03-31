@@ -20,16 +20,28 @@ class SpacesStorageService
         int $revisionNo,
         string $extension
     ): string {
+        return $this->buildVariantPath($supplierId, $orderNo, $lineId, $revisionNo, 'original', $extension);
+    }
+
+    public function buildVariantPath(
+        int $supplierId,
+        string $orderNo,
+        int $lineId,
+        int $revisionNo,
+        string $variant,
+        string $extension
+    ): string {
         $uuid = (string) Str::uuid();
 
         return sprintf(
-            'artworks/supplier/%d/orders/%s/lines/%d/rev/%d/%s.%s',
+            'artworks/supplier/%d/orders/%s/lines/%d/rev/%d/%s/%s.%s',
             $supplierId,
             Str::of($orderNo)
                 ->replace(['/', '\\'], ' ')
                 ->slug(),
             $lineId,
             $revisionNo,
+            Str::slug($variant),
             $uuid,
             strtolower($extension)
         );

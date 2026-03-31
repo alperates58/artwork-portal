@@ -3,7 +3,7 @@
     $roundedClass = $roundedClass ?? 'rounded-2xl';
 @endphp
 
-@if($artworkGallery->is_image)
+@if($artworkGallery->has_preview)
     <img
         src="{{ route('artworks.gallery.preview', $artworkGallery) }}"
         alt="{{ $artworkGallery->display_name }}"

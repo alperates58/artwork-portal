@@ -29,6 +29,8 @@
                 <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-2">
                         <h2 class="text-lg font-semibold text-slate-900">{{ $artworkGallery->display_name }}</h2>
+                        <span class="badge badge-gray font-mono">{{ $artworkGallery->stock_code ?: 'STOK YOK' }}</span>
+                        <span class="badge badge-gray">Rev.{{ $artworkGallery->revision_no ?: '—' }}</span>
                         <span class="badge badge-gray">{{ $artworkGallery->file_type_display }}</span>
                         <span class="badge badge-gray">{{ $artworkGallery->stockCard?->category?->display_name ?? ($artworkGallery->category?->display_name ?? 'Kategorisiz') }}</span>
                     </div>
@@ -146,8 +148,10 @@
                 </div>
 
                 <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                    <p class="font-medium text-slate-700">Dosya yolu</p>
+                    <p class="font-medium text-slate-700">Orijinal dosya yolu</p>
                     <p class="mt-1 break-all font-mono text-xs">{{ $artworkGallery->file_path }}</p>
+                    <p class="mt-4 font-medium text-slate-700">Önizleme PNG yolu</p>
+                    <p class="mt-1 break-all font-mono text-xs">{{ $artworkGallery->preview_file_path ?: 'Önizleme PNG yok' }}</p>
                 </div>
 
                 <button type="submit" class="btn btn-primary">Kaydet</button>
@@ -174,6 +178,14 @@
                 <div>
                     <dt class="text-slate-400">Stok Kodu</dt>
                     <dd class="font-mono font-semibold text-slate-900">{{ $artworkGallery->stock_code ?: '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-slate-400">Revizyon</dt>
+                    <dd class="text-slate-900">Rev.{{ $artworkGallery->revision_no ?: '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-slate-400">Önizleme PNG</dt>
+                    <dd class="text-slate-900">{{ $artworkGallery->has_preview ? ($artworkGallery->preview_filename ?? 'Var') : 'Yok' }}</dd>
                 </div>
                 <div>
                     <dt class="text-slate-400">Yükleyen</dt>

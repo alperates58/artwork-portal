@@ -21,24 +21,27 @@ class ArtworkGalleryPreviewController extends Controller
     public function __invoke(ArtworkGallery $artworkGallery): RedirectResponse|BinaryFileResponse|StreamedResponse
     {
         abort_unless(auth()->user()?->canUploadArtwork(), 403, 'Bu önizlemeyi görüntüleme yetkiniz bulunmamaktadır.');
-        abort_unless($artworkGallery->is_image, 404, 'Önizleme yalnızca görsel dosyalar için kullanılabilir.');
+        abort_unless($artworkGallery->has_preview, 404, 'Bu artwork için kullanılabilir önizleme bulunmuyor.');
 
-        $disk = $artworkGallery->file_disk ?: $this->settings->filesystemDisk();
+        $path = $artworkGallery->preview_path;
+        $disk = $artworkGallery->preview_disk ?: $this->settings->filesystemDisk();
+        $mimeType = $artworkGallery->preview_mime_type ?: 'image/png';
+        $filename = $artworkGallery->preview_filename ?: basename((string) $path);
 
-        if (! $this->spaces->exists($artworkGallery->file_path, $disk)) {
+        if (! $path || ! $this->spaces->exists($path, $disk)) {
             abort(404, 'Dosya bulunamadı. Lütfen yönetici ile iletişime geçin.');
         }
 
         if ($disk === 'spaces') {
-            return redirect($this->spaces->presignedInlineUrl($artworkGallery->file_path, 5, $disk));
+            return redirect($this->spaces->presignedInlineUrl($path, 5, $disk));
         }
 
         return Storage::disk($disk)->response(
-            $artworkGallery->file_path,
-            basename($artworkGallery->file_path),
+            $path,
+            $filename,
             [
-                'Content-Type' => $artworkGallery->file_type ?: 'application/octet-stream',
-                'Content-Disposition' => 'inline; filename="' . basename($artworkGallery->file_path) . '"',
+                'Content-Type' => $mimeType,
+                'Content-Disposition' => 'inline; filename="' . $filename . '"',
             ]
         );
     }
