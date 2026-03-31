@@ -10,6 +10,7 @@ $categoryMeta = [
     'session' => ['label' => 'Oturum',  'color' => 'slate',   'icon' => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'],
     'artwork' => ['label' => 'Artwork', 'color' => 'violet',  'icon' => 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'],
     'gallery' => ['label' => 'Galeri',  'color' => 'blue',    'icon' => 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'],
+    'stock' => ['label' => 'Stok', 'color' => 'cyan', 'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10'],
     'order'   => ['label' => 'Sipariş', 'color' => 'amber',   'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'],
     'mail'    => ['label' => 'Mail',    'color' => 'emerald', 'icon' => 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'],
     'erp'     => ['label' => 'ERP',     'color' => 'rose',    'icon' => 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'],
@@ -421,7 +422,7 @@ foreach (AuditLogController::CATEGORIES as $cat => $actions) {
                 @forelse($logs as $log)
                 @php
                     $cat       = $actionCategory[$log->action] ?? null;
-                    $catMeta   = $cat ? $categoryMeta[$cat] : null;
+                    $catMeta   = $cat ? ($categoryMeta[$cat] ?? null) : null;
                     $actionLbl = AuditLogController::ACTION_LABELS[$log->action] ?? $log->action;
                     $badgeCls  = $actionColorMap[$log->action] ?? ['bg' => 'bg-slate-100', 'text' => 'text-slate-600'];
 
