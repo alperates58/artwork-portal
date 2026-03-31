@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ArtworkGallery extends Model
@@ -75,6 +76,13 @@ class ArtworkGallery extends Model
         return $this->hasMany(ArtworkRevision::class, 'artwork_gallery_id');
     }
 
+    public function latestPreviewRevision(): HasOne
+    {
+        return $this->hasOne(ArtworkRevision::class, 'artwork_gallery_id')
+            ->whereNotNull('preview_spaces_path')
+            ->latestOfMany('revision_no');
+    }
+
     public function getFileSizeFormattedAttribute(): string
     {
         $bytes = (int) $this->file_size;
@@ -136,7 +144,9 @@ class ArtworkGallery extends Model
 
     public function getHasPreviewAttribute(): bool
     {
-        return filled($this->getAttributeFromArray('preview_file_path')) || $this->isBrowserPreviewableOriginal();
+        return filled($this->getAttributeFromArray('preview_file_path'))
+            || $this->isBrowserPreviewableOriginal()
+            || filled($this->fallbackPreviewPath());
     }
 
     public function getPreviewDiskAttribute(): ?string
@@ -146,17 +156,23 @@ class ArtworkGallery extends Model
 
     public function getPreviewPathAttribute(): ?string
     {
-        return $this->getAttributeFromArray('preview_file_path') ?: ($this->isBrowserPreviewableOriginal() ? $this->file_path : null);
+        return $this->getAttributeFromArray('preview_file_path')
+            ?: ($this->isBrowserPreviewableOriginal() ? $this->file_path : null)
+            ?: $this->fallbackPreviewPath();
     }
 
     public function getPreviewMimeTypeAttribute(): ?string
     {
-        return $this->getAttributeFromArray('preview_file_type') ?: ($this->isBrowserPreviewableOriginal() ? $this->file_type : null);
+        return $this->getAttributeFromArray('preview_file_type')
+            ?: ($this->isBrowserPreviewableOriginal() ? $this->file_type : null)
+            ?: $this->fallbackPreviewRevision()?->preview_mime_type;
     }
 
     public function getPreviewFilenameAttribute(): ?string
     {
-        return $this->getAttributeFromArray('preview_file_name') ?: ($this->isBrowserPreviewableOriginal() ? $this->name : null);
+        return $this->getAttributeFromArray('preview_file_name')
+            ?: ($this->isBrowserPreviewableOriginal() ? $this->name : null)
+            ?: $this->fallbackPreviewRevision()?->preview_original_filename;
     }
 
     private function isBrowserPreviewableOriginal(): bool
@@ -166,6 +182,20 @@ class ArtworkGallery extends Model
 
         return in_array($extension, self::BROWSER_PREVIEW_EXTENSIONS, true)
             || in_array($mimeType, ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml'], true);
+    }
+
+    private function fallbackPreviewRevision(): ?ArtworkRevision
+    {
+        if ($this->relationLoaded('latestPreviewRevision')) {
+            return $this->getRelation('latestPreviewRevision');
+        }
+
+        return $this->latestPreviewRevision()->first();
+    }
+
+    private function fallbackPreviewPath(): ?string
+    {
+        return $this->fallbackPreviewRevision()?->preview_spaces_path;
     }
 
     public function getFileTypeIconAttribute(): string

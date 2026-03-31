@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Artwork;
 
 use App\Http\Controllers\Controller;
 use App\Models\ArtworkGallery;
+use App\Models\ArtworkRevision;
 use App\Services\PortalSettings;
 use App\Services\SpacesStorageService;
 use Illuminate\Http\RedirectResponse;
@@ -22,26 +23,92 @@ class ArtworkGalleryPreviewController extends Controller
         abort_unless(auth()->user()?->isInternal(), 403, 'Bu önizlemeyi görüntüleme yetkiniz bulunmamaktadır.');
         abort_unless($artworkGallery->has_preview, 404, 'Bu artwork için kullanılabilir önizleme bulunmuyor.');
 
-        $path = $artworkGallery->preview_path;
-        $disk = $artworkGallery->preview_disk ?: $this->settings->filesystemDisk();
-        $mimeType = $artworkGallery->preview_mime_type ?: 'image/png';
-        $filename = $artworkGallery->preview_filename ?: basename((string) $path);
+        $preview = $this->resolvePreview($artworkGallery);
 
-        if (! $path || ! $this->spaces->exists($path, $disk)) {
+        if ($preview === null) {
             abort(404, 'Dosya bulunamadı. Lütfen yönetici ile iletişime geçin.');
         }
 
-        if ($disk === 'spaces') {
-            return redirect($this->spaces->presignedInlineUrl($path, 5, $disk));
+        if ($preview['disk'] === 'spaces') {
+            return redirect($this->spaces->presignedInlineUrl($preview['path'], 5, $preview['disk']));
         }
 
         return response()->file(
-            Storage::disk($disk)->path($path),
+            Storage::disk($preview['disk'])->path($preview['path']),
             [
-                'Content-Type' => $mimeType,
-                'Content-Disposition' => 'inline; filename="' . $filename . '"',
+                'Content-Type' => $preview['mime_type'],
+                'Content-Disposition' => 'inline; filename="' . $preview['filename'] . '"',
                 'Cache-Control' => 'private, max-age=300',
             ]
         );
+    }
+
+    private function resolvePreview(ArtworkGallery $artworkGallery): ?array
+    {
+        $preview = $this->galleryPreviewPayload($artworkGallery);
+
+        if ($preview !== null) {
+            return $preview;
+        }
+
+        $fallbackRevision = $artworkGallery->relationLoaded('latestPreviewRevision')
+            ? $artworkGallery->latestPreviewRevision
+            : $artworkGallery->latestPreviewRevision()->first();
+
+        if (! $fallbackRevision instanceof ArtworkRevision) {
+            return null;
+        }
+
+        $preview = $this->revisionPreviewPayload($artworkGallery, $fallbackRevision);
+
+        if ($preview === null) {
+            return null;
+        }
+
+        $artworkGallery->forceFill([
+            'preview_file_name' => $preview['filename'],
+            'preview_file_path' => $preview['path'],
+            'preview_file_disk' => $preview['disk'],
+            'preview_file_size' => $fallbackRevision->preview_file_size,
+            'preview_file_type' => $preview['mime_type'],
+        ])->save();
+
+        return $preview;
+    }
+
+    private function galleryPreviewPayload(ArtworkGallery $artworkGallery): ?array
+    {
+        $path = $artworkGallery->preview_path;
+        $disk = $artworkGallery->preview_disk ?: $this->settings->filesystemDisk();
+
+        if (! $path || ! $this->spaces->exists($path, $disk)) {
+            return null;
+        }
+
+        return [
+            'path' => $path,
+            'disk' => $disk,
+            'mime_type' => $artworkGallery->preview_mime_type ?: 'image/png',
+            'filename' => $artworkGallery->preview_filename ?: basename((string) $path),
+        ];
+    }
+
+    private function revisionPreviewPayload(ArtworkGallery $artworkGallery, ArtworkRevision $revision): ?array
+    {
+        $path = $revision->preview_spaces_path;
+        $disk = $artworkGallery->file_disk
+            ?: $artworkGallery->getAttributeFromArray('preview_file_disk')
+            ?: $this->settings->filesystemDisk();
+
+        if (! $path || ! $this->spaces->exists($path, $disk)) {
+            return null;
+        }
+
+        return [
+            'path' => $path,
+            'disk' => $disk,
+            'mime_type' => $revision->preview_mime_type ?: 'image/png',
+            'filename' => $revision->preview_original_filename ?: basename((string) $path),
+        ];
     }
 }

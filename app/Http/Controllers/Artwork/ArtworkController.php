@@ -60,7 +60,11 @@ class ArtworkController extends Controller
                 'revision_note',
                 'created_at',
             ])
-            ->with(['stockCard:id,stock_code,stock_name,category_id', 'stockCard.category:id,name'])
+            ->with([
+                'stockCard:id,stock_code,stock_name,category_id',
+                'stockCard.category:id,name',
+                'latestPreviewRevision:id,artwork_gallery_id,preview_spaces_path,preview_original_filename,preview_mime_type,preview_file_size',
+            ])
             ->withMax('revisions', 'revision_no')
             ->whereNotNull('stock_code')
             ->when(
