@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Jobs\GenerateArtworkPreviewJob;
 use App\Models\Artwork;
 use App\Models\ArtworkGallery;
 use App\Models\ArtworkRevision;
@@ -16,6 +17,7 @@ use App\Services\MultipartUploadService;
 use App\Services\SpacesStorageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -93,6 +95,8 @@ class ArtworkUploadTest extends TestCase
 
     public function test_graphic_user_can_upload_artwork_with_stock_card(): void
     {
+        Queue::fake();
+
         SystemSetting::query()->create([
             'group' => 'spaces',
             'key' => 'spaces.disk',
@@ -149,10 +153,14 @@ class ArtworkUploadTest extends TestCase
             'purchase_order_line_id' => $this->line->id,
             'usage_type' => 'upload',
         ]);
+        $revision = ArtworkRevision::query()->where('revision_no', 3)->firstOrFail();
+        Queue::assertPushed(GenerateArtworkPreviewJob::class, fn (GenerateArtworkPreviewJob $job) => $job->revisionId === $revision->id);
     }
 
-    public function test_upload_stores_preview_png_with_same_stock_code_and_revision(): void
+    public function test_ai_upload_dispatches_preview_generation_job(): void
     {
+        Queue::fake();
+
         SystemSetting::query()->create([
             'group' => 'spaces',
             'key' => 'spaces.disk',
@@ -161,57 +169,49 @@ class ArtworkUploadTest extends TestCase
 
         $this->mock(SpacesStorageService::class, function ($mock) {
             $mock->shouldReceive('buildPath')->andReturn('artworks/supplier/1/orders/PO-001/lines/1/rev/4/original/uuid.ai');
-            $mock->shouldReceive('buildVariantPath')->andReturn('artworks/supplier/1/orders/PO-001/lines/1/rev/4/preview/uuid.png');
         });
 
         $this->mock(MultipartUploadService::class, function ($mock) {
-            $mock->shouldReceive('upload')->twice()->andReturn(
-                [
-                    'spaces_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/4/original/uuid.ai',
-                    'original_filename' => 'master.ai',
-                    'stored_filename' => 'uuid.ai',
-                    'mime_type' => 'application/postscript',
-                    'file_size' => 4096,
-                ],
-                [
-                    'spaces_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/4/preview/uuid.png',
-                    'original_filename' => 'master-preview.png',
-                    'stored_filename' => 'uuid.png',
-                    'mime_type' => 'image/png',
-                    'file_size' => 512,
-                ]
-            );
+            $mock->shouldReceive('upload')->once()->andReturn([
+                'spaces_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/4/original/uuid.ai',
+                'original_filename' => 'master.ai',
+                'stored_filename' => 'uuid.ai',
+                'mime_type' => 'application/postscript',
+                'file_size' => 4096,
+            ]);
         });
 
         $file = UploadedFile::fake()->create('master.ai', 100, 'application/postscript');
-        $preview = UploadedFile::fake()->image('master-preview.png');
 
         $this->actingAs($this->graphicUser)
             ->post(route('artworks.store', $this->line), [
                 'source_type' => 'upload',
                 'artwork_file' => $file,
-                'preview_file' => $preview,
                 'stock_code' => $this->stockCard->stock_code,
                 'revision_no' => 4,
             ])
             ->assertRedirect(route('order-lines.show', $this->line));
 
+        $revision = ArtworkRevision::query()->where('revision_no', 4)->firstOrFail();
+
         $this->assertDatabaseHas('artwork_gallery', [
             'stock_code' => $this->stockCard->stock_code,
             'revision_no' => 4,
             'file_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/4/original/uuid.ai',
-            'preview_file_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/4/preview/uuid.png',
+            'preview_file_path' => null,
         ]);
         $this->assertDatabaseHas('artwork_revisions', [
             'revision_no' => 4,
             'spaces_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/4/original/uuid.ai',
-            'preview_spaces_path' => 'artworks/supplier/1/orders/PO-001/lines/1/rev/4/preview/uuid.png',
-            'preview_original_filename' => 'master-preview.png',
+            'preview_spaces_path' => null,
         ]);
+        Queue::assertPushed(GenerateArtworkPreviewJob::class, fn (GenerateArtworkPreviewJob $job) => $job->revisionId === $revision->id);
     }
 
     public function test_gallery_reuse_creates_revision_with_explicit_revision_number(): void
     {
+        Queue::fake();
+
         $galleryItem = ArtworkGallery::factory()->create([
             'uploaded_by' => $this->adminUser->id,
             'stock_code' => $this->stockCard->stock_code,
@@ -248,6 +248,11 @@ class ArtworkUploadTest extends TestCase
             'purchase_order_line_id' => $this->line->id,
             'usage_type' => 'reuse',
         ]);
+        $revision = ArtworkRevision::query()
+            ->where('artwork_gallery_id', $galleryItem->id)
+            ->where('revision_no', 2)
+            ->firstOrFail();
+        Queue::assertPushed(GenerateArtworkPreviewJob::class, fn (GenerateArtworkPreviewJob $job) => $job->revisionId === $revision->id);
     }
 
     public function test_gallery_reuse_accepts_selected_gallery_revision_even_when_lower_than_next_revision(): void
@@ -298,6 +303,8 @@ class ArtworkUploadTest extends TestCase
 
     public function test_uploading_new_revision_deactivates_old(): void
     {
+        Queue::fake();
+
         $this->mock(SpacesStorageService::class, function ($mock) {
             $mock->shouldReceive('buildPath')->andReturn('artworks/test/rev2.pdf');
         });
@@ -372,26 +379,6 @@ class ArtworkUploadTest extends TestCase
                 'stock_code' => $this->stockCard->stock_code,
             ])
             ->assertSessionHasErrors('revision_no');
-    }
-
-    public function test_upload_requires_preview_png_when_setting_enabled(): void
-    {
-        SystemSetting::query()->create([
-            'group' => 'portal',
-            'key' => 'portal.preview_png_required',
-            'value' => '1',
-        ]);
-
-        $file = UploadedFile::fake()->create('test.pdf', 50, 'application/pdf');
-
-        $this->actingAs($this->graphicUser)
-            ->post(route('artworks.store', $this->line), [
-                'source_type' => 'upload',
-                'artwork_file' => $file,
-                'stock_code' => $this->stockCard->stock_code,
-                'revision_no' => 1,
-            ])
-            ->assertSessionHasErrors('preview_file');
     }
 
     public function test_upload_rejects_unknown_stock_code(): void

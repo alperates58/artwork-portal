@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Artwork\ArtworkGalleryPreviewController;
 use App\Http\Controllers\Artwork\ArtworkController;
+use App\Http\Controllers\Artwork\ArtworkPreviewController;
 use App\Http\Controllers\Artwork\DownloadController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
@@ -55,6 +56,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/siparisler', [PortalOrderController::class, 'index'])->name('orders.index');
             Route::get('/siparisler/{order}', [PortalOrderController::class, 'show'])->name('orders.show');
             Route::get('/indir/{revision}', [DownloadController::class, 'download'])->name('download');
+            Route::get('/onizleme/{revision}', ArtworkPreviewController::class)->name('preview');
         });
 
     Route::middleware('role:admin,purchasing,graphic')->group(function () {
@@ -79,6 +81,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::delete('/revizyon/{revision}', [ArtworkController::class, 'destroy'])->name('artworks.destroy');
         Route::get('/satir/{line}/revizyonlar', [ArtworkController::class, 'revisions'])->name('artworks.revisions');
         Route::get('/indir/{revision}', [DownloadController::class, 'download'])->name('artwork.download');
+        Route::get('/onizleme/{revision}', ArtworkPreviewController::class)->name('artworks.preview');
         Route::get('/galeri/{artworkGallery}/onizleme', ArtworkGalleryPreviewController::class)->name('artworks.gallery.preview');
     });
 

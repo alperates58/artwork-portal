@@ -7,6 +7,8 @@ RUN apt-get update && apt-get install -y \
     npm \
     unzip \
     zip \
+    ghostscript \
+    imagemagick \
     libzip-dev \
     zlib1g-dev \
     libpng-dev \

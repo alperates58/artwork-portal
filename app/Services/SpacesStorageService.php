@@ -6,6 +6,7 @@ use Aws\S3\S3Client;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class SpacesStorageService
 {
@@ -66,6 +67,35 @@ class SpacesStorageService
             'stored_filename' => basename($path),
             'mime_type' => $file->getMimeType(),
             'file_size' => $file->getSize(),
+        ];
+    }
+
+    public function uploadFileFromPath(
+        string $sourcePath,
+        string $destinationPath,
+        string $originalFilename,
+        ?string $mimeType = null,
+        ?string $disk = null,
+    ): array {
+        $stream = fopen($sourcePath, 'rb');
+
+        if (! is_resource($stream)) {
+            throw new RuntimeException('Önizleme dosyası okunamadı.');
+        }
+
+        Storage::disk($this->diskName($disk))->put($destinationPath, $stream, [
+            'visibility' => 'private',
+            'ContentType' => $mimeType ?? 'image/png',
+        ]);
+
+        fclose($stream);
+
+        return [
+            'spaces_path' => $destinationPath,
+            'original_filename' => $originalFilename,
+            'stored_filename' => basename($destinationPath),
+            'mime_type' => $mimeType ?? 'image/png',
+            'file_size' => filesize($sourcePath) ?: 0,
         ];
     }
 

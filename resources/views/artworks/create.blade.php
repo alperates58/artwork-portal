@@ -60,7 +60,6 @@
 
             <div id="upload-panel" class="space-y-4">
                 <input type="file" id="artwork_file" name="artwork_file" class="hidden" accept=".pdf,.ai,.eps,.zip,.svg,.png,.jpg,.jpeg,.tif,.tiff,.psd,.indd">
-                <input type="file" id="preview_file" name="preview_file" class="hidden" accept=".png,image/png">
 
                 <div>
                     <div class="mb-2 flex items-center justify-between gap-3">
@@ -89,41 +88,25 @@
                     @enderror
                 </div>
 
-                <div>
-                    <div class="mb-2 flex items-center justify-between gap-3">
-                        <label class="label mb-0">Önizleme PNG</label>
-                        <span class="text-xs text-slate-400">{{ $previewPngRequired ? 'Zorunlu' : 'İsteğe bağlı' }} · Sadece PNG</span>
-                    </div>
-                    <button type="button" id="previewPicker" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-brand-300 hover:bg-brand-50/20">
-                        <span>
-                            <span class="block text-sm font-medium text-slate-900">Ekran önizleme dosyasını seçin</span>
-                            <span class="mt-1 block text-xs text-slate-400">Galeri ve detay ekranlarında bu PNG kullanılacaktır.</span>
-                        </span>
-                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">PNG</span>
-                    </button>
-                    <div id="previewSelected" class="mt-3 hidden rounded-2xl border border-emerald-200 bg-emerald-50/60 px-4 py-3">
-                        <p id="previewFileName" class="text-sm font-semibold text-emerald-700">—</p>
-                        <p id="previewFileMeta" class="mt-1 text-xs text-emerald-600">—</p>
-                    </div>
-                    @error('preview_file')
-                        <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
+                <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-4 text-sm text-slate-600">
+                    Yükleme tamamlandıktan sonra sistem desteklenen formatlar için önizleme PNG dosyasını otomatik üretir.
+                    Önizleme oluşmazsa artwork kaydı geçerli kalır ve orijinal dosya indirilmeye devam eder.
+                </div>
 
-                    <div id="progressWrapper" class="mt-4 hidden">
-                        <div class="mb-1.5 flex items-center justify-between text-xs text-slate-500">
-                            <span id="progressFilename" class="max-w-xs truncate"></span>
-                            <span id="progressPercent">0%</span>
-                        </div>
-                        <div class="h-1.5 w-full rounded-full bg-slate-100">
-                            <div id="progressBar" class="h-1.5 rounded-full bg-brand-600 transition-all duration-300" style="width:0%"></div>
-                        </div>
-                        <div class="mt-1.5 flex items-center justify-between">
-                            <p class="text-xs text-slate-400" id="progressSize"></p>
-                            <button type="button" class="text-xs text-slate-400 underline hover:text-red-500" onclick="if(activeXhr){activeXhr.abort();}">İptal</button>
-                        </div>
-                        <div id="upload-error-msg" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                            Bağlantı hatası oluştu; form verisi korunur, yeniden deneyebilirsiniz.
-                        </div>
+                <div id="progressWrapper" class="hidden">
+                    <div class="mb-1.5 flex items-center justify-between text-xs text-slate-500">
+                        <span id="progressFilename" class="max-w-xs truncate"></span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="h-1.5 w-full rounded-full bg-slate-100">
+                        <div id="progressBar" class="h-1.5 rounded-full bg-brand-600 transition-all duration-300" style="width:0%"></div>
+                    </div>
+                    <div class="mt-1.5 flex items-center justify-between">
+                        <p class="text-xs text-slate-400" id="progressSize"></p>
+                        <button type="button" class="text-xs text-slate-400 underline hover:text-red-500" onclick="if(activeXhr){activeXhr.abort();}">İptal</button>
+                    </div>
+                    <div id="upload-error-msg" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                        Bağlantı hatası oluştu; form verisi korunur, yeniden deneyebilirsiniz.
                     </div>
                 </div>
             </div>
@@ -277,11 +260,6 @@
 @push('scripts')
 <script>
 const fileInput = document.getElementById('artwork_file');
-const previewFileInput = document.getElementById('preview_file');
-const previewPicker = document.getElementById('previewPicker');
-const previewSelected = document.getElementById('previewSelected');
-const previewFileName = document.getElementById('previewFileName');
-const previewFileMeta = document.getElementById('previewFileMeta');
 const dropZone = document.getElementById('dropZone');
 const progressW = document.getElementById('progressWrapper');
 const progressBar = document.getElementById('progressBar');
@@ -472,19 +450,6 @@ if (fileInput) {
     });
 }
 
-if (previewPicker && previewFileInput) {
-    previewPicker.addEventListener('click', () => {
-        setSourceMode('upload');
-        previewFileInput.click();
-    });
-}
-
-if (previewFileInput) {
-    previewFileInput.addEventListener('change', event => {
-        showPreviewFile(event.target.files[0]);
-    });
-}
-
 if (dropZone) {
     dropZone.addEventListener('dragover', event => {
         event.preventDefault();
@@ -515,20 +480,6 @@ function showFile(file) {
     dropZone.classList.add('border-emerald-400', 'bg-emerald-50/40');
     progressFn.textContent = file.name;
     progressSz.textContent = `${mb} MB`;
-}
-
-function showPreviewFile(file) {
-    if (!file) {
-        previewSelected.classList.add('hidden');
-        previewFileName.textContent = '—';
-        previewFileMeta.textContent = '—';
-        return;
-    }
-
-    const mb = (file.size / 1048576).toFixed(1);
-    previewSelected.classList.remove('hidden');
-    previewFileName.textContent = file.name;
-    previewFileMeta.textContent = `PNG · ${mb} MB`;
 }
 
 window.addEventListener('beforeunload', function (event) {
@@ -610,13 +561,6 @@ form.addEventListener('submit', function (event) {
         return;
     }
 
-    if (sourceTypeInput.value === 'upload' && {{ $previewPngRequired ? 'true' : 'false' }} && (!previewFileInput || !previewFileInput.files.length)) {
-        event.preventDefault();
-        setLookupState('Kaydetmeden önce önizleme PNG dosyasını seçin.', 'error');
-        previewPicker.focus();
-        return;
-    }
-
     if (sourceTypeInput.value === 'gallery') {
         return;
     }
@@ -633,7 +577,6 @@ window.addEventListener('DOMContentLoaded', () => {
     revisionInput.min = '1';
     setSourceMode(sourceTypeInput.value || 'upload');
     filterGalleryCards();
-    if (previewFileInput && previewFileInput.files.length) showPreviewFile(previewFileInput.files[0]);
 
     if (galleryItemInput.value) {
         const selectedCard = galleryCards.find(card => card.dataset.galleryId === galleryItemInput.value);

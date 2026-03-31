@@ -61,6 +61,9 @@
                                         <p class="text-xs text-slate-500">
                                             Rev.{{ $rev->revision_no }} · {{ $rev->file_size_formatted }} · {{ $rev->created_at->format('d.m.Y') }}
                                         </p>
+                                        <p class="mt-1 text-xs {{ $rev->has_preview ? 'text-emerald-600' : 'text-slate-400' }}">
+                                            {{ $rev->has_preview ? 'Önizleme hazır' : 'Önizleme henüz hazır değil' }}
+                                        </p>
                                         <div class="flex items-center gap-1 mt-1">
                                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                             <span class="text-xs text-emerald-600 font-medium">Güncel ve aktif</span>
@@ -69,6 +72,9 @@
                                 </div>
 
                                 <div class="flex flex-wrap gap-2">
+                                    @if($rev->has_preview)
+                                        <a href="{{ route('portal.preview', $rev) }}" target="_blank" rel="noopener" class="btn btn-secondary text-sm">Önizleme</a>
+                                    @endif
                                     <a href="{{ route('portal.download', $rev) }}" class="btn btn-primary text-sm">İndir</a>
                                     <form method="POST" action="{{ route('approval.seen', $rev) }}" class="inline">
                                         @csrf

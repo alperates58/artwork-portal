@@ -10,6 +10,8 @@ class ArtworkRevision extends Model
 {
     use HasFactory;
 
+    private const BROWSER_PREVIEW_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+
     protected $fillable = [
         'artwork_id',
         'artwork_gallery_id',
@@ -99,7 +101,36 @@ class ArtworkRevision extends Model
 
     public function getHasPreviewAttribute(): bool
     {
-        return filled($this->preview_spaces_path);
+        return filled($this->preview_spaces_path) || $this->isBrowserPreviewableOriginal();
+    }
+
+    public function getPreviewDiskAttribute(): ?string
+    {
+        return $this->galleryItem?->preview_disk ?: $this->galleryItem?->file_disk;
+    }
+
+    public function getPreviewPathAttribute(): ?string
+    {
+        return $this->preview_spaces_path ?: ($this->isBrowserPreviewableOriginal() ? $this->spaces_path : null);
+    }
+
+    public function getPreviewMimeTypeAttribute(): ?string
+    {
+        return $this->preview_mime_type ?: ($this->isBrowserPreviewableOriginal() ? $this->mime_type : null);
+    }
+
+    public function getPreviewFilenameAttribute(): ?string
+    {
+        return $this->preview_original_filename ?: ($this->isBrowserPreviewableOriginal() ? $this->original_filename : null);
+    }
+
+    private function isBrowserPreviewableOriginal(): bool
+    {
+        $extension = strtolower((string) pathinfo($this->original_filename, PATHINFO_EXTENSION));
+        $mimeType = strtolower((string) $this->mime_type);
+
+        return in_array($extension, self::BROWSER_PREVIEW_EXTENSIONS, true)
+            || in_array($mimeType, ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml'], true);
     }
 
     /**

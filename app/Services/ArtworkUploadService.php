@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\GenerateArtworkPreviewJob;
 use App\Models\Artwork;
 use App\Models\ArtworkDownloadLog;
 use App\Models\ArtworkGallery;
@@ -23,11 +24,12 @@ class ArtworkUploadService
         private AuditLogService $audit,
         private PortalSettings $settings,
         private DashboardCacheService $dashboardCache,
+        private ArtworkPreviewGenerator $previewGenerator,
     ) {}
 
-    public function storeUploadedFile(PurchaseOrderLine $line, UploadedFile $file, ?UploadedFile $previewFile, array $meta, User $uploader): ArtworkRevision
+    public function storeUploadedFile(PurchaseOrderLine $line, UploadedFile $file, array $meta, User $uploader): ArtworkRevision
     {
-        return DB::transaction(function () use ($line, $file, $previewFile, $meta, $uploader) {
+        return DB::transaction(function () use ($line, $file, $meta, $uploader) {
             $stockCard = $this->resolveStockCard($meta['stock_code'] ?? null);
             $artwork = $this->resolveArtwork($line, $stockCard?->stock_name ?? pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
             $revisionNo = (int) ($meta['revision_no'] ?? $artwork->next_revision_no);
@@ -41,30 +43,23 @@ class ArtworkUploadService
             );
 
             $fileData = $this->multipart->upload($file, $path);
-            $previewData = $previewFile ? $this->storePreviewFile($line, $revisionNo, $previewFile) : null;
 
             $galleryItem = ArtworkGallery::create([
                 'name' => $fileData['original_filename'],
-                'preview_file_name' => $previewData['original_filename'] ?? null,
                 'stock_code' => $stockCard?->stock_code,
                 'revision_no' => $revisionNo,
                 'stock_card_id' => $stockCard?->id,
                 'category_id' => $stockCard?->category_id,
                 'file_path' => $fileData['spaces_path'],
-                'preview_file_path' => $previewData['spaces_path'] ?? null,
                 'file_disk' => $this->settings->filesystemDisk(),
-                'preview_file_disk' => $previewData ? $this->settings->filesystemDisk() : null,
                 'file_size' => $fileData['file_size'],
-                'preview_file_size' => $previewData['file_size'] ?? null,
                 'file_type' => $fileData['mime_type'],
-                'preview_file_type' => $previewData['mime_type'] ?? null,
                 'uploaded_by' => $uploader->id,
                 'revision_note' => $meta['notes'] ?? null,
             ]);
 
             $revision = $this->createRevision($artwork, $line, $uploader, $revisionNo, [
                 ...$fileData,
-                ...$this->mapPreviewDataForRevision($previewData),
                 'artwork_gallery_id' => $galleryItem->id,
                 'notes' => $meta['notes'] ?? null,
             ]);
@@ -78,7 +73,7 @@ class ArtworkUploadService
                 'strategy' => $file->getSize() >= 100 * 1024 * 1024 ? 'multipart' : 'single',
                 'stock_code' => $stockCard?->stock_code,
                 'stock_name' => $stockCard?->stock_name,
-                'preview_available' => $previewData !== null,
+                'preview_available' => false,
             ]);
             $this->audit->log('artwork.gallery.create', $galleryItem, [
                 'purchase_order_id' => $line->purchase_order_id,
@@ -88,6 +83,7 @@ class ArtworkUploadService
             ]);
 
             \App\Jobs\Faz2\SendArtworkNotificationJob::dispatch($revision);
+            $this->dispatchPreviewGeneration($revision);
 
             return $revision;
         });
@@ -142,6 +138,7 @@ class ArtworkUploadService
             ]);
 
             \App\Jobs\Faz2\SendArtworkNotificationJob::dispatch($revision);
+            $this->dispatchPreviewGeneration($revision);
 
             return $revision;
         });
@@ -273,38 +270,12 @@ class ArtworkUploadService
             ->first();
     }
 
-    private function storePreviewFile(PurchaseOrderLine $line, int $revisionNo, UploadedFile $previewFile): array
+    private function dispatchPreviewGeneration(ArtworkRevision $revision): void
     {
-        $previewPath = $this->spaces->buildVariantPath(
-            $line->purchaseOrder->supplier_id,
-            $line->purchaseOrder->order_no,
-            $line->id,
-            $revisionNo,
-            'preview',
-            'png'
-        );
-
-        return $this->multipart->upload($previewFile, $previewPath);
-    }
-
-    private function mapPreviewDataForRevision(?array $previewData): array
-    {
-        if ($previewData === null) {
-            return [
-                'preview_original_filename' => null,
-                'preview_stored_filename' => null,
-                'preview_spaces_path' => null,
-                'preview_mime_type' => null,
-                'preview_file_size' => null,
-            ];
+        if (! $this->previewGenerator->supports($revision) || $revision->has_preview) {
+            return;
         }
 
-        return [
-            'preview_original_filename' => $previewData['original_filename'],
-            'preview_stored_filename' => $previewData['stored_filename'],
-            'preview_spaces_path' => $previewData['spaces_path'],
-            'preview_mime_type' => $previewData['mime_type'],
-            'preview_file_size' => $previewData['file_size'],
-        ];
+        GenerateArtworkPreviewJob::dispatch($revision->id)->afterCommit();
     }
 }

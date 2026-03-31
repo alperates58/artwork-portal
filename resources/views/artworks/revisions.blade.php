@@ -64,6 +64,9 @@
                             @endif
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
+                            @if($rev->has_preview)
+                                <a href="{{ route('artworks.preview', $rev) }}" target="_blank" rel="noopener" class="btn btn-secondary text-xs py-1.5">Önizleme</a>
+                            @endif
                             <a href="{{ route('artwork.download', $rev) }}" class="btn btn-secondary text-xs py-1.5">İndir</a>
                             @if(!$rev->is_active && auth()->user()->canUploadArtwork())
                                 <form method="POST" action="{{ route('artworks.activate', $rev) }}">

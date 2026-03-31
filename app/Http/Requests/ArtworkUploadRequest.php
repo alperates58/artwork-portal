@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Models\ArtworkGallery;
-use App\Services\PortalSettings;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -31,13 +30,6 @@ class ArtworkUploadRequest extends FormRequest
                 'file',
                 'mimes:pdf,zip,ai,eps,svg,png,jpg,jpeg,tif,tiff,psd,indd',
                 'max:1228800',
-            ],
-            'preview_file' => [
-                app(PortalSettings::class)->portalConfig()['preview_png_required'] ? 'required_if:source_type,upload' : 'nullable',
-                'nullable',
-                'file',
-                'mimes:png',
-                'max:25600',
             ],
             'gallery_item_id' => ['required_if:source_type,gallery', 'nullable', 'integer', 'exists:artwork_gallery,id'],
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -114,10 +106,6 @@ class ArtworkUploadRequest extends FormRequest
             'artwork_file.file' => 'Geçersiz dosya.',
             'artwork_file.mimes' => 'İzin verilen formatlar: PDF, ZIP, AI, EPS, SVG, PNG, JPG, TIF, PSD, INDD.',
             'artwork_file.max' => 'Maksimum dosya boyutu 1.2 GB\'dir.',
-            'preview_file.required_if' => 'Önizleme PNG dosyası zorunludur.',
-            'preview_file.file' => 'Önizleme için geçerli bir dosya seçin.',
-            'preview_file.mimes' => 'Önizleme dosyası PNG formatında olmalıdır.',
-            'preview_file.max' => 'Önizleme PNG dosyası en fazla 25 MB olabilir.',
             'gallery_item_id.required_if' => 'Galeriden seçim için bir artwork seçin.',
             'stock_code.required' => 'Artwork yüklemek için stok kodu zorunludur.',
             'stock_code.exists' => 'Girilen stok kodu için tanımlı stok kartı bulunamadı.',

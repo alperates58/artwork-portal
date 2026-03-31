@@ -13,6 +13,8 @@ class ArtworkGallery extends Model
 {
     use HasFactory;
 
+    private const BROWSER_PREVIEW_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+
     protected $table = 'artwork_gallery';
 
     protected $fillable = [
@@ -112,16 +114,16 @@ class ArtworkGallery extends Model
         $extension = strtolower((string) pathinfo($this->name, PATHINFO_EXTENSION));
         $mimeType = strtolower((string) $this->file_type);
 
-        if (str_starts_with($mimeType, 'image/') || in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'tif', 'tiff'], true)) {
-            return 'image';
-        }
-
         if ($mimeType === 'application/pdf' || $extension === 'pdf') {
             return 'pdf';
         }
 
         if (in_array($extension, ['ai', 'eps', 'psd', 'indd'], true)) {
             return 'design';
+        }
+
+        if ($this->isBrowserPreviewableOriginal()) {
+            return 'image';
         }
 
         return 'other';
@@ -134,7 +136,7 @@ class ArtworkGallery extends Model
 
     public function getHasPreviewAttribute(): bool
     {
-        return filled($this->getAttributeFromArray('preview_file_path')) || $this->is_image;
+        return filled($this->getAttributeFromArray('preview_file_path')) || $this->isBrowserPreviewableOriginal();
     }
 
     public function getPreviewDiskAttribute(): ?string
@@ -144,17 +146,26 @@ class ArtworkGallery extends Model
 
     public function getPreviewPathAttribute(): ?string
     {
-        return $this->getAttributeFromArray('preview_file_path') ?: ($this->is_image ? $this->file_path : null);
+        return $this->getAttributeFromArray('preview_file_path') ?: ($this->isBrowserPreviewableOriginal() ? $this->file_path : null);
     }
 
     public function getPreviewMimeTypeAttribute(): ?string
     {
-        return $this->getAttributeFromArray('preview_file_type') ?: ($this->is_image ? $this->file_type : null);
+        return $this->getAttributeFromArray('preview_file_type') ?: ($this->isBrowserPreviewableOriginal() ? $this->file_type : null);
     }
 
     public function getPreviewFilenameAttribute(): ?string
     {
-        return $this->getAttributeFromArray('preview_file_name') ?: ($this->is_image ? $this->name : null);
+        return $this->getAttributeFromArray('preview_file_name') ?: ($this->isBrowserPreviewableOriginal() ? $this->name : null);
+    }
+
+    private function isBrowserPreviewableOriginal(): bool
+    {
+        $extension = strtolower((string) pathinfo($this->name, PATHINFO_EXTENSION));
+        $mimeType = strtolower((string) $this->file_type);
+
+        return in_array($extension, self::BROWSER_PREVIEW_EXTENSIONS, true)
+            || in_array($mimeType, ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml'], true);
     }
 
     public function getFileTypeIconAttribute(): string

@@ -12,7 +12,6 @@ use App\Models\StockCard;
 use App\Services\ArtworkUploadService;
 use App\Services\AuditLogService;
 use App\Services\NotificationService;
-use App\Services\PortalSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -22,7 +21,6 @@ class ArtworkController extends Controller
         private ArtworkUploadService $uploadService,
         private AuditLogService $audit,
         private NotificationService $notifications,
-        private PortalSettings $settings,
     ) {}
 
     public function create(PurchaseOrderLine $line): View
@@ -59,9 +57,7 @@ class ArtworkController extends Controller
             ->values();
         $galleryCategories = ArtworkCategory::query()->orderBy('name')->get(['id', 'name']);
 
-        $previewPngRequired = $this->settings->portalConfig()['preview_png_required'];
-
-        return view('artworks.create', compact('line', 'resolvedStockCard', 'nextRevisionNo', 'galleryCandidates', 'galleryCategories', 'previewPngRequired'));
+        return view('artworks.create', compact('line', 'resolvedStockCard', 'nextRevisionNo', 'galleryCandidates', 'galleryCategories'));
     }
 
     public function store(ArtworkUploadRequest $request, PurchaseOrderLine $line): RedirectResponse
@@ -80,7 +76,6 @@ class ArtworkController extends Controller
             : $this->uploadService->storeUploadedFile(
                 line: $line,
                 file: $request->file('artwork_file'),
-                previewFile: $request->file('preview_file'),
                 meta: $meta,
                 uploader: auth()->user()
             );
