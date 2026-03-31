@@ -1,14 +1,14 @@
 @extends('layouts.app')
-@section('title', 'Galeri Yönetimi')
-@section('page-title', 'Galeri Yönetimi')
-@section('page-subtitle', 'Kategori ve etiketleri tek yerden oluşturun, düzenleyin veya silin.')
+@section('title', 'Galeri Kategorileri')
+@section('page-title', 'Galeri Kategorileri')
+@section('page-subtitle', 'Artwork galerisi için kullanılan kategorileri yönetin.')
 
 @section('header-actions')
     <a href="{{ route('admin.artwork-gallery.index') }}" class="btn btn-secondary">← Galeriye Dön</a>
 @endsection
 
 @section('content')
-<div class="grid gap-6 lg:grid-cols-2">
+<div class="max-w-3xl">
 
     {{-- ── Kategoriler ── --}}
     <div class="space-y-4">
@@ -60,54 +60,5 @@
             </div>
         </div>
     </div>
-
-    {{-- ── Etiketler ── --}}
-    <div class="space-y-4">
-        <div class="rounded-2xl border border-slate-200/80 bg-white/95 shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
-            <div class="border-b border-slate-100 px-5 py-4">
-                <h2 class="text-base font-semibold text-slate-900">Etiketler</h2>
-                <p class="mt-1 text-xs text-slate-500">Hızlı arama ve tekrar kullanım için kısa etiketler.</p>
-            </div>
-
-            {{-- Yeni etiket formu --}}
-            <div class="px-5 py-4">
-                <form method="POST" action="{{ route('admin.artwork-gallery.tags.store') }}">
-                    @csrf
-                    <div class="flex gap-2">
-                        <input name="name" class="input flex-1" placeholder="Etiket adı… (Örn. Onaylı, Sezonluk)" value="{{ old('name') }}">
-                        <button type="submit" class="btn btn-primary flex-shrink-0">Ekle</button>
-                    </div>
-                    @error('name', 'storeTag')
-                        <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
-                    @enderror
-                </form>
-            </div>
-
-            {{-- Etiket listesi --}}
-            <div class="px-5 pb-4">
-                @if($tags->isEmpty())
-                    <p class="py-4 text-center text-sm text-slate-400">Henüz etiket eklenmemiş.</p>
-                @else
-                    <div class="flex flex-wrap gap-2">
-                        @foreach($tags as $tag)
-                            <div class="group flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 pl-3 pr-1.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-slate-300">
-                                <span>{{ $tag->display_name }}</span>
-                                <span class="text-slate-400">({{ $tag->gallery_items_count }})</span>
-                                <form method="POST" action="{{ route('admin.artwork-gallery.tags.destroy', $tag) }}" class="inline">
-                                    @csrf @method('DELETE')
-                                    <button type="submit"
-                                            onclick="return confirm('\"{{ addslashes($tag->display_name) }}\" etiketi silinsin mi?')"
-                                            class="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-100 hover:text-red-500">
-                                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-                                    </button>
-                                </form>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
-            </div>
-        </div>
-    </div>
-
 </div>
 @endsection

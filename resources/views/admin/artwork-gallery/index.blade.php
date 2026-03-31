@@ -60,17 +60,8 @@
                     </select>
                 </div>
 
-                <div class="w-full sm:w-48">
-                    <select name="tag_id" class="input" id="gallery-tag-select">
-                        <option value="">Tüm etiketler</option>
-                        @foreach($tags as $tag)
-                            <option value="{{ $tag->id }}" @selected((string) request('tag_id') === (string) $tag->id)>{{ $tag->display_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
                 <button type="submit" class="btn btn-primary">Filtrele</button>
-                @if(request()->hasAny(['search', 'stock_code', 'category_id', 'tag_id', 'type']))
+                @if(request()->hasAny(['search', 'stock_code', 'category_id', 'type']))
                     <a href="{{ route('admin.artwork-gallery.index') }}" class="btn btn-secondary">Temizle</a>
                 @endif
             </div>
@@ -95,7 +86,6 @@
                 <span class="text-slate-400"> / toplam {{ $totalCount }}</span>
             @endif
         </p>
-        <a href="{{ route('admin.artwork-gallery.manage') }}" class="btn btn-secondary text-xs">Kategori & Etiket Yönetimi</a>
     </div>
 
     {{-- Stok Kodu Araması Sonuçları --}}
@@ -447,7 +437,6 @@
     const form         = document.getElementById('gallery-filter-form');
     const searchInput  = document.getElementById('gallery-search-input');
     const stockInput   = document.getElementById('gallery-stock-input');
-    const tagSelect    = document.getElementById('gallery-tag-select');
     const catSelect    = document.getElementById('gallery-cat-select');
     let   timer        = null;
 
@@ -458,7 +447,6 @@
 
     if (searchInput) searchInput.addEventListener('input', autoSubmit);
     if (stockInput)  stockInput.addEventListener('input', autoSubmit);
-    if (tagSelect)   tagSelect.addEventListener('change', () => form && form.submit());
     if (catSelect)   catSelect.addEventListener('change', () => form && form.submit());
 })();
 </script>

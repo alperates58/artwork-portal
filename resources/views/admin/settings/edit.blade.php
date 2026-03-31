@@ -219,6 +219,11 @@
                             $githubRepository = old('github_updates.repository', $githubUpdate['repository'] ?? '');
                             $githubBranch = old('github_updates.branch', $githubUpdate['branch'] ?? 'main');
                             $githubRepositoryUrl = $githubUpdate['repository_url'] ?? (filled($githubRepository) ? 'https://github.com/' . trim((string) preg_replace('#^https?://github\.com/#i', '', $githubRepository), '/') : null);
+                            $openGithubSettingsDialog = $errors->hasAny([
+                                'github_updates.repository',
+                                'github_updates.branch',
+                                'github_updates.token',
+                            ]) || old('settings_section') === 'github_updates';
                         @endphp
                         <div class="space-y-5">
 
@@ -279,18 +284,12 @@
                             </div>
 
                             {{-- ── Eylemler ── --}}
-                            <form method="POST" action="{{ route('admin.settings.update', ['tab' => 'updates']) }}" class="rounded-2xl border border-slate-200 bg-white p-5 space-y-5">
-                                @csrf
-                                @method('PUT')
-                                <input type="hidden" name="tab" value="updates">
-                                <input type="hidden" name="settings_section" value="github_updates">
-
-                                <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+                            <div class="rounded-2xl border border-slate-200 bg-white p-5">
+                                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                     <div>
                                         <h3 class="text-sm font-semibold text-slate-900">GitHub Update Bağlantısı</h3>
                                         <p class="mt-1 text-xs leading-5 text-slate-500">
-                                            Private repo kullanacaksanız repository, branch ve token bilgisini burada kaydedin.
-                                            Web update akışı bu ayarı kullanır; terminal için ayrıca SSH deploy key veya credential helper tanımlı kalmalıdır.
+                                            Repository ve token ayarları ayrı bir pencerede düzenlenir. Ana ekranda sadece kısa durum özeti gösterilir.
                                         </p>
                                     </div>
                                     <div class="flex flex-wrap gap-2">
@@ -305,29 +304,81 @@
                                     </div>
                                 </div>
 
-                                <div class="grid gap-4 md:grid-cols-3">
-                                    <div class="md:col-span-2">
-                                        <label class="label">Repository</label>
-                                        <input class="input font-mono" type="text" name="github_updates[repository]" value="{{ $githubRepository }}" placeholder="alperates58/artwork-portal veya https://github.com/alperates58/artwork-portal">
-                                        <p class="mt-1 text-xs text-slate-500">Owner/repo veya tam GitHub URL kabul edilir.</p>
+                                <div class="mt-4 grid gap-3 md:grid-cols-3">
+                                    <div class="rounded-2xl bg-slate-50 px-4 py-3 md:col-span-2">
+                                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Repository</p>
+                                        <p class="mt-1 break-all font-mono text-sm text-slate-900">{{ $githubRepository ?: 'Tanımlı değil' }}</p>
                                     </div>
+                                    <div class="rounded-2xl bg-slate-50 px-4 py-3">
+                                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Branch</p>
+                                        <p class="mt-1 font-mono text-sm text-slate-900">{{ $githubBranch ?: 'main' }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 flex justify-end">
+                                    <button type="button" data-dialog-open="github-update-dialog" class="btn btn-secondary">
+                                        GitHub Bağlantısını Düzenle
+                                    </button>
+                                </div>
+                            </div>
+
+                            <dialog id="github-update-dialog" class="w-[min(92vw,980px)] max-w-none rounded-[30px] border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-950/60">
+                                <div class="border-b border-slate-200 px-6 py-5">
+                                    <div class="flex items-start justify-between gap-4">
+                                        <div>
+                                            <h3 class="text-lg font-semibold text-slate-950">GitHub Bağlantısını Düzenle</h3>
+                                            <p class="mt-1 text-sm leading-6 text-slate-500">
+                                                Private repo kullanacaksanız repository, branch ve token bilgisini burada kaydedin.
+                                                Web update akışı bu ayarı kullanır; terminal için ayrıca SSH deploy key veya credential helper tanımlı kalmalıdır.
+                                            </p>
+                                        </div>
+                                        <button type="button" data-dialog-close class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900">
+                                            <span class="sr-only">Kapat</span>
+                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <form method="POST" action="{{ route('admin.settings.update', ['tab' => 'updates']) }}" class="space-y-5 px-6 py-6">
+                                    @csrf
+                                    @method('PUT')
+                                    <input type="hidden" name="tab" value="updates">
+                                    <input type="hidden" name="settings_section" value="github_updates">
+
+                                    <div class="grid gap-4 md:grid-cols-3">
+                                        <div class="md:col-span-2">
+                                            <label class="label">Repository</label>
+                                            <input class="input font-mono" type="text" name="github_updates[repository]" value="{{ $githubRepository }}" placeholder="alperates58/artwork-portal veya https://github.com/alperates58/artwork-portal">
+                                            <p class="mt-1 text-xs text-slate-500">Owner/repo veya tam GitHub URL kabul edilir.</p>
+                                        </div>
+                                        <div>
+                                            <label class="label">Branch</label>
+                                            <input class="input font-mono" type="text" name="github_updates[branch]" value="{{ $githubBranch }}" placeholder="main">
+                                            <p class="mt-1 text-xs text-slate-500">Commit kontrolü ve deploy bu branch üzerinden çalışır.</p>
+                                        </div>
+                                    </div>
+
                                     <div>
-                                        <label class="label">Branch</label>
-                                        <input class="input font-mono" type="text" name="github_updates[branch]" value="{{ $githubBranch }}" placeholder="main">
-                                        <p class="mt-1 text-xs text-slate-500">Commit kontrolü ve deploy bu branch üzerinden çalışır.</p>
+                                        <label class="label">GitHub Token</label>
+                                        <input class="input" type="password" name="github_updates[token]" value="" placeholder="{{ !empty($githubUpdate['has_token']) ? 'Kayıtlı token var, değiştirmek için yeniden girin' : 'Private repo için read access token girin' }}">
+                                        <p class="mt-1 text-xs text-slate-500">Öneri: Fine-grained PAT, yalnızca bu repo için <code class="font-mono text-[11px]">Contents: Read</code> izni.</p>
                                     </div>
-                                </div>
 
-                                <div>
-                                    <label class="label">GitHub Token</label>
-                                    <input class="input" type="password" name="github_updates[token]" value="" placeholder="{{ !empty($githubUpdate['has_token']) ? 'Kayıtlı token var, değiştirmek için yeniden girin' : 'Private repo için read access token girin' }}">
-                                    <p class="mt-1 text-xs text-slate-500">Öneri: Fine-grained PAT, yalnızca bu repo için <code class="font-mono text-[11px]">Contents: Read</code> izni.</p>
-                                </div>
-
-                                <div class="flex justify-end">
-                                    <button type="submit" class="btn btn-primary">GitHub Bağlantısını Kaydet</button>
-                                </div>
-                            </form>
+                                    <div class="flex justify-end gap-3">
+                                        <button type="button" data-dialog-close class="btn btn-secondary">Kapat</button>
+                                        <button type="submit" class="btn btn-primary">GitHub Bağlantısını Kaydet</button>
+                                    </div>
+                                </form>
+                            </dialog>
+                            @if($openGithubSettingsDialog)
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', function () {
+                                        document.getElementById('github-update-dialog')?.showModal();
+                                    });
+                                </script>
+                            @endif
 
                             <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 px-5 py-3">
                                 <p class="text-xs text-slate-500">

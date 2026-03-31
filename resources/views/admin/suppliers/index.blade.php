@@ -16,15 +16,101 @@
 @endsection
 
 @section('content')
-<form method="GET" class="flex flex-wrap gap-3 mb-5">
-    <input type="text" name="search" value="{{ request('search') }}" placeholder="İsim veya kod ara..." class="input w-full sm:w-64">
-    <button type="submit" class="btn btn-secondary">Ara</button>
+<form method="GET" class="mb-5 grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+    <input type="text" name="search" value="{{ request('search') }}" placeholder="İsim veya kod ara..." class="input w-full min-w-0">
+    <button type="submit" class="btn btn-secondary w-full justify-center sm:w-auto">Ara</button>
     @if(request('search'))
-        <a href="{{ route('admin.suppliers.index') }}" class="btn btn-secondary text-slate-500">Temizle</a>
+        <a href="{{ route('admin.suppliers.index') }}" class="btn btn-secondary w-full justify-center text-slate-500 sm:w-auto">Temizle</a>
     @endif
 </form>
 
-<div class="card overflow-x-auto">
+<div class="space-y-4 lg:hidden">
+    @forelse($suppliers as $supplier)
+        @php $recentOrders = $recentOrdersBySupplier->get($supplier->id, collect()); @endphp
+        <div x-data="{ open: false }" class="card overflow-hidden">
+            <div class="px-4 py-4">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="text-base font-semibold text-slate-900">{{ $supplier->name }}</p>
+                        <p class="mt-1 font-mono text-xs text-slate-500">{{ $supplier->code }}</p>
+                    </div>
+                    @if($supplier->is_active)
+                        <x-ui.badge variant="success">Aktif</x-ui.badge>
+                    @else
+                        <x-ui.badge variant="gray">Pasif</x-ui.badge>
+                    @endif
+                </div>
+
+                <div class="mt-4 grid grid-cols-2 gap-3">
+                    <div class="rounded-xl bg-slate-50 px-3 py-2">
+                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Kullanıcı</p>
+                        <p class="mt-1 text-sm text-slate-700">{{ $supplier->users_count }}</p>
+                    </div>
+                    <div class="rounded-xl bg-slate-50 px-3 py-2">
+                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Sipariş</p>
+                        <p class="mt-1 text-sm text-slate-700">{{ $supplier->purchase_orders_count }}</p>
+                    </div>
+                    <div class="col-span-2 rounded-xl bg-slate-50 px-3 py-2">
+                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">İletişim</p>
+                        @if($supplier->email)
+                            <p class="mt-1 text-sm text-slate-700 break-all">{{ $supplier->email }}</p>
+                        @endif
+                        @if($supplier->phone)
+                            <p class="mt-1 text-sm text-slate-500">{{ $supplier->phone }}</p>
+                        @endif
+                        @if(! $supplier->email && ! $supplier->phone)
+                            <p class="mt-1 text-sm text-slate-300">—</p>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                    <a href="{{ route('admin.suppliers.show', $supplier) }}" class="text-sm font-medium text-slate-600 hover:underline">Detay</a>
+                    @if(auth()->user()->isAdmin())
+                        <a href="{{ route('admin.suppliers.edit', $supplier) }}" class="text-sm font-medium text-brand-700 hover:underline">Düzenle</a>
+                    @endif
+                    @if($recentOrders->isNotEmpty())
+                        <button type="button" @click="open = !open" class="inline-flex items-center gap-2 text-sm font-medium text-brand-700 hover:text-brand-800">
+                            Son siparişler
+                            <svg class="h-4 w-4 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                    @endif
+                </div>
+            </div>
+
+            @if($recentOrders->isNotEmpty())
+                <div x-show="open" x-cloak class="border-t border-slate-100 bg-slate-50/70 px-4 py-4">
+                    <div class="space-y-3">
+                        @foreach($recentOrders as $po)
+                            <a href="{{ route('orders.show', $po) }}" class="block rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-brand-200 hover:shadow-sm">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p class="font-mono text-sm font-semibold text-slate-900">{{ $po->order_no }}</p>
+                                        <p class="mt-1 text-xs text-slate-500">{{ $po->order_date->format('d.m.Y') }}</p>
+                                    </div>
+                                    <div class="flex flex-col items-end gap-2">
+                                        <x-ui.badge :variant="match($po->status){'active' => 'success', 'draft' => 'gray', 'completed' => 'info', 'cancelled' => 'danger', default => 'gray'}">{{ $po->status_label }}</x-ui.badge>
+                                        <x-ui.badge :variant="match($po->shipment_status){'dispatched' => 'info', 'delivered' => 'success', 'not_found' => 'danger', default => 'warning'}">{{ $po->shipment_status_label }}</x-ui.badge>
+                                    </div>
+                                </div>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        </div>
+    @empty
+        <div class="card px-4 py-10 text-center text-slate-400">Tedarikçi bulunamadı.</div>
+    @endforelse
+
+    @if($suppliers->hasPages())
+        <div>{{ $suppliers->links() }}</div>
+    @endif
+</div>
+
+<div class="hidden lg:block card overflow-x-auto">
     <table class="w-full min-w-[640px] text-xs">
         <thead>
             <tr class="border-b border-slate-200 bg-slate-50">

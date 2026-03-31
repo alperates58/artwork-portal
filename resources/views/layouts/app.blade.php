@@ -425,42 +425,12 @@
                                 @endif
 
                                 @if($canViewGallery)
-                                    {{-- Artwork Galerisi nav group --}}
-                                    @php $galleryActive = request()->routeIs('admin.artwork-gallery.*'); @endphp
-                                    <div data-nav-group="gallery" data-nav-group-open="false" data-nav-group-active="{{ $galleryActive ? 'true' : 'false' }}">
-                                        <button type="button" data-nav-group-toggle="gallery" title="Artwork Galerisi"
-                                                class="sidebar-link w-full {{ $galleryActive ? 'active' : '' }}">
-                                            <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-10h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                            <span class="sb-label flex-1 text-left">Artwork Galerisi</span>
-                                            <svg data-nav-group-chevron="gallery"
-                                                 class="sb-chevron h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 text-slate-400"
-                                                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-                                            </svg>
-                                        </button>
-                                        <div class="nav-group-items closed">
-                                            <div>
-                                                <div class="ml-4 mt-1 mb-1 space-y-0.5 pl-3" style="border-left: 1px solid rgba(255,255,255,0.1);">
-                                                    <a href="{{ route('admin.artwork-gallery.index') }}"
-                                                       class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
-                                                              {{ request()->routeIs('admin.artwork-gallery.index') || (request()->routeIs('admin.artwork-gallery.*') && !request()->routeIs('admin.artwork-gallery.manage'))
-                                                                  ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
-                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.artwork-gallery.index') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
-                                                        Galeri
-                                                    </a>
-                                                    @if($user?->hasPermission('gallery', 'manage'))
-                                                    <a href="{{ route('admin.artwork-gallery.manage') }}"
-                                                       class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
-                                                              {{ request()->routeIs('admin.artwork-gallery.manage')
-                                                                  ? 'bg-white/10 text-brand-400 font-semibold' : 'text-white/50 hover:text-white/80 hover:bg-white/[0.05]' }}">
-                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full {{ request()->routeIs('admin.artwork-gallery.manage') ? 'bg-brand-500' : 'bg-white/20' }}"></span>
-                                                        Yönetim
-                                                    </a>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <a href="{{ route('admin.artwork-gallery.index') }}"
+                                       title="Artwork Galerisi"
+                                       class="sidebar-link {{ request()->routeIs('admin.artwork-gallery.*') ? 'active' : '' }}">
+                                        <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-10h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                        <span class="sb-label">Artwork Galerisi</span>
+                                    </a>
                                 @endif
 
                                 @if($canViewLogs)

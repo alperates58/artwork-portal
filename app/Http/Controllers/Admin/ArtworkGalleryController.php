@@ -278,7 +278,9 @@ class ArtworkGalleryController extends Controller
             'category_id' => $stockCard?->category_id ?? $artworkGallery->category_id,
             'revision_note' => $request->input('revision_note'),
         ]);
-        $artworkGallery->tags()->sync($request->input('tag_ids', []));
+        if ($request->has('tag_ids')) {
+            $artworkGallery->tags()->sync($request->input('tag_ids', []));
+        }
 
         $this->audit->log('artwork.gallery.update', $artworkGallery->fresh('stockCard'), [
             'stock_code' => $artworkGallery->stock_code,

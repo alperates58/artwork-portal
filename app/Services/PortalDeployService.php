@@ -46,6 +46,11 @@ class PortalDeployService
         $token = $githubUpdate['token'] ?? null;
         $gitArgs = ['git', '-c', "safe.directory={$base}", '-C', $base];
         $displayCommand = 'git pull origin ' . $branch;
+        $cleanupStep = $this->cleanupRuntimeArtifacts($base);
+
+        if (! $cleanupStep['ok']) {
+            return $cleanupStep;
+        }
 
         if (filled($repository) && filled($token)) {
             $displayCommand = 'git pull github-auth ' . $branch;
@@ -93,6 +98,36 @@ class PortalDeployService
         }
 
         return $step;
+    }
+
+    private function cleanupRuntimeArtifacts(string $base): array
+    {
+        $runtimePaths = [
+            $base . '/storage/framework/composer-home',
+            $base . '/storage/framework/git-home',
+            $base . '/storage/framework/npm-cache',
+            $base . '/storage/framework/npm-home',
+            $base . '/storage/framework/npm-config',
+            $base . '/storage/framework/testing',
+        ];
+
+        try {
+            foreach ($runtimePaths as $path) {
+                $this->deleteDirectoryContents($path);
+            }
+
+            return [
+                'cmd' => 'deploy runtime klasörlerini temizle',
+                'output' => "Geçici deploy/runtime klasörleri temizlendi:\n" . implode("\n", $runtimePaths),
+                'ok' => true,
+            ];
+        } catch (\Throwable $exception) {
+            return [
+                'cmd' => 'deploy runtime klasörlerini temizle',
+                'output' => $exception->getMessage(),
+                'ok' => false,
+            ];
+        }
     }
 
     private function applyUpdatePipeline(array $steps): array
@@ -469,6 +504,38 @@ class PortalDeployService
                 ],
                 'env' => [],
             ];
+        }
+    }
+
+    private function deleteDirectoryContents(string $path): void
+    {
+        if (! is_dir($path)) {
+            return;
+        }
+
+        $realPath = realpath($path);
+        $frameworkRoot = realpath(base_path('storage/framework'));
+
+        if ($realPath === false || $frameworkRoot === false || ! str_starts_with($realPath, $frameworkRoot)) {
+            throw new \RuntimeException($path . ' güvenli çalışma alanı dışında kaldığı için temizlenemedi.');
+        }
+
+        $items = scandir($realPath) ?: [];
+
+        foreach ($items as $item) {
+            if (in_array($item, ['.', '..'], true)) {
+                continue;
+            }
+
+            $target = $realPath . DIRECTORY_SEPARATOR . $item;
+
+            if (is_dir($target) && ! is_link($target)) {
+                $this->deleteDirectoryContents($target);
+                @rmdir($target);
+                continue;
+            }
+
+            @unlink($target);
         }
     }
 }

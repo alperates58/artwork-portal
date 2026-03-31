@@ -14,24 +14,24 @@
 @endsection
 
 @section('content')
-<form method="GET" class="mb-5 flex flex-wrap gap-3">
-    <x-ui.input type="text" name="search" value="{{ request('search') }}" placeholder="Sipariş no ara..." class="w-full sm:w-52" />
-    <select name="supplier_id" class="input w-full sm:w-52" onchange="this.form.submit()">
+<form method="GET" class="mb-5 grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:grid-cols-2 xl:grid-cols-[minmax(0,1.1fr)_280px_220px_auto_auto]">
+    <x-ui.input type="text" name="search" value="{{ request('search') }}" placeholder="Sipariş no ara..." class="w-full min-w-0" />
+    <select name="supplier_id" class="input w-full min-w-0" onchange="this.form.submit()">
         <option value="">Tüm tedarikçiler</option>
         @foreach($suppliers as $id => $name)
             <option value="{{ $id }}" {{ request('supplier_id') == $id ? 'selected' : '' }}>{{ $name }}</option>
         @endforeach
     </select>
-    <select name="status" class="input w-full sm:w-40" onchange="this.form.submit()">
+    <select name="status" class="input w-full min-w-0" onchange="this.form.submit()">
         <option value="">Tüm durumlar</option>
         <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Aktif</option>
         <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Taslak</option>
         <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Tamamlandı</option>
         <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>İptal</option>
     </select>
-    <x-ui.button variant="secondary" type="submit">Filtrele</x-ui.button>
+    <x-ui.button variant="secondary" type="submit" class="w-full justify-center sm:w-auto">Filtrele</x-ui.button>
     @if(request()->hasAny(['search', 'supplier_id', 'status']))
-        <a href="{{ route('orders.index') }}" class="btn btn-secondary text-slate-500">Temizle</a>
+        <a href="{{ route('orders.index') }}" class="btn btn-secondary w-full justify-center text-slate-500 sm:w-auto">Temizle</a>
     @endif
 </form>
 
