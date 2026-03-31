@@ -62,9 +62,19 @@
             @if($line->hasActiveArtwork())
                 @php $rev = $line->activeRevision; @endphp
                 <div class="card overflow-hidden">
-                    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+                    <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
                         <h3 class="text-base font-semibold text-slate-900">Güncel Artwork</h3>
-                        <a href="{{ route('artwork.download', $rev) }}" class="btn btn-primary text-xs">İndir</a>
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('artwork.download', $rev) }}" class="btn btn-primary text-xs">İndir</a>
+                            @if(auth()->user()->canUploadArtwork())
+                                <form method="POST" action="{{ route('artworks.destroy', $rev) }}"
+                                      onsubmit="return confirm('Bu artwork silinsin mi? Aktif revizyon silinirse sistem önce önceki revizyonu aktif yapmaya çalışır.')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-secondary border-red-300 text-red-600 hover:bg-red-50 text-xs">Sil</button>
+                                </form>
+                            @endif
+                        </div>
                     </div>
                     <div class="grid gap-6 px-6 py-6 lg:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]">
                         <div>

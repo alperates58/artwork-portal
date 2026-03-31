@@ -1,4 +1,18 @@
 @extends('layouts.app')
+@section('title', 'Artwork Revizyonu')
+@section('page-title', 'Artwork Revizyonu')
+@section('header-actions')
+    <a href="{{ route('order-lines.show', $revision->artwork->orderLine) }}" class="btn btn-secondary">← Satıra Dön</a>
+    <a href="{{ route('artwork.download', $revision) }}" class="btn btn-primary">İndir</a>
+    @if(auth()->user()->canUploadArtwork())
+        <form method="POST" action="{{ route('artworks.destroy', $revision) }}"
+              onsubmit="return confirm('Bu artwork silinsin mi? Aktif revizyon silinirse sistem önce önceki revizyonu aktif yapmaya çalışır.')">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-secondary border-red-300 text-red-600 hover:bg-red-50">Sil</button>
+        </form>
+    @endif
+@endsection
 
 @section('content')
 <div class="space-y-6">

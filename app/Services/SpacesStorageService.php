@@ -51,8 +51,9 @@ class SpacesStorageService
     public function upload(UploadedFile $file, string $path, ?string $disk = null): array
     {
         $stream = fopen($file->getRealPath(), 'rb');
+        $resolvedDisk = $this->diskName($disk);
 
-        Storage::disk($this->diskName($disk))->put($path, $stream, [
+        Storage::disk($resolvedDisk)->put($path, $stream, [
             'visibility' => 'private',
             'ContentType' => $file->getMimeType(),
         ]);
@@ -60,6 +61,8 @@ class SpacesStorageService
         if (is_resource($stream)) {
             fclose($stream);
         }
+
+        $this->normalizeLocalPermissions($resolvedDisk, $path);
 
         return [
             'spaces_path' => $path,
@@ -78,17 +81,20 @@ class SpacesStorageService
         ?string $disk = null,
     ): array {
         $stream = fopen($sourcePath, 'rb');
+        $resolvedDisk = $this->diskName($disk);
 
         if (! is_resource($stream)) {
             throw new RuntimeException('Önizleme dosyası okunamadı.');
         }
 
-        Storage::disk($this->diskName($disk))->put($destinationPath, $stream, [
+        Storage::disk($resolvedDisk)->put($destinationPath, $stream, [
             'visibility' => 'private',
             'ContentType' => $mimeType ?? 'image/png',
         ]);
 
         fclose($stream);
+
+        $this->normalizeLocalPermissions($resolvedDisk, $destinationPath);
 
         return [
             'spaces_path' => $destinationPath,
@@ -102,7 +108,7 @@ class SpacesStorageService
     public function presignedUrl(string $path, int $minutes = 0, ?string $disk = null, ?string $downloadName = null): string
     {
         if (! $this->usesSpaces($disk)) {
-            throw new \RuntimeException('Presigned URL yalnizca Spaces diski yapilandirildiginda uretilebilir.');
+            throw new RuntimeException('Presigned URL yalnızca Spaces diski yapılandırıldığında üretilebilir.');
         }
 
         if ($minutes === 0) {
@@ -126,7 +132,7 @@ class SpacesStorageService
     public function presignedInlineUrl(string $path, int $minutes = 5, ?string $disk = null): string
     {
         if (! $this->usesSpaces($disk)) {
-            throw new \RuntimeException('Presigned URL yalnızca Spaces diski yapılandırıldığında üretilebilir.');
+            throw new RuntimeException('Presigned URL yalnızca Spaces diski yapılandırıldığında üretilebilir.');
         }
 
         $client = $this->client();
@@ -210,5 +216,52 @@ class SpacesStorageService
             addcslashes($fallbackName, "\\\""),
             rawurlencode($filename),
         );
+    }
+
+    private function normalizeLocalPermissions(string $disk, string $path): void
+    {
+        if ($disk === 'spaces') {
+            return;
+        }
+
+        $filesystem = Storage::disk($disk);
+        $absolutePath = $filesystem->path($path);
+
+        if (! is_file($absolutePath)) {
+            return;
+        }
+
+        $rootPath = rtrim($filesystem->path(''), DIRECTORY_SEPARATOR);
+        $currentDir = dirname($absolutePath);
+        $directories = [];
+
+        while ($currentDir !== '' && str_starts_with($currentDir, $rootPath)) {
+            $directories[] = $currentDir;
+
+            if ($currentDir === $rootPath) {
+                break;
+            }
+
+            $parentDir = dirname($currentDir);
+
+            if ($parentDir === $currentDir) {
+                break;
+            }
+
+            $currentDir = $parentDir;
+        }
+
+        foreach (array_reverse($directories) as $directory) {
+            $this->applyOwnership($directory, true);
+        }
+
+        $this->applyOwnership($absolutePath, false);
+    }
+
+    private function applyOwnership(string $path, bool $isDirectory): void
+    {
+        @chown($path, 'www-data');
+        @chgrp($path, 'www-data');
+        @chmod($path, $isDirectory ? 0775 : 0664);
     }
 }

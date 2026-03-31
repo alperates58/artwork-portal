@@ -68,13 +68,15 @@
                                 <a href="{{ route('artworks.preview', $rev) }}" class="btn btn-secondary text-xs py-1.5">Önizleme</a>
                             @endif
                             <a href="{{ route('artwork.download', $rev) }}" class="btn btn-secondary text-xs py-1.5">İndir</a>
-                            @if(!$rev->is_active && auth()->user()->canUploadArtwork())
-                                <form method="POST" action="{{ route('artworks.activate', $rev) }}">
-                                    @csrf @method('PATCH')
-                                    <button type="submit" class="btn btn-secondary text-xs py-1.5 text-emerald-600">
-                                        Aktif Yap
-                                    </button>
-                                </form>
+                            @if(auth()->user()->canUploadArtwork())
+                                @if(! $rev->is_active)
+                                    <form method="POST" action="{{ route('artworks.activate', $rev) }}">
+                                        @csrf @method('PATCH')
+                                        <button type="submit" class="btn btn-secondary text-xs py-1.5 text-emerald-600">
+                                            Aktif Yap
+                                        </button>
+                                    </form>
+                                @endif
                                 <form method="POST" action="{{ route('artworks.destroy', $rev) }}"
                                       onsubmit="return confirm('Rev.{{ $rev->revision_no }} silinsin mi? Bu işlem geri alınamaz.')">
                                     @csrf @method('DELETE')
