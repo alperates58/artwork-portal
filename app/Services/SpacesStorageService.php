@@ -195,20 +195,25 @@ class SpacesStorageService
 
     public function normalizeArtworkStoragePermissions(?string $disk = null): void
     {
-        $resolvedDisk = $this->diskName($disk);
+        $disks = array_values(array_unique([
+            'local',
+            $this->diskName($disk),
+        ]));
 
-        if ($resolvedDisk === 'spaces') {
-            return;
+        foreach ($disks as $resolvedDisk) {
+            if ($resolvedDisk === 'spaces') {
+                continue;
+            }
+
+            $filesystem = Storage::disk($resolvedDisk);
+            $artworksRoot = $filesystem->path('artworks');
+
+            if (! is_dir($artworksRoot)) {
+                continue;
+            }
+
+            $this->normalizeArtworkTree($filesystem, $artworksRoot);
         }
-
-        $filesystem = Storage::disk($resolvedDisk);
-        $artworksRoot = $filesystem->path('artworks');
-
-        if (! is_dir($artworksRoot)) {
-            return;
-        }
-
-        $this->normalizeArtworkTree($filesystem, $artworksRoot);
     }
 
     private function diskName(?string $disk = null): string
