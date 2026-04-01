@@ -201,6 +201,10 @@ class ArtworkUploadService
                 'direct_upload' => true,
             ]);
 
+            if ($this->previewGenerator->supportsGalleryItem($galleryItem)) {
+                \App\Jobs\GenerateGalleryPreviewJob::dispatch($galleryItem->id)->afterCommit();
+            }
+
             $this->dashboardCache->forgetAllAfterCommit();
 
             return $galleryItem;

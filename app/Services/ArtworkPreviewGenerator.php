@@ -33,6 +33,101 @@ class ArtworkPreviewGenerator
         return in_array($this->extension($revision), [...self::GHOSTSCRIPT_EXTENSIONS, 'psd'], true);
     }
 
+    public function supportsGalleryItem(\App\Models\ArtworkGallery $galleryItem): bool
+    {
+        $ext = strtolower(pathinfo($galleryItem->name, PATHINFO_EXTENSION));
+
+        return in_array($ext, [...self::GHOSTSCRIPT_EXTENSIONS, 'psd'], true);
+    }
+
+    public function generateForGalleryItem(\App\Models\ArtworkGallery $galleryItem): bool
+    {
+        if (! $this->supportsGalleryItem($galleryItem) || filled($galleryItem->getAttributeFromArray('preview_file_path'))) {
+            return false;
+        }
+
+        $ext = strtolower(pathinfo($galleryItem->name, PATHINFO_EXTENSION));
+
+        $this->audit->log('artwork.preview.started', $galleryItem, [
+            'source_extension' => $ext,
+        ]);
+
+        $tempDirectory = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'artwork-preview-' . Str::uuid();
+
+        try {
+            if (! mkdir($tempDirectory, 0777, true) && ! is_dir($tempDirectory)) {
+                throw new RuntimeException('Geçici preview klasörü oluşturulamadı.');
+            }
+
+            $inputPath  = $tempDirectory . DIRECTORY_SEPARATOR . 'source.' . $ext;
+            $outputPath = $tempDirectory . DIRECTORY_SEPARATOR . 'preview.' . self::PREVIEW_EXTENSION;
+
+            $disk   = $galleryItem->file_disk ?: $this->settings->filesystemDisk();
+            $stream = Storage::disk($disk)->readStream($galleryItem->file_path);
+
+            if (! is_resource($stream)) {
+                throw new RuntimeException('Orijinal artwork dosyası okunamadı.');
+            }
+
+            $targetStream = fopen($inputPath, 'wb');
+
+            if (! is_resource($targetStream)) {
+                fclose($stream);
+                throw new RuntimeException('Geçici artwork dosyası yazılamadı.');
+            }
+
+            stream_copy_to_stream($stream, $targetStream);
+            fclose($stream);
+            fclose($targetStream);
+
+            $this->runConversion($ext, $inputPath, $outputPath);
+
+            if (! is_file($outputPath) || filesize($outputPath) === 0) {
+                throw new RuntimeException('PNG önizleme dosyası üretilemedi.');
+            }
+
+            $uuid            = (string) Str::uuid();
+            $destinationPath = sprintf('artworks/gallery/%d/preview/%s.%s', $galleryItem->id, $uuid, self::PREVIEW_EXTENSION);
+
+            $previewData = $this->spaces->uploadFileFromPath(
+                sourcePath: $outputPath,
+                destinationPath: $destinationPath,
+                originalFilename: \App\Support\ArtworkFileName::preview(
+                    stockCode: $galleryItem->stock_code,
+                    revisionNo: (int) ($galleryItem->revision_no ?? 1),
+                    fallback: $galleryItem->stock_code ?? 'gallery',
+                ),
+                mimeType: 'image/png',
+                disk: $disk,
+            );
+
+            $galleryItem->forceFill([
+                'preview_file_name' => $previewData['original_filename'],
+                'preview_file_path' => $previewData['spaces_path'],
+                'preview_file_disk' => $disk,
+                'preview_file_size' => $previewData['file_size'],
+                'preview_file_type' => $previewData['mime_type'],
+            ])->save();
+
+            $this->audit->log('artwork.preview.success', $galleryItem, [
+                'preview_filename' => $previewData['original_filename'],
+                'preview_file_size' => $previewData['file_size'],
+            ]);
+
+            return true;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            $this->audit->log('artwork.preview.failed', $galleryItem, [
+                'error' => $exception->getMessage(),
+            ]);
+
+            return false;
+        } finally {
+            $this->deleteDirectory($tempDirectory);
+        }
+    }
+
     public function generateForRevision(ArtworkRevision $revision): bool
     {
         if (! $this->supports($revision) || $revision->has_preview) {
@@ -56,7 +151,7 @@ class ArtworkPreviewGenerator
             $outputPath = $tempDirectory . DIRECTORY_SEPARATOR . 'preview.' . self::PREVIEW_EXTENSION;
 
             $this->copyOriginalToTemp($revision, $inputPath);
-            $this->runConversion($revision, $inputPath, $outputPath);
+            $this->runConversion($this->extension($revision), $inputPath, $outputPath);
 
             if (! is_file($outputPath) || filesize($outputPath) === 0) {
                 throw new RuntimeException('PNG önizleme dosyası üretilemedi.');
@@ -140,9 +235,9 @@ class ArtworkPreviewGenerator
         fclose($targetStream);
     }
 
-    private function runConversion(ArtworkRevision $revision, string $inputPath, string $outputPath): void
+    private function runConversion(string $extension, string $inputPath, string $outputPath): void
     {
-        $commands = $this->conversionCommands($revision, $inputPath, $outputPath);
+        $commands = $this->conversionCommands($extension, $inputPath, $outputPath);
         $lastError = null;
 
         foreach ($commands as $command) {
@@ -158,9 +253,8 @@ class ArtworkPreviewGenerator
         throw new RuntimeException($lastError ?: 'PNG önizleme üretimi başarısız oldu.');
     }
 
-    private function conversionCommands(ArtworkRevision $revision, string $inputPath, string $outputPath): array
+    private function conversionCommands(string $extension, string $inputPath, string $outputPath): array
     {
-        $extension = $this->extension($revision);
         $commands = [];
 
         if (in_array($extension, self::GHOSTSCRIPT_EXTENSIONS, true) && $this->binaryAvailable('gs')) {
