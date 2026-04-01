@@ -6,6 +6,7 @@
 @php
     $typeFilter = request('type', '');
     $sort = $sort ?? 'created_desc';
+    $hasDirectUploadRoute = app('router')->has('admin.artwork-gallery.direct-upload');
     $typeTabs   = ['' => 'Tümü'];
     foreach ($fileGroups as $group) {
         $typeTabs[$group['key']] = $group['label'];
@@ -36,12 +37,14 @@
 @endphp
 
 @section('header-actions')
-    <button type="button" data-dialog-open="gallery-direct-upload-dialog" class="btn btn-primary gap-2">
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-        </svg>
-        Artwork Yükle
-    </button>
+    @if($hasDirectUploadRoute)
+        <button type="button" data-dialog-open="gallery-direct-upload-dialog" class="btn btn-primary gap-2">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+            Artwork Yükle
+        </button>
+    @endif
 @endsection
 
 @section('content')
@@ -644,6 +647,7 @@ function galleryPage() {
 @endpush
 
 {{-- Doğrudan Galeri Yükleme Diyaloğu --}}
+@if($hasDirectUploadRoute)
 <dialog id="gallery-direct-upload-dialog" class="max-h-[96vh] w-[min(96vw,680px)] max-w-none overflow-hidden rounded-[32px] border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-950/60">
     <div class="flex max-h-[96vh] flex-col bg-white">
         {{-- Başlık --}}
@@ -742,3 +746,4 @@ function galleryPage() {
         </div>
     </div>
 </dialog>
+@endif
