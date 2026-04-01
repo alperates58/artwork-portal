@@ -18,9 +18,12 @@
 <div class="space-y-6">
     <div>
         <h1 class="text-2xl font-semibold">Artwork Revizyonu</h1>
-        <p class="text-sm text-slate-600">
-            <span class="font-mono">{{ $revision->artwork->orderLine->product_code }}</span> · Rev.{{ $revision->revision_no }} · {{ $revision->original_filename }}
-        </p>
+        <div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-600">
+            <p>
+                <span class="font-mono">{{ $revision->artwork->orderLine->product_code }}</span> · Rev.{{ $revision->revision_no }} · {{ $revision->original_filename }}
+            </p>
+            @include('artworks.partials.passive-gallery-badge', ['galleryItem' => $revision->galleryItem])
+        </div>
     </div>
 
     <div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
@@ -31,7 +34,10 @@
                         <p class="text-sm font-semibold text-slate-900">Artwork Önizleme</p>
                         <p class="text-xs text-slate-500">Orijinal dosya korunur, ekranda PNG önizleme gösterilir.</p>
                     </div>
-                    <a href="{{ route('artworks.preview', $revision) }}" class="btn btn-secondary text-xs">Önizlemeyi Aç</a>
+                    <div class="flex items-center gap-2">
+                        @include('artworks.partials.passive-gallery-badge', ['galleryItem' => $revision->galleryItem])
+                        <a href="{{ route('artworks.preview', $revision) }}" class="btn btn-secondary text-xs">Önizlemeyi Aç</a>
+                    </div>
                 </div>
                 <img src="{{ route('artworks.preview', $revision, false) }}" alt="Artwork önizleme" class="max-h-[520px] w-full object-contain bg-white">
             </div>

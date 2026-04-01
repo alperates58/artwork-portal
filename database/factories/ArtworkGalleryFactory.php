@@ -38,6 +38,7 @@ class ArtworkGalleryFactory extends Factory
             'preview_file_name' => null,
             'stock_code' => null,
             'revision_no' => fake()->numberBetween(1, 6),
+            'is_active' => true,
             'stock_card_id' => StockCard::factory(),
             'category_id' => ArtworkCategory::factory(),
             'file_path' => 'artworks/gallery/' . fake()->uuid() . '.' . $ext,

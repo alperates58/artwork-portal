@@ -5,13 +5,22 @@
 
 @section('header-actions')
     <a href="{{ route('admin.artwork-gallery.index') }}" class="btn btn-secondary">← Galeriye dön</a>
-    @if(auth()->user()->isAdmin() || auth()->user()->hasPermission('gallery', 'manage'))
+    <form method="POST" action="{{ route($artworkGallery->is_active ? 'admin.artwork-gallery.deactivate' : 'admin.artwork-gallery.activate', $artworkGallery) }}">
+        @csrf
+        @method('PATCH')
+        <button type="submit" class="btn btn-secondary">
+            {{ $artworkGallery->is_active ? 'Pasife Al' : 'Aktif Et' }}
+        </button>
+    </form>
+    @if($artworkGallery->canBeDeleted())
         <form method="POST" action="{{ route('admin.artwork-gallery.destroy', $artworkGallery) }}"
               onsubmit="return confirm('{{ $artworkGallery->display_name }} galeriden kalıcı olarak silinsin mi? Bu işlem geri alınamaz.')">
             @csrf
             @method('DELETE')
             <button type="submit" class="btn btn-secondary text-red-600 hover:border-red-300 hover:bg-red-50">Sil</button>
         </form>
+    @else
+        <span class="text-xs text-slate-500">Bu artwork daha önce siparişte kullanıldığı için silinemez.</span>
     @endif
 @endsection
 
@@ -33,6 +42,7 @@
                         <span class="badge badge-gray">Rev.{{ $artworkGallery->revision_no ?: '—' }}</span>
                         <span class="badge badge-gray">{{ $artworkGallery->file_type_display }}</span>
                         <span class="badge badge-gray">{{ $artworkGallery->stockCard?->category?->display_name ?? ($artworkGallery->category?->display_name ?? 'Kategorisiz') }}</span>
+                        @include('artworks.partials.passive-gallery-badge', ['galleryItem' => $artworkGallery])
                     </div>
                     <p class="mt-2 text-sm text-slate-500">
                         {{ $artworkGallery->file_size_formatted }} · {{ $artworkGallery->file_disk }} · {{ $artworkGallery->created_at->format('d.m.Y H:i') }}
@@ -140,6 +150,10 @@
                 <div>
                     <dt class="text-slate-400">Revizyon</dt>
                     <dd class="text-slate-900">Rev.{{ $artworkGallery->revision_no ?: '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-slate-400">Durum</dt>
+                    <dd class="text-slate-900">{{ $artworkGallery->is_active ? 'Aktif' : 'Pasif' }}</dd>
                 </div>
                 <div>
                     <dt class="text-slate-400">Önizleme PNG</dt>

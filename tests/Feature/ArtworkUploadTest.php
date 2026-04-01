@@ -291,6 +291,14 @@ class ArtworkUploadTest extends TestCase
 
     public function test_stock_card_lookup_returns_auto_fill_payload(): void
     {
+        ArtworkGallery::factory()->create([
+            'uploaded_by' => $this->adminUser->id,
+            'stock_code' => $this->stockCard->stock_code,
+            'stock_card_id' => $this->stockCard->id,
+            'category_id' => $this->stockCard->category_id,
+            'revision_no' => 4,
+        ]);
+
         $this->actingAs($this->graphicUser)
             ->getJson(route('stock-cards.lookup', ['stock_code' => $this->stockCard->stock_code]))
             ->assertOk()
@@ -298,6 +306,8 @@ class ArtworkUploadTest extends TestCase
                 'stock_code' => $this->stockCard->stock_code,
                 'stock_name' => $this->stockCard->stock_name,
                 'category_id' => $this->stockCard->category_id,
+                'latest_gallery_revision_no' => 4,
+                'next_upload_revision_no' => 5,
             ]);
     }
 
@@ -415,6 +425,53 @@ class ArtworkUploadTest extends TestCase
                 'revision_no' => 2,
             ])
             ->assertSessionHasErrors('revision_no');
+    }
+
+    public function test_inactive_gallery_item_cannot_be_reused_for_order_upload(): void
+    {
+        $galleryItem = ArtworkGallery::factory()->create([
+            'uploaded_by' => $this->adminUser->id,
+            'stock_code' => $this->stockCard->stock_code,
+            'stock_card_id' => $this->stockCard->id,
+            'category_id' => $this->stockCard->category_id,
+            'revision_no' => 2,
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($this->graphicUser)
+            ->post(route('artworks.store', $this->line), [
+                'source_type' => 'gallery',
+                'gallery_item_id' => $galleryItem->id,
+                'stock_code' => $this->stockCard->stock_code,
+                'revision_no' => 2,
+            ])
+            ->assertSessionHasErrors('gallery_item_id');
+    }
+
+    public function test_order_line_show_displays_passive_badge_for_inactive_gallery_source(): void
+    {
+        $galleryItem = ArtworkGallery::factory()->create([
+            'uploaded_by' => $this->adminUser->id,
+            'stock_code' => $this->stockCard->stock_code,
+            'stock_card_id' => $this->stockCard->id,
+            'category_id' => $this->stockCard->category_id,
+            'is_active' => false,
+        ]);
+
+        $artwork = Artwork::factory()->create(['order_line_id' => $this->line->id]);
+        $revision = ArtworkRevision::factory()->create([
+            'artwork_id' => $artwork->id,
+            'artwork_gallery_id' => $galleryItem->id,
+            'revision_no' => 2,
+            'is_active' => true,
+            'uploaded_by' => $this->graphicUser->id,
+        ]);
+        $artwork->update(['active_revision_id' => $revision->id]);
+
+        $this->actingAs($this->graphicUser)
+            ->get(route('order-lines.show', $this->line))
+            ->assertOk()
+            ->assertSee('Pasif');
     }
 
     public function test_upload_creates_audit_logs_for_revision_and_gallery(): void

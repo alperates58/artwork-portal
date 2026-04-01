@@ -15,6 +15,8 @@ use App\Models\StockCard;
 use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use App\Services\MultipartUploadService;
 use Tests\TestCase;
 
 class ArtworkGalleryAdminTest extends TestCase
@@ -200,5 +202,113 @@ class ArtworkGalleryAdminTest extends TestCase
             ->assertSee('Rev.5')
             ->assertSee('SIP-555')
             ->assertSee('Lider Tedarik');
+    }
+
+    public function test_direct_gallery_upload_requires_next_available_revision_for_same_stock_code(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        $stockCard = StockCard::factory()->create([
+            'stock_code' => 'STK-777',
+            'stock_name' => 'Lider Şişe',
+        ]);
+
+        ArtworkGallery::factory()->create([
+            'uploaded_by' => $admin->id,
+            'stock_code' => $stockCard->stock_code,
+            'stock_card_id' => $stockCard->id,
+            'category_id' => $stockCard->category_id,
+            'revision_no' => 3,
+        ]);
+
+        $this->mock(MultipartUploadService::class, function ($mock) {
+            $mock->shouldNotReceive('upload');
+        });
+
+        $this->actingAs($admin)
+            ->post(route('admin.artwork-gallery.direct-upload'), [
+                'artwork_file' => UploadedFile::fake()->create('stok-777-rev2.pdf', 50, 'application/pdf'),
+                'stock_code' => $stockCard->stock_code,
+                'revision_no' => 2,
+            ])
+            ->assertSessionHasErrors('revision_no');
+    }
+
+    public function test_gallery_index_shows_active_items_by_default_and_can_filter_inactive_items(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+
+        $activeItem = ArtworkGallery::factory()->create([
+            'uploaded_by' => $admin->id,
+            'name' => 'aktif-artwork.pdf',
+            'is_active' => true,
+        ]);
+
+        $inactiveItem = ArtworkGallery::factory()->create([
+            'uploaded_by' => $admin->id,
+            'name' => 'pasif-artwork.pdf',
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.artwork-gallery.index'))
+            ->assertOk()
+            ->assertSee($activeItem->name)
+            ->assertDontSee($inactiveItem->name);
+
+        $this->actingAs($admin)
+            ->get(route('admin.artwork-gallery.index', ['status' => 'inactive']))
+            ->assertOk()
+            ->assertSee($inactiveItem->name)
+            ->assertDontSee($activeItem->name);
+    }
+
+    public function test_used_gallery_item_cannot_be_deleted_but_can_be_deactivated_and_reactivated(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        $galleryItem = ArtworkGallery::factory()->create([
+            'uploaded_by' => $admin->id,
+            'is_active' => true,
+        ]);
+
+        ArtworkGalleryUsage::query()->create([
+            'artwork_gallery_id' => $galleryItem->id,
+            'used_at' => now(),
+            'usage_type' => 'reuse',
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.artwork-gallery.destroy', $galleryItem))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('artwork_gallery', [
+            'id' => $galleryItem->id,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('admin.artwork-gallery.deactivate', $galleryItem))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('artwork_gallery', [
+            'id' => $galleryItem->id,
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('admin.artwork-gallery.activate', $galleryItem))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('artwork_gallery', [
+            'id' => $galleryItem->id,
+            'is_active' => true,
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'artwork.gallery.deactivate',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'artwork.gallery.activate',
+        ]);
     }
 }

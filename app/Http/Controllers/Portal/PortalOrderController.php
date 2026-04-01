@@ -54,6 +54,7 @@ class PortalOrderController extends Controller
         $order->load([
             'supplier',
             'lines.artwork.activeRevision.uploadedBy',
+            'lines.artwork.activeRevision.galleryItem',
         ]);
 
         $this->artworkUploadService->logViews(

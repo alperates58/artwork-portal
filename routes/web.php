@@ -185,6 +185,8 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('/artwork-galerisi/etiketler', [ArtworkGalleryController::class, 'storeTag'])->name('artwork-gallery.tags.store');
             Route::delete('/artwork-galerisi/etiketler/{tag}', [ArtworkGalleryController::class, 'destroyTag'])->name('artwork-gallery.tags.destroy');
             Route::get('/artwork-galerisi/{artworkGallery}/duzenle', [ArtworkGalleryController::class, 'edit'])->name('artwork-gallery.edit');
+            Route::patch('/artwork-galerisi/{artworkGallery}/aktiflestir', [ArtworkGalleryController::class, 'activate'])->name('artwork-gallery.activate');
+            Route::patch('/artwork-galerisi/{artworkGallery}/pasiflestir', [ArtworkGalleryController::class, 'deactivate'])->name('artwork-gallery.deactivate');
             Route::patch('/artwork-galerisi/{artworkGallery}', [ArtworkGalleryController::class, 'update'])->name('artwork-gallery.update');
             Route::delete('/artwork-galerisi/{artworkGallery}', [ArtworkGalleryController::class, 'destroy'])->name('artwork-gallery.destroy');
         });

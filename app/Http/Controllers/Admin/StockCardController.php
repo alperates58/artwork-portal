@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ArtworkCategory;
 use App\Models\StockCard;
 use App\Services\ArtworkCategoryService;
+use App\Services\ArtworkRevisionNumberService;
 use App\Services\AuditLogService;
 use App\Services\StockCardBulkImportService;
 use Illuminate\Http\JsonResponse;
@@ -18,6 +19,7 @@ class StockCardController extends Controller
 {
     public function __construct(
         private ArtworkCategoryService $categories,
+        private ArtworkRevisionNumberService $revisionNumbers,
         private AuditLogService $audit,
     ) {}
 
@@ -240,6 +242,8 @@ class StockCardController extends Controller
             'stock_name' => $stockCard->stock_name,
             'category_id' => $stockCard->category_id,
             'category_name' => $stockCard->category?->display_name,
+            'latest_gallery_revision_no' => $this->revisionNumbers->maxGalleryRevisionNo($stockCard->stock_code),
+            'next_upload_revision_no' => $this->revisionNumbers->nextUploadRevisionNo(stockCode: $stockCard->stock_code),
         ]);
     }
 

@@ -172,7 +172,10 @@
                                         </div>
                                     @endif
                                     <div class="min-w-0">
-                                        <p class="truncate text-sm font-semibold text-slate-800">{{ $line->activeRevision->original_filename }}</p>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <p class="truncate text-sm font-semibold text-slate-800">{{ $line->activeRevision->original_filename }}</p>
+                                            @include('artworks.partials.passive-gallery-badge', ['galleryItem' => $line->activeRevision->galleryItem])
+                                        </div>
                                         <p class="text-xs text-slate-500">Rev.{{ $line->activeRevision->revision_no }} · {{ $line->activeRevision->file_size_formatted }} · {{ $line->activeRevision->uploadedBy->name }} · {{ $line->activeRevision->created_at->format('d.m.Y H:i') }}</p>
                                         @if($line->activeRevision->has_preview)
                                             <button type="button" data-dialog-open="order-line-preview-{{ $line->id }}" class="mt-1 text-[11px] font-semibold text-brand-700 hover:underline">Önizlemeyi aç</button>
@@ -189,7 +192,10 @@
                                     <div class="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-4">
                                         <div class="min-w-0">
                                             <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Satır önizleme</p>
-                                            <p class="mt-1 truncate text-lg font-semibold text-slate-900">{{ $line->activeRevision->original_filename }}</p>
+                                            <div class="mt-1 flex flex-wrap items-center gap-2">
+                                                <p class="truncate text-lg font-semibold text-slate-900">{{ $line->activeRevision->original_filename }}</p>
+                                                @include('artworks.partials.passive-gallery-badge', ['galleryItem' => $line->activeRevision->galleryItem])
+                                            </div>
                                         </div>
                                         <button type="button" data-dialog-close class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900">
                                             <span class="sr-only">Kapat</span>

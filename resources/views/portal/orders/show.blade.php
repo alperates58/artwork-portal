@@ -57,7 +57,10 @@
                                         <span class="text-xs font-bold text-slate-700">{{ $rev->extension }}</span>
                                     </div>
                                     <div>
-                                        <p class="text-sm font-semibold text-slate-900">{{ $rev->original_filename }}</p>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <p class="text-sm font-semibold text-slate-900">{{ $rev->original_filename }}</p>
+                                            @include('artworks.partials.passive-gallery-badge', ['galleryItem' => $rev->galleryItem])
+                                        </div>
                                         <p class="text-xs text-slate-500">
                                             Rev.{{ $rev->revision_no }} · {{ $rev->file_size_formatted }} · {{ $rev->created_at->format('d.m.Y') }}
                                         </p>

@@ -58,8 +58,10 @@ class OrderController extends Controller
             'lines.lineNotes.user:id,name',
             'lines.lineNotes.replies.user:id,name',
             'lines.artwork.activeRevision.uploadedBy',
+            'lines.artwork.activeRevision.galleryItem',
             'lines.artwork.revisions' => fn ($query) => $query->orderByDesc('revision_no'),
             'lines.artwork.revisions.uploadedBy:id,name',
+            'lines.artwork.revisions.galleryItem',
             'orderNotes.user:id,name',
             'orderNotes.replies.user:id,name',
         ]);

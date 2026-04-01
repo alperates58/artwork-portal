@@ -22,6 +22,7 @@ class ArtworkGallery extends Model
         'preview_file_name',
         'stock_code',
         'revision_no',
+        'is_active',
         'stock_card_id',
         'category_id',
         'file_path',
@@ -39,10 +40,21 @@ class ArtworkGallery extends Model
     protected function casts(): array
     {
         return [
+            'is_active' => 'boolean',
             'file_size' => 'integer',
             'preview_file_size' => 'integer',
             'revision_no' => 'integer',
         ];
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeInactive($query)
+    {
+        return $query->where('is_active', false);
     }
 
     public function category(): BelongsTo
@@ -267,6 +279,19 @@ class ArtworkGallery extends Model
         }
 
         return 0;
+    }
+
+    public function canBeDeleted(): bool
+    {
+        if (array_key_exists('usages_count', $this->attributes)) {
+            return (int) $this->attributes['usages_count'] === 0;
+        }
+
+        if ($this->relationLoaded('usages')) {
+            return $this->usages->isEmpty();
+        }
+
+        return ! $this->usages()->exists();
     }
 
     public function getLastUsedAtAttribute(): mixed

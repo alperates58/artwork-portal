@@ -4,7 +4,10 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="min-w-0">
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Artwork galerisi</p>
-                <h3 class="mt-2 break-words text-2xl font-semibold text-slate-950">{{ $artworkGallery->display_name }}</h3>
+                <div class="mt-2 flex flex-wrap items-center gap-2">
+                    <h3 class="break-words text-2xl font-semibold text-slate-950">{{ $artworkGallery->display_name }}</h3>
+                    @include('artworks.partials.passive-gallery-badge', ['galleryItem' => $artworkGallery])
+                </div>
                 <p class="mt-2 text-sm text-slate-500">{{ $artworkGallery->file_type_description }} · {{ $artworkGallery->file_size_formatted }}</p>
             </div>
             <div class="flex items-center gap-3">

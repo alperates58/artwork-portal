@@ -52,6 +52,7 @@ class ArtworkUploadService
 
             $fileData = $this->multipart->upload($file, $path);
             $fileData['original_filename'] = $standardizedFilename;
+            $this->spaces->normalizeArtworkStoragePermissions($this->settings->filesystemDisk());
 
             $galleryItem = ArtworkGallery::create([
                 'name' => $standardizedFilename,
@@ -176,6 +177,7 @@ class ArtworkUploadService
             $path = 'artworks/gallery/' . now()->format('Y/m') . '/' . Str::uuid() . '.' . $ext;
 
             $fileData = $this->multipart->upload($file, $path);
+            $this->spaces->normalizeArtworkStoragePermissions($this->settings->filesystemDisk());
 
             $galleryItem = ArtworkGallery::create([
                 'name' => $standardizedFilename,

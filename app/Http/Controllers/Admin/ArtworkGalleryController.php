@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ArtworkGalleryDirectUploadRequest;
 use App\Http\Requests\Admin\ArtworkGalleryUpdateRequest;
 use App\Jobs\GenerateArtworkPreviewJob;
 use App\Models\ArtworkCategory;
@@ -41,6 +42,7 @@ class ArtworkGalleryController extends Controller
         );
 
         $sort = (string) request('sort', 'created_desc');
+        $status = $this->resolveStatusFilter((string) request('status', 'active'));
 
         $query = ArtworkGallery::query()
             ->with([
@@ -65,6 +67,7 @@ class ArtworkGalleryController extends Controller
                 };
             });
 
+        $this->applyStatusFilter($query, $status);
         $this->applySort($query, $sort);
 
         $totalCount = (clone $query)->count();
@@ -73,8 +76,8 @@ class ArtworkGalleryController extends Controller
         $tags = ArtworkTag::query()->orderBy('name')->get(['id', 'name']);
         $fileGroups = $this->settings->fileGroups();
         $stockCodeFilter = trim((string) request('stock_code', ''));
-        $stockQuickMatches = $this->buildStockQuickMatches($stockCodeFilter, $sort);
-        $stockHistory = $this->buildStockHistory($stockCodeFilter);
+        $stockQuickMatches = $this->buildStockQuickMatches($stockCodeFilter, $sort, $status);
+        $stockHistory = $this->buildStockHistory($stockCodeFilter, $status);
         $this->queueMissingGalleryPreviews($galleryItems->getCollection());
 
         return view('admin.artwork-gallery.index', compact(
@@ -87,6 +90,7 @@ class ArtworkGalleryController extends Controller
             'stockHistory',
             'stockCodeFilter',
             'sort',
+            'status',
         ));
     }
 
@@ -244,29 +248,60 @@ class ArtworkGalleryController extends Controller
         return view('admin.artwork-gallery.edit', compact('artworkGallery', 'categories', 'tags'));
     }
 
-    public function storeDirectUpload(): RedirectResponse
+    public function storeDirectUpload(ArtworkGalleryDirectUploadRequest $request): RedirectResponse
     {
         abort_if(
             ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('gallery', 'manage'),
             403
         );
 
-        request()->validate([
-            'artwork_file' => ['required', 'file', 'max:1228800'],
-            'stock_code'   => ['required', 'string', 'max:100'],
-            'revision_no'  => ['required', 'integer', 'min:1', 'max:99'],
-            'notes'        => ['nullable', 'string', 'max:2000'],
-        ]);
-
         $galleryItem = $this->uploadService->storeDirectToGallery(
-            file: request()->file('artwork_file'),
-            meta: request()->only('stock_code', 'revision_no', 'notes'),
+            file: $request->file('artwork_file'),
+            meta: $request->only('stock_code', 'revision_no', 'notes'),
             uploader: auth()->user(),
         );
 
         return redirect()
             ->route('admin.artwork-gallery.index')
             ->with('success', '"' . $galleryItem->name . '" galeriye eklendi.');
+    }
+
+    public function activate(ArtworkGallery $artworkGallery): RedirectResponse
+    {
+        abort_if(
+            ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('gallery', 'manage'),
+            403
+        );
+
+        if (! $artworkGallery->is_active) {
+            $artworkGallery->update(['is_active' => true]);
+
+            $this->audit->log('artwork.gallery.activate', $artworkGallery, [
+                'name' => $artworkGallery->name,
+                'stock_code' => $artworkGallery->stock_code,
+            ]);
+        }
+
+        return back()->with('success', '"' . $artworkGallery->name . '" artwork kaydı aktif hale getirildi.');
+    }
+
+    public function deactivate(ArtworkGallery $artworkGallery): RedirectResponse
+    {
+        abort_if(
+            ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('gallery', 'manage'),
+            403
+        );
+
+        if ($artworkGallery->is_active) {
+            $artworkGallery->update(['is_active' => false]);
+
+            $this->audit->log('artwork.gallery.deactivate', $artworkGallery, [
+                'name' => $artworkGallery->name,
+                'stock_code' => $artworkGallery->stock_code,
+            ]);
+        }
+
+        return back()->with('success', '"' . $artworkGallery->name . '" artwork kaydı pasife alındı.');
     }
 
     public function destroy(ArtworkGallery $artworkGallery): RedirectResponse
@@ -276,10 +311,20 @@ class ArtworkGalleryController extends Controller
             403
         );
 
+        $artworkGallery->loadCount('usages');
+
+        if (! $artworkGallery->canBeDeleted()) {
+            return back()->with('error', 'Daha önce siparişte kullanılan artwork silinemez. Pasife alabilirsiniz.');
+        }
+
         $name = $artworkGallery->name;
 
         if ($artworkGallery->file_path) {
             Storage::disk($artworkGallery->file_disk ?? 'public')->delete($artworkGallery->file_path);
+        }
+
+        if ($artworkGallery->preview_file_path) {
+            Storage::disk($artworkGallery->preview_disk ?? $artworkGallery->file_disk ?? 'public')->delete($artworkGallery->preview_file_path);
         }
 
         $this->audit->log('artwork.gallery.delete', $artworkGallery, [
@@ -316,6 +361,7 @@ class ArtworkGalleryController extends Controller
             'category_id' => $stockCard?->category_id ?? $artworkGallery->category_id,
             'revision_note' => $request->input('revision_note'),
         ]);
+
         if ($request->has('tag_ids')) {
             $artworkGallery->tags()->sync($request->input('tag_ids', []));
         }
@@ -331,7 +377,7 @@ class ArtworkGalleryController extends Controller
             ->with('success', 'Artwork galerisi kaydı güncellendi.');
     }
 
-    private function buildStockQuickMatches(string $stockCodeFilter, string $sort)
+    private function buildStockQuickMatches(string $stockCodeFilter, string $sort, string $status)
     {
         if ($stockCodeFilter === '') {
             return collect();
@@ -348,6 +394,7 @@ class ArtworkGalleryController extends Controller
             ->withMax('revisions', 'revision_no')
             ->where('stock_code', 'like', '%' . $normalized . '%');
 
+        $this->applyStatusFilter($query, $status);
         $this->applySort($query, $sort, $normalized);
 
         return $query
@@ -371,7 +418,7 @@ class ArtworkGalleryController extends Controller
         };
     }
 
-    private function buildStockHistory(string $stockCodeFilter)
+    private function buildStockHistory(string $stockCodeFilter, string $status)
     {
         if ($stockCodeFilter === '') {
             return collect();
@@ -382,14 +429,17 @@ class ArtworkGalleryController extends Controller
         return ArtworkRevision::query()
             ->with([
                 'uploadedBy:id,name',
-                'galleryItem:id,stock_code,stock_card_id,category_id,name,revision_no',
+                'galleryItem:id,stock_code,stock_card_id,category_id,name,revision_no,is_active',
                 'galleryItem.stockCard:id,stock_code,stock_name,category_id',
                 'galleryItem.stockCard.category:id,name',
                 'artwork.orderLine.purchaseOrder:id,order_no,supplier_id,order_date',
                 'artwork.orderLine.purchaseOrder.supplier:id,name',
                 'artwork.orderLine:id,purchase_order_id,line_no,product_code',
             ])
-            ->whereHas('galleryItem', fn ($query) => $query->where('stock_code', 'like', '%' . $normalized . '%'))
+            ->whereHas('galleryItem', function ($query) use ($normalized, $status) {
+                $query->where('stock_code', 'like', '%' . $normalized . '%');
+                $this->applyStatusFilter($query, $status);
+            })
             ->orderByRaw(
                 'CASE WHEN EXISTS (
                     SELECT 1
@@ -402,5 +452,19 @@ class ArtworkGalleryController extends Controller
             ->orderByDesc('created_at')
             ->get()
             ->groupBy(fn (ArtworkRevision $revision) => $revision->galleryItem?->stock_code ?: 'Belirsiz');
+    }
+
+    private function applyStatusFilter(Builder $query, string $status): void
+    {
+        match ($status) {
+            'inactive' => $query->inactive(),
+            'all' => null,
+            default => $query->active(),
+        };
+    }
+
+    private function resolveStatusFilter(string $status): string
+    {
+        return in_array($status, ['active', 'inactive', 'all'], true) ? $status : 'active';
     }
 }

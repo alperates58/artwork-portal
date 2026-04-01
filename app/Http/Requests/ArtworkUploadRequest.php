@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\ArtworkGallery;
+use App\Services\ArtworkRevisionNumberService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -49,7 +50,6 @@ class ArtworkUploadRequest extends FormRequest
                 return;
             }
 
-            $currentMaxRevision = $line->artwork?->revisions()->max('revision_no') ?? 0;
             $requestedRevision = (int) $this->input('revision_no');
             $selectedGalleryItem = null;
 
@@ -58,6 +58,13 @@ class ArtworkUploadRequest extends FormRequest
             }
 
             if ($this->input('source_type') === 'gallery' && $selectedGalleryItem) {
+                if (! $selectedGalleryItem->is_active) {
+                    $validator->errors()->add(
+                        'gallery_item_id',
+                        'Pasif galeri kaydı siparişe tekrar kullanılamaz.'
+                    );
+                }
+
                 if ($this->input('stock_code') !== $selectedGalleryItem->stock_code) {
                     $validator->errors()->add(
                         'stock_code',
@@ -75,25 +82,16 @@ class ArtworkUploadRequest extends FormRequest
                 return;
             }
 
-            if ($requestedRevision <= $currentMaxRevision) {
+            $nextRevisionNo = app(ArtworkRevisionNumberService::class)
+                ->nextUploadRevisionNo($line, $this->input('stock_code'));
+
+            if ($requestedRevision < $nextRevisionNo) {
                 $validator->errors()->add(
                     'revision_no',
-                    'Revizyon numarası mevcut en yüksek revizyondan büyük olmalıdır.'
+                    'Bu stok kodu için kullanılabilir en düşük yeni revizyon Rev.'
+                    . str_pad((string) $nextRevisionNo, 2, '0', STR_PAD_LEFT)
+                    . ' olmalıdır.'
                 );
-            }
-
-            if ($this->input('source_type') === 'upload') {
-                $duplicateGalleryItem = ArtworkGallery::query()
-                    ->where('stock_code', $this->input('stock_code'))
-                    ->where('revision_no', $requestedRevision)
-                    ->exists();
-
-                if ($duplicateGalleryItem) {
-                    $validator->errors()->add(
-                        'revision_no',
-                        'Bu stok kodu için Rev.' . str_pad((string) $requestedRevision, 2, '0', STR_PAD_LEFT) . ' galeride zaten kayıtlı.'
-                    );
-                }
             }
         });
     }

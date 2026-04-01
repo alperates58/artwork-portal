@@ -95,7 +95,10 @@
                         </div>
 
                         <div class="min-w-0">
-                            <p class="break-all text-xl font-semibold text-slate-900">{{ $rev->original_filename }}</p>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <p class="break-all text-xl font-semibold text-slate-900">{{ $rev->original_filename }}</p>
+                                @include('artworks.partials.passive-gallery-badge', ['galleryItem' => $rev->galleryItem])
+                            </div>
                             <div class="mt-4 grid gap-3 sm:grid-cols-2">
                                 <div class="rounded-2xl bg-slate-50 px-4 py-3">
                                     <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Boyut</p>
@@ -164,11 +167,14 @@
                                         <p class="truncate text-sm font-semibold text-slate-800">Rev.{{ $rev->revision_no }} · {{ $rev->original_filename }}</p>
                                         <p class="mt-1 text-xs text-slate-500">{{ $rev->uploadedBy->name }} · {{ $rev->created_at->format('d.m.Y H:i') }}</p>
                                     </div>
-                                    @if($rev->is_active)
-                                        <x-ui.badge variant="success">Aktif</x-ui.badge>
-                                    @else
-                                        <x-ui.badge variant="gray">Arşiv</x-ui.badge>
-                                    @endif
+                                    <div class="flex items-center gap-2">
+                                        @if($rev->is_active)
+                                            <x-ui.badge variant="success">Aktif</x-ui.badge>
+                                        @else
+                                            <x-ui.badge variant="gray">Arşiv</x-ui.badge>
+                                        @endif
+                                        @include('artworks.partials.passive-gallery-badge', ['galleryItem' => $rev->galleryItem])
+                                    </div>
                                 </div>
                             </div>
                         @endforeach
@@ -188,6 +194,10 @@
                     </svg>
                 </button>
                 <div class="bg-slate-100 p-4">
+                    <div class="mb-3 flex items-center justify-between gap-3 px-1">
+                        <p class="truncate text-sm font-semibold text-slate-900">{{ $line->activeRevision->original_filename }}</p>
+                        @include('artworks.partials.passive-gallery-badge', ['galleryItem' => $line->activeRevision->galleryItem])
+                    </div>
                     <img src="{{ route('artworks.preview', $line->activeRevision, false) }}" alt="{{ $line->activeRevision->original_filename }}" class="max-h-[80vh] w-full rounded-2xl object-contain">
                 </div>
             </div>

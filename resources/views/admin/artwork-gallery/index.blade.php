@@ -6,8 +6,15 @@
 @php
     $typeFilter = request('type', '');
     $sort = $sort ?? 'created_desc';
-    $hasDirectUploadRoute = app('router')->has('admin.artwork-gallery.direct-upload');
+    $status = $status ?? request('status', 'active');
+    $canManageGallery = auth()->user()->isAdmin() || auth()->user()->hasPermission('gallery', 'manage');
+    $hasDirectUploadRoute = app('router')->has('admin.artwork-gallery.direct-upload') && $canManageGallery;
     $typeTabs   = ['' => 'Tümü'];
+    $statusOptions = [
+        'active' => 'Aktif artworkler',
+        'inactive' => 'Pasif artworkler',
+        'all' => 'Tümü',
+    ];
     foreach ($fileGroups as $group) {
         $typeTabs[$group['key']] = $group['label'];
     }
@@ -83,8 +90,16 @@
                     </select>
                 </div>
 
+                <div class="w-full sm:w-48">
+                    <select name="status" class="input" id="gallery-status-select">
+                        @foreach($statusOptions as $value => $label)
+                            <option value="{{ $value }}" @selected($status === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
                 <button type="submit" class="btn btn-primary">Filtrele</button>
-                @if(request()->hasAny(['search', 'stock_code', 'category_id', 'type']) || $sort !== 'created_desc')
+                @if(request()->hasAny(['search', 'stock_code', 'category_id', 'type']) || $sort !== 'created_desc' || $status !== 'active')
                     <a href="{{ route('admin.artwork-gallery.index') }}" class="btn btn-secondary">Temizle</a>
                 @endif
             </div>
@@ -107,6 +122,7 @@
                 <input type="hidden" name="stock_code" value="{{ request('stock_code') }}">
                 <input type="hidden" name="category_id" value="{{ request('category_id') }}">
                 <input type="hidden" name="tag_id" value="{{ request('tag_id') }}">
+                <input type="hidden" name="status" value="{{ $status }}">
                 <input type="hidden" name="type" value="{{ request('type') }}">
 
                 <select id="gallery-sort-select" name="sort" class="input text-sm" onchange="this.form.submit()">
@@ -406,6 +422,12 @@
                             <span class="inline-flex items-center rounded-lg px-2 py-0.5 text-[10px] font-bold tracking-wide {{ $badgeClass }}">{{ $ext ?: 'DOSYA' }}</span>
                         </div>
 
+                        @if(! $item->is_active)
+                            <div class="absolute right-2 top-2">
+                                <span class="inline-flex items-center rounded-lg bg-amber-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-amber-700">PASİF</span>
+                            </div>
+                        @endif
+
                         {{-- Hover Aksiyonları --}}
                         <div class="absolute inset-0 flex items-center justify-center gap-2 bg-slate-900/0 transition-all group-hover:bg-slate-900/30">
                             <div class="flex translate-y-2 gap-2 opacity-0 transition-all group-hover:translate-y-0 group-hover:opacity-100">
@@ -537,6 +559,7 @@ function galleryPage() {
     const searchInput  = document.getElementById('gallery-search-input');
     const stockInput   = document.getElementById('gallery-stock-input');
     const catSelect    = document.getElementById('gallery-cat-select');
+    const statusSelect = document.getElementById('gallery-status-select');
     let   timer        = null;
 
     function autoSubmit() {
@@ -547,6 +570,7 @@ function galleryPage() {
     if (searchInput) searchInput.addEventListener('input', autoSubmit);
     if (stockInput)  stockInput.addEventListener('input', autoSubmit);
     if (catSelect)   catSelect.addEventListener('change', () => form && form.submit());
+    if (statusSelect) statusSelect.addEventListener('change', () => form && form.submit());
 })();
 
 // ── Doğrudan galeri yükleme diyaloğu ──────────────────────────────────────
@@ -561,12 +585,15 @@ function galleryPage() {
     const stockInput  = document.getElementById('gdu-stock-code');
     const stockName   = document.getElementById('gdu-stock-name');
     const catName     = document.getElementById('gdu-category-name');
+    const revisionInput = document.getElementById('gdu-revision-no');
+    const revisionHelp  = document.getElementById('gdu-revision-help');
     const lookupState = document.getElementById('gdu-lookup-state');
     const submitBtn   = document.getElementById('gdu-submit');
 
     if (!dialog) return;
 
     let lookupTimer = null;
+    let suggestedRevisionNo = Math.max(1, Number(revisionInput?.value || 1));
 
     function setLookup(msg, tone) {
         lookupState.textContent = msg;
@@ -574,9 +601,28 @@ function galleryPage() {
         lookupState.classList.toggle('hidden', !msg);
     }
 
+    function syncRevisionHelp() {
+        if (!revisionHelp || !revisionInput) return;
+
+        revisionHelp.textContent = `Bu stok kodu için en düşük yeni revizyon Rev.${String(suggestedRevisionNo).padStart(2, '0')} olmalıdır.`;
+        revisionInput.min = String(suggestedRevisionNo);
+
+        const currentValue = Number(revisionInput.value || 0);
+        if (!currentValue || currentValue < suggestedRevisionNo) {
+            revisionInput.value = String(suggestedRevisionNo);
+        }
+    }
+
     async function lookupStock() {
         const code = stockInput.value.trim().toUpperCase();
-        if (!code) { stockName.value = ''; catName.value = ''; setLookup('', ''); return; }
+        if (!code) {
+            stockName.value = '';
+            catName.value = '';
+            suggestedRevisionNo = 1;
+            syncRevisionHelp();
+            setLookup('', '');
+            return;
+        }
         setLookup('Stok kartı kontrol ediliyor…', '');
         try {
             const res = await fetch(`{{ route('stock-cards.lookup') }}?stock_code=${encodeURIComponent(code)}`, {
@@ -585,6 +631,7 @@ function galleryPage() {
             if (!res.ok) {
                 const p = await res.json().catch(() => ({}));
                 stockName.value = ''; catName.value = '';
+                suggestedRevisionNo = Math.max(1, Number(revisionInput?.value || 1));
                 setLookup(p.message ?? 'Stok kartı bulunamadı.', 'err');
                 return;
             }
@@ -592,6 +639,8 @@ function galleryPage() {
             stockInput.value = p.stock_code;
             stockName.value = p.stock_name ?? '';
             catName.value = p.category_name ?? '';
+            suggestedRevisionNo = Math.max(1, Number(p.next_upload_revision_no || 1));
+            syncRevisionHelp();
             setLookup('Stok kartı doğrulandı.', 'ok');
         } catch {
             stockName.value = ''; catName.value = '';
@@ -642,6 +691,14 @@ function galleryPage() {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Yükleniyor…';
     });
+
+    syncRevisionHelp();
+
+    @if($errors->hasAny(['artwork_file', 'stock_code', 'revision_no', 'notes']))
+        if (typeof dialog.showModal === 'function' && !dialog.open) {
+            dialog.showModal();
+        }
+    @endif
 })();
 </script>
 @endpush
@@ -709,6 +766,7 @@ function galleryPage() {
                     <div>
                         <label class="label" for="gdu-revision-no">Revizyon No</label>
                         <input type="number" id="gdu-revision-no" name="revision_no" value="{{ old('revision_no', 1) }}" min="1" max="99" class="input" required>
+                        <p id="gdu-revision-help" class="mt-1 text-xs text-slate-400">Bu stok kodu için en düşük yeni revizyon Rev.01 olmalıdır.</p>
                         @error('revision_no')
                             <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                         @enderror

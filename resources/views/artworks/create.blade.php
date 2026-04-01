@@ -1,10 +1,10 @@
 @extends('layouts.app')
-@section('title', 'Artwork Yükle')
-@section('page-title', 'Artwork Yükle')
-@section('page-subtitle', 'Stok kartı doğrulaması ile yeni dosya yükleyin veya galeriden revizyon seçin.')
+@section('title', 'Artwork YÃ¼kle')
+@section('page-title', 'Artwork YÃ¼kle')
+@section('page-subtitle', 'Stok kartÄ± doÄŸrulamasÄ± ile yeni dosya yÃ¼kleyin veya galeriden revizyon seÃ§in.')
 
 @section('header-actions')
-    <a href="{{ route('orders.show', $line->purchaseOrder) }}" class="btn btn-secondary">← Siparişe Dön</a>
+    <a href="{{ route('orders.show', $line->purchaseOrder) }}" class="btn btn-secondary">â† SipariÅŸe DÃ¶n</a>
 @endsection
 
 @php
@@ -27,9 +27,9 @@
                     </div>
                 </div>
                 <div class="mt-4 flex flex-wrap items-center gap-2 text-xs">
-                    <span class="rounded-full bg-slate-100 px-3 py-1 font-mono text-slate-600">Ürün: {{ $line->product_code }}</span>
-                    <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600">Mevcut revizyon: Rev.{{ $currentMaxRevision ?: '—' }}</span>
-                    <span class="rounded-full bg-brand-50 px-3 py-1 font-semibold text-brand-700">Önerilen: Rev.{{ $nextRevisionNo }}</span>
+                    <span class="rounded-full bg-slate-100 px-3 py-1 font-mono text-slate-600">ÃœrÃ¼n: {{ $line->product_code }}</span>
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600">Mevcut revizyon: Rev.{{ $currentMaxRevision ?: 'â€”' }}</span>
+                    <span class="rounded-full bg-brand-50 px-3 py-1 font-semibold text-brand-700">Ã–nerilen: Rev.{{ $nextRevisionNo }}</span>
                 </div>
             </div>
         </div>
@@ -43,18 +43,18 @@
         <div class="card space-y-5 p-6">
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <h2 class="text-xl font-semibold text-slate-900">{{ $line->artwork ? 'Yeni revizyon yükle' : 'İlk artwork kaydını oluştur' }}</h2>
-                    <p class="mt-1 text-sm text-slate-500">Dosya yükleme, stok kartı doğrulaması ve revizyon numarası tek akışta yönetilir.</p>
+                    <h2 class="text-xl font-semibold text-slate-900">{{ $line->artwork ? 'Yeni revizyon yÃ¼kle' : 'Ä°lk artwork kaydÄ±nÄ± oluÅŸtur' }}</h2>
+                    <p class="mt-1 text-sm text-slate-500">Dosya yÃ¼kleme, stok kartÄ± doÄŸrulamasÄ± ve revizyon numarasÄ± tek akÄ±ÅŸta yÃ¶netilir.</p>
                 </div>
                 <div id="selectedGallerySummary" class="hidden rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-xs text-brand-700">
-                    <p class="font-semibold">Galeriden seçim aktif</p>
-                    <p id="selectedGalleryName" class="mt-1">—</p>
+                    <p class="font-semibold">Galeriden seÃ§im aktif</p>
+                    <p id="selectedGalleryName" class="mt-1">â€”</p>
                 </div>
             </div>
 
             <div class="flex justify-center">
                 <button type="button" id="gallery-modal-open" class="inline-flex min-w-[260px] items-center justify-center rounded-2xl border border-brand-200 bg-brand-50 px-6 py-3 text-sm font-semibold text-brand-700 shadow-sm transition hover:bg-brand-100 hover:border-brand-300">
-                    Galeriden Seç
+                    Galeriden SeÃ§
                 </button>
             </div>
 
@@ -64,23 +64,23 @@
                 <div>
                     <div class="mb-2 flex items-center justify-between gap-3">
                         <label class="label mb-0">Orijinal Kaynak Dosya</label>
-                        <span class="text-xs text-slate-400">Zorunlu · PDF, AI, EPS, ZIP, PSD, INDD, PNG, TIF</span>
+                        <span class="text-xs text-slate-400">Zorunlu Â· PDF, AI, EPS, ZIP, PSD, INDD, PNG, TIF</span>
                     </div>
                     <div id="dropZone" class="cursor-pointer rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50/40 p-6 text-center transition hover:border-brand-400 hover:bg-brand-50/20" onclick="document.getElementById('artwork_file').click()">
                         <div id="drop-empty">
                             <svg class="mx-auto h-10 w-10 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                             </svg>
-                            <p class="mt-3 text-sm font-medium text-slate-700">Dosyayı sürükleyin veya <span class="text-brand-600">buradan seçin</span></p>
+                            <p class="mt-3 text-sm font-medium text-slate-700">DosyayÄ± sÃ¼rÃ¼kleyin veya <span class="text-brand-600">buradan seÃ§in</span></p>
                             <p class="mt-1 text-xs text-slate-400">Maksimum 1.2 GB</p>
                         </div>
                         <div id="drop-selected" class="hidden">
                             <svg class="mx-auto h-9 w-9 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            <p class="mt-2 text-sm font-semibold text-emerald-700" id="selected-file-name">—</p>
-                            <p class="mt-0.5 text-xs text-emerald-600" id="selected-file-meta">—</p>
-                            <p class="mt-2 text-xs text-slate-400 underline">Dosyayı değiştirmek için tıklayın</p>
+                            <p class="mt-2 text-sm font-semibold text-emerald-700" id="selected-file-name">â€”</p>
+                            <p class="mt-0.5 text-xs text-emerald-600" id="selected-file-meta">â€”</p>
+                            <p class="mt-2 text-xs text-slate-400 underline">DosyayÄ± deÄŸiÅŸtirmek iÃ§in tÄ±klayÄ±n</p>
                         </div>
                     </div>
                     @error('artwork_file')
@@ -89,8 +89,8 @@
                 </div>
 
                 <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-4 text-sm text-slate-600">
-                    Yükleme tamamlandıktan sonra sistem desteklenen formatlar için önizleme PNG dosyasını otomatik üretir.
-                    Önizleme oluşmazsa artwork kaydı geçerli kalır ve orijinal dosya indirilmeye devam eder.
+                    YÃ¼kleme tamamlandÄ±ktan sonra sistem desteklenen formatlar iÃ§in Ã¶nizleme PNG dosyasÄ±nÄ± otomatik Ã¼retir.
+                    Ã–nizleme oluÅŸmazsa artwork kaydÄ± geÃ§erli kalÄ±r ve orijinal dosya indirilmeye devam eder.
                 </div>
 
                 <div id="progressWrapper" class="hidden">
@@ -103,10 +103,10 @@
                     </div>
                     <div class="mt-1.5 flex items-center justify-between">
                         <p class="text-xs text-slate-400" id="progressSize"></p>
-                        <button type="button" class="text-xs text-slate-400 underline hover:text-red-500" onclick="if(activeXhr){activeXhr.abort();}">İptal</button>
+                        <button type="button" class="text-xs text-slate-400 underline hover:text-red-500" onclick="if(activeXhr){activeXhr.abort();}">Ä°ptal</button>
                     </div>
                     <div id="upload-error-msg" class="mt-2 hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                        Bağlantı hatası oluştu; form verisi korunur, yeniden deneyebilirsiniz.
+                        BaÄŸlantÄ± hatasÄ± oluÅŸtu; form verisi korunur, yeniden deneyebilirsiniz.
                     </div>
                 </div>
             </div>
@@ -115,7 +115,7 @@
                 <div>
                     <label class="label" for="stock_code">Stok Kodu</label>
                     <input type="text" id="stock_code" name="stock_code" value="{{ old('stock_code', $resolvedStockCard?->stock_code ?? $line->product_code) }}" class="input font-mono" placeholder="Stok kodu girin" required>
-                    <p class="mt-1 text-xs text-slate-400">Stok kodu tamamlanmadan upload tamamlanamaz; doğrulandığında stok adı ve kategori otomatik doldurulur.</p>
+                    <p class="mt-1 text-xs text-slate-400">Stok kodu tamamlanmadan upload tamamlanamaz; doÄŸrulandÄ±ÄŸÄ±nda stok adÄ± ve kategori otomatik doldurulur.</p>
                     @error('stock_code')
                         <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
                     @enderror
@@ -124,7 +124,7 @@
                 <div>
                     <label class="label" for="revision_no">Revizyon No</label>
                     <input type="number" id="revision_no" name="revision_no" value="{{ old('revision_no', $nextRevisionNo) }}" min="{{ $nextRevisionNo }}" class="input w-full" required>
-                    <p class="mt-1 text-xs text-slate-400">Revizyon numarası tamamlanmadan upload tamamlanamaz. En az Rev.{{ $nextRevisionNo }} olmalıdır.</p>
+                    <p id="revision_hint" class="mt-1 text-xs text-slate-400">Revizyon numarası tamamlanmadan upload tamamlanamaz. En az Rev.{{ $nextRevisionNo }} olmalıdır.</p>
                     @error('revision_no')
                         <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
                     @enderror
@@ -133,7 +133,7 @@
 
             <div class="grid gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(220px,0.8fr)]">
                 <div>
-                    <label class="label" for="stock_name">Stok Adı</label>
+                    <label class="label" for="stock_name">Stok AdÄ±</label>
                     <input type="text" id="stock_name" name="stock_name" value="{{ old('stock_name', $resolvedStockCard?->stock_name) }}" class="input bg-slate-50" readonly>
                 </div>
                 <div>
@@ -144,14 +144,14 @@
 
             <div>
                 <label class="label" for="notes">Operasyon Notu</label>
-                <textarea id="notes" name="notes" rows="3" class="input resize-none" placeholder="Revizyon veya baskı ile ilgili not ekleyebilirsiniz.">{{ old('notes') }}</textarea>
+                <textarea id="notes" name="notes" rows="3" class="input resize-none" placeholder="Revizyon veya baskÄ± ile ilgili not ekleyebilirsiniz.">{{ old('notes') }}</textarea>
             </div>
 
             @if($line->artwork && $line->artwork->revisions->isNotEmpty())
                 <div class="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
                     <div class="mb-3 flex items-center justify-between gap-3">
-                        <h3 class="text-sm font-semibold text-slate-900">Revizyon Geçmişi</h3>
-                        <span class="text-xs text-slate-400">{{ $line->artwork->revisions->count() }} kayıt</span>
+                        <h3 class="text-sm font-semibold text-slate-900">Revizyon GeÃ§miÅŸi</h3>
+                        <span class="text-xs text-slate-400">{{ $line->artwork->revisions->count() }} kayÄ±t</span>
                     </div>
                     <div class="space-y-2">
                         @foreach($line->artwork->revisions as $rev)
@@ -172,7 +172,7 @@
 
             <div class="flex flex-wrap gap-3 pt-1">
                 <button type="submit" id="submitBtn" class="btn btn-primary min-w-[180px] justify-center py-2.5 disabled:cursor-not-allowed disabled:opacity-50">Kaydet</button>
-                <a href="{{ route('orders.show', $line->purchaseOrder) }}" class="btn btn-secondary px-6">İptal</a>
+                <a href="{{ route('orders.show', $line->purchaseOrder) }}" class="btn btn-secondary px-6">Ä°ptal</a>
             </div>
         </div>
     </form>
@@ -184,22 +184,22 @@
         <div class="w-full rounded-[24px] border border-slate-200 bg-white shadow-[0_20px_64px_rgba(15,23,42,0.22)]">
             <div class="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
                 <div>
-                    <h3 class="text-lg font-semibold text-slate-900">Galeriden Seç</h3>
-                    <p class="mt-1 text-sm text-slate-500">Stok kodu veya kategori ile filtreleyin, uygun artwork kaydını seçin.</p>
+                    <h3 class="text-lg font-semibold text-slate-900">Galeriden SeÃ§</h3>
+                    <p class="mt-1 text-sm text-slate-500">Stok kodu veya kategori ile filtreleyin, uygun artwork kaydÄ±nÄ± seÃ§in.</p>
                 </div>
-                <button type="button" id="gallery-modal-close" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700">×</button>
+                <button type="button" id="gallery-modal-close" class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700">Ã—</button>
             </div>
 
             <div class="space-y-4 px-6 py-5">
                 <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_240px]">
                     <div>
-                        <label class="label" for="galleryFilterInput">Stok Kodu / Dosya Adı</label>
-                        <input type="text" id="galleryFilterInput" class="input font-mono" placeholder="Örn: 5010118005440-5335">
+                        <label class="label" for="galleryFilterInput">Stok Kodu / Dosya AdÄ±</label>
+                        <input type="text" id="galleryFilterInput" class="input font-mono" placeholder="Ã–rn: 5010118005440-5335">
                     </div>
                     <div>
                         <label class="label" for="galleryCategoryFilter">Kategori</label>
                         <select id="galleryCategoryFilter" class="input">
-                            <option value="">Tüm kategoriler</option>
+                            <option value="">TÃ¼m kategoriler</option>
                             @foreach($galleryCategories as $category)
                                 <option value="{{ $category->id }}">{{ $category->display_name }}</option>
                             @endforeach
@@ -208,18 +208,18 @@
                 </div>
 
                 <div id="galleryEmptyState" class="hidden rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-400">
-                    Filtreye uygun galeri kaydı bulunamadı.
+                    Filtreye uygun galeri kaydÄ± bulunamadÄ±.
                 </div>
 
                 <div id="galleryGrid" class="grid max-h-[50vh] gap-3 overflow-y-auto pr-1 md:grid-cols-2">
                     @foreach($galleryCandidates as $candidate)
                         @php
-                            $candidateStockName = $candidate->stockCard?->stock_name ?? 'Stok kartı eşleşmedi';
+                            $candidateStockName = $candidate->stockCard?->stock_name ?? 'Stok kartÄ± eÅŸleÅŸmedi';
                             $candidateCategoryName = $candidate->stockCard?->category?->display_name ?? 'Kategorisiz';
                             $revisionBadge = 'REV' . str_pad((string) ((int) ($candidate->revision_no ?? 0)), 2, '0', STR_PAD_LEFT);
                             $systemRevisionBadge = ((int) ($candidate->revisions_max_revision_no ?? 0)) > 0
                                 ? 'Sistemde Rev.' . str_pad((string) ((int) $candidate->revisions_max_revision_no), 2, '0', STR_PAD_LEFT)
-                                : 'Henüz kullanılmadı';
+                                : 'HenÃ¼z kullanÄ±lmadÄ±';
                         @endphp
                         <button
                             type="button"
@@ -271,7 +271,7 @@
                             <p class="mt-2 line-clamp-2 text-sm text-slate-600">{{ $candidateStockName }}</p>
                             <div class="mt-4 flex items-center justify-between gap-3">
                                 <span class="rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600">{{ $candidateCategoryName }}</span>
-                                <span class="text-[11px] font-medium text-slate-400">Seçmek için tıklayın</span>
+                                <span class="text-[11px] font-medium text-slate-400">SeÃ§mek iÃ§in tÄ±klayÄ±n</span>
                             </div>
                         </button>
                     @endforeach
@@ -298,6 +298,7 @@ const stockNameInput = document.getElementById('stock_name');
 const categoryNameInput = document.getElementById('category_name');
 const stockLookupState = document.getElementById('stockLookupState');
 const revisionInput = document.getElementById('revision_no');
+const revisionHint = document.getElementById('revision_hint');
 const sourceTypeInput = document.getElementById('source_type_input');
 const galleryItemInput = document.getElementById('gallery_item_id_input');
 const uploadPanel = document.getElementById('upload-panel');
@@ -316,6 +317,7 @@ const nextRevisionNo = {{ $nextRevisionNoValue }};
 let stockLookupTimer = null;
 let uploadInProgress = false;
 let activeXhr = null;
+let currentSuggestedUploadRevision = nextRevisionNo;
 
 function setLookupState(message, tone = 'muted') {
     if (!stockLookupState) return;
@@ -325,17 +327,36 @@ function setLookupState(message, tone = 'muted') {
     if (!message) stockLookupState.classList.add('hidden');
 }
 
+function applySuggestedUploadRevision(nextRevision) {
+    const suggestedRevision = Math.max(nextRevisionNo, Number(nextRevision || 1));
+    currentSuggestedUploadRevision = suggestedRevision;
+
+    if (revisionHint) {
+        revisionHint.textContent = `Revizyon numarası tamamlanmadan upload tamamlanamaz. En az Rev.${String(suggestedRevision).padStart(2, '0')} olmalıdır.`;
+    }
+
+    if (!revisionInput) return;
+
+    revisionInput.min = String(suggestedRevision);
+    const currentValue = Number(revisionInput.value || 0);
+
+    if (!currentValue || currentValue < suggestedRevision) {
+        revisionInput.value = String(suggestedRevision);
+    }
+}
+
 async function resolveStockCard() {
     const stockCode = stockInput.value.trim().toUpperCase();
 
     if (!stockCode) {
         stockNameInput.value = '';
         categoryNameInput.value = '';
+        applySuggestedUploadRevision(nextRevisionNo);
         setLookupState('');
         return;
     }
 
-    setLookupState('Stok kartı kontrol ediliyor…');
+    setLookupState('Stok kartÄ± kontrol ediliyorâ€¦');
 
     try {
         const response = await fetch(`{{ route('stock-cards.lookup') }}?stock_code=${encodeURIComponent(stockCode)}`, {
@@ -346,7 +367,7 @@ async function resolveStockCard() {
             const payload = await response.json().catch(() => ({}));
             stockNameInput.value = '';
             categoryNameInput.value = '';
-            setLookupState(payload.message ?? 'Stok kartı bulunamadı.', 'error');
+            setLookupState(payload.message ?? 'Stok kartÄ± bulunamadÄ±.', 'error');
             return;
         }
 
@@ -354,12 +375,13 @@ async function resolveStockCard() {
         stockInput.value = payload.stock_code;
         stockNameInput.value = payload.stock_name ?? '';
         categoryNameInput.value = payload.category_name ?? '';
-        setLookupState('Stok kartı doğrulandı.', 'success');
+        applySuggestedUploadRevision(payload.next_upload_revision_no ?? nextRevisionNo);
+        setLookupState('Stok kartÄ± doÄŸrulandÄ±.', 'success');
         syncGalleryFilterFromStock();
     } catch (_error) {
         stockNameInput.value = '';
         categoryNameInput.value = '';
-        setLookupState('Stok kartı kontrolü sırasında bağlantı hatası oluştu.', 'error');
+        setLookupState('Stok kartÄ± kontrolÃ¼ sÄ±rasÄ±nda baÄŸlantÄ± hatasÄ± oluÅŸtu.', 'error');
     }
 }
 
@@ -379,7 +401,7 @@ function setSourceMode(mode) {
     revisionInput.classList.toggle('bg-slate-50', isGallery);
     if (!isGallery) {
         galleryItemInput.value = '';
-        revisionInput.value = String(nextRevisionNo);
+        applySuggestedUploadRevision(currentSuggestedUploadRevision);
     }
 }
 
@@ -390,9 +412,9 @@ function applyGallerySelection(card) {
     revisionInput.value = card.dataset.revisionNo || '';
     stockNameInput.value = card.dataset.stockName || '';
     categoryNameInput.value = card.dataset.categoryName || '';
-    selectedGalleryName.textContent = `${card.dataset.fileName} · ${card.dataset.stockCode || 'Stok kodu yok'}`;
+    selectedGalleryName.textContent = `${card.dataset.fileName} Â· ${card.dataset.stockCode || 'Stok kodu yok'}`;
     selectedGallerySummary.classList.remove('hidden');
-    setLookupState('Galeri kaydı seçildi.', 'success');
+    setLookupState('Galeri kaydÄ± seÃ§ildi.', 'success');
     setSourceMode('gallery');
     closeGalleryModal();
     galleryCards.forEach(item => item.classList.remove('border-brand-400', 'bg-brand-50/50', 'ring-1', 'ring-brand-200'));
@@ -500,7 +522,7 @@ function showFile(file) {
     document.getElementById('drop-empty').classList.add('hidden');
     document.getElementById('drop-selected').classList.remove('hidden');
     document.getElementById('selected-file-name').textContent = file.name;
-    document.getElementById('selected-file-meta').textContent = `${ext} · ${mb} MB`;
+    document.getElementById('selected-file-meta').textContent = `${ext} Â· ${mb} MB`;
     dropZone.classList.remove('border-slate-300', 'hover:border-brand-400', 'hover:bg-brand-50/20');
     dropZone.classList.add('border-emerald-400', 'bg-emerald-50/40');
     progressFn.textContent = file.name;
@@ -510,7 +532,7 @@ function showFile(file) {
 window.addEventListener('beforeunload', function (event) {
     if (uploadInProgress) {
         event.preventDefault();
-        event.returnValue = 'Dosya yükleniyor. Sayfadan ayrılırsanız yükleme iptal olur.';
+        event.returnValue = 'Dosya yÃ¼kleniyor. Sayfadan ayrÄ±lÄ±rsanÄ±z yÃ¼kleme iptal olur.';
     }
 });
 
@@ -537,7 +559,7 @@ function startUpload() {
     uploadInProgress = true;
     progressW.classList.remove('hidden');
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Yükleniyor…';
+    submitBtn.textContent = 'YÃ¼kleniyorâ€¦';
     progressBar.style.width = '0%';
     progressPct.textContent = '0%';
 
@@ -546,7 +568,7 @@ function startUpload() {
         const pct = Math.round(event.loaded / event.total * 100);
         progressBar.style.width = `${pct}%`;
         progressPct.textContent = `${pct}%`;
-        if (pct === 100) submitBtn.textContent = 'Kaydediliyor…';
+        if (pct === 100) submitBtn.textContent = 'Kaydediliyorâ€¦';
     });
 
     xhr.addEventListener('load', () => {
@@ -569,15 +591,15 @@ function startUpload() {
         progressBar.classList.remove('bg-brand-600');
         progressPct.textContent = 'Hata';
 
-        let errorMessage = 'Yükleme sırasında bir hata oluştu. Form verisi korunur, yeniden deneyebilirsiniz.';
+        let errorMessage = 'YÃ¼kleme sÄ±rasÄ±nda bir hata oluÅŸtu. Form verisi korunur, yeniden deneyebilirsiniz.';
 
         if (xhr.status === 422) {
             try {
                 const payload = JSON.parse(xhr.responseText);
                 const firstError = payload?.errors ? Object.values(payload.errors).flat()[0] : null;
-                errorMessage = firstError || payload?.message || 'Lütfen form alanlarını kontrol edin.';
+                errorMessage = firstError || payload?.message || 'LÃ¼tfen form alanlarÄ±nÄ± kontrol edin.';
             } catch (_error) {
-                errorMessage = 'Lütfen form alanlarını kontrol edin.';
+                errorMessage = 'LÃ¼tfen form alanlarÄ±nÄ± kontrol edin.';
             }
         }
 
@@ -595,7 +617,7 @@ function startUpload() {
         progressBar.classList.add('bg-red-500');
         progressBar.classList.remove('bg-brand-600');
         progressPct.textContent = 'Hata';
-        setUploadError('Bağlantı hatası oluştu; form verisi korunur, yeniden deneyebilirsiniz.');
+        setUploadError('BaÄŸlantÄ± hatasÄ± oluÅŸtu; form verisi korunur, yeniden deneyebilirsiniz.');
     });
 
     xhr.addEventListener('abort', resetUploadUI);
@@ -608,14 +630,14 @@ function startUpload() {
 form.addEventListener('submit', function (event) {
     if (!stockNameInput.value || !categoryNameInput.value) {
         event.preventDefault();
-        setLookupState('Kaydetmeden önce geçerli bir stok kartı seçin.', 'error');
+        setLookupState('Kaydetmeden Ã¶nce geÃ§erli bir stok kartÄ± seÃ§in.', 'error');
         stockInput.focus();
         return;
     }
 
     if (sourceTypeInput.value === 'gallery' && !galleryItemInput.value) {
         event.preventDefault();
-        setLookupState('Galeriden kullanım için bir kayıt seçin.', 'error');
+        setLookupState('Galeriden kullanÄ±m iÃ§in bir kayÄ±t seÃ§in.', 'error');
         return;
     }
 
@@ -637,7 +659,7 @@ form.addEventListener('submit', function (event) {
 
 window.addEventListener('DOMContentLoaded', () => {
     if (stockInput.value.trim()) resolveStockCard();
-    revisionInput.min = '1';
+    applySuggestedUploadRevision(nextRevisionNo);
     setSourceMode(sourceTypeInput.value || 'upload');
     filterGalleryCards();
 
@@ -648,3 +670,4 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 @endpush
+

@@ -9,6 +9,7 @@ use App\Models\ArtworkGallery;
 use App\Models\ArtworkRevision;
 use App\Models\PurchaseOrderLine;
 use App\Models\StockCard;
+use App\Services\ArtworkRevisionNumberService;
 use App\Services\ArtworkUploadService;
 use App\Services\AuditLogService;
 use App\Services\NotificationService;
@@ -19,6 +20,7 @@ class ArtworkController extends Controller
 {
     public function __construct(
         private ArtworkUploadService $uploadService,
+        private ArtworkRevisionNumberService $revisionNumbers,
         private AuditLogService $audit,
         private NotificationService $notifications,
     ) {}
@@ -40,8 +42,12 @@ class ArtworkController extends Controller
                 ->where('stock_code', mb_strtoupper(trim((string) $prefillStockCode)))
                 ->first()
             : null;
-        $nextRevisionNo = max(1, (int) (($line->artwork?->revisions()->max('revision_no') ?? 0) + 1));
+        $nextRevisionNo = $this->revisionNumbers->nextUploadRevisionNo(
+            line: $line,
+            stockCode: $resolvedStockCard?->stock_code ?? $prefillStockCode,
+        );
         $galleryCandidates = ArtworkGallery::query()
+            ->active()
             ->select([
                 'id',
                 'name',
