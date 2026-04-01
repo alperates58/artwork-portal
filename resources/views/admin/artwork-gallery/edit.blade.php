@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Artwork Galerisi')
 @section('page-title', 'Artwork Galerisi Detayı')
-@section('page-subtitle', 'Kategori ve kullanım geçmişini tek ekranda yönetin.')
+@section('page-subtitle', 'Artwork bilgilerini ve kullanım geçmişini tek ekranda yönetin.')
 
 @section('header-actions')
     <a href="{{ route('admin.artwork-gallery.index') }}" class="btn btn-secondary">← Galeriye dön</a>
@@ -88,54 +88,12 @@
                 </div>
 
                 <div>
-                    <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <label class="label mb-0" for="category_id">Kategori</label>
-                            @if(auth()->user()->isAdmin() || auth()->user()->hasPermission('gallery', 'manage'))
-                                <button type="button" class="text-xs text-brand-600 hover:underline"
-                                        onclick="document.getElementById('edit-quick-cat-form').classList.toggle('hidden')">+ Yeni kategori</button>
-                            @endif
-                        </div>
-                        <select id="category_id" name="category_id" class="input" disabled>
-                            <option value="">Kategori seçin</option>
-                            @foreach($categories as $category)
-                                <option value="{{ $category->id }}" @selected((string) old('category_id', $artworkGallery->stockCard?->category_id ?? $artworkGallery->category_id) === (string) $category->id)>{{ $category->display_name }}</option>
-                            @endforeach
-                        </select>
-                        <p class="mt-1 text-xs text-slate-400">Kategori stok kartı kaynağından yönetilir.</p>
-                        @if(auth()->user()->isAdmin() || auth()->user()->hasPermission('gallery', 'manage'))
-                            <div id="edit-quick-cat-form" class="hidden mt-2">
-                                <div class="flex gap-2">
-                                    <input type="text" name="name" form="edit-qcat-form" class="input flex-1 text-sm py-1.5" placeholder="Kategori adı" required>
-                                    <button type="submit" form="edit-qcat-form" class="btn btn-secondary text-xs py-1.5 px-3">Ekle</button>
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-
-                <div>
                     <label class="label" for="revision_note">Revizyon notu</label>
                     <textarea id="revision_note" name="revision_note" rows="4" class="input resize-none">{{ old('revision_note', $artworkGallery->revision_note) }}</textarea>
                 </div>
 
-                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                    <p class="font-medium text-slate-700">Orijinal dosya yolu</p>
-                    <p class="mt-1 break-all font-mono text-xs">{{ $artworkGallery->file_path }}</p>
-                    <p class="mt-4 font-medium text-slate-700">Önizleme PNG yolu</p>
-                    <p class="mt-1 break-all font-mono text-xs">{{ $artworkGallery->preview_file_path ?: 'Önizleme PNG yok' }}</p>
-                </div>
-
                 <button type="submit" class="btn btn-primary">Kaydet</button>
             </form>
-
-            {{-- Quick category form — OUTSIDE main form to avoid nesting --}}
-            @if(auth()->user()->isAdmin() || auth()->user()->hasPermission('gallery', 'manage'))
-                <form id="edit-qcat-form" method="POST" action="{{ route('admin.artwork-gallery.categories.store') }}" class="hidden">
-                    @csrf
-                    <input type="hidden" name="_redirect_back" value="1">
-                </form>
-            @endif
         </section>
     </section>
 
@@ -169,7 +127,12 @@
                 </div>
                 <div>
                     <dt class="text-slate-400">Kullanım sayısı</dt>
-                    <dd class="text-slate-900">{{ $artworkGallery->usage_count }}</dd>
+                    <dd class="text-slate-900">
+                        {{ $artworkGallery->usage_count }}
+                        @if($artworkGallery->usage_count > 0)
+                            <a href="#usage-history" class="ml-2 text-xs font-medium text-brand-700 hover:underline">Sipariş geçmişi</a>
+                        @endif
+                    </dd>
                 </div>
                 <div>
                     <dt class="text-slate-400">Son kullanım</dt>
@@ -178,26 +141,46 @@
             </dl>
         </section>
 
-        <section class="card overflow-hidden">
+        <section id="usage-history" class="card overflow-hidden">
             <div class="border-b border-slate-100 px-5 py-4">
                 <h3 class="text-sm font-semibold text-slate-900">Kullanım geçmişi</h3>
             </div>
             <div class="max-h-[520px] divide-y divide-slate-100 overflow-y-auto">
                 @forelse($artworkGallery->usages as $usage)
+                    @php
+                        $usageUrl = $usage->line
+                            ? route('order-lines.show', $usage->line)
+                            : ($usage->order ? route('orders.show', $usage->order) : null);
+                    @endphp
                     <div class="px-5 py-4">
                         <div class="flex items-center justify-between gap-3">
                             <span class="badge {{ $usage->usage_type === 'reuse' ? 'badge-info' : 'badge-success' }}">{{ strtoupper($usage->usage_type) }}</span>
                             <span class="text-xs text-slate-400">{{ $usage->used_at?->format('d.m.Y H:i') }}</span>
                         </div>
-                        <p class="mt-2 text-sm text-slate-900">
-                            {{ $usage->supplier?->name ?? 'Tedarikçi yok' }}
-                            @if($usage->order)
-                                · {{ $usage->order->order_no }}
-                            @endif
-                            @if($usage->line)
-                                · {{ $usage->line->product_code }} / Satır {{ $usage->line->line_no }}
-                            @endif
-                        </p>
+                        @if($usageUrl)
+                            <a href="{{ $usageUrl }}" class="mt-2 block rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 transition hover:border-brand-200 hover:bg-brand-50/40">
+                                <p class="text-sm font-medium text-slate-900">
+                                    {{ $usage->supplier?->name ?? 'Tedarikçi yok' }}
+                                    @if($usage->order)
+                                        · {{ $usage->order->order_no }}
+                                    @endif
+                                    @if($usage->line)
+                                        · {{ $usage->line->product_code }} / Satır {{ $usage->line->line_no }}
+                                    @endif
+                                </p>
+                                <p class="mt-1 text-xs font-medium text-brand-700">Sipariş detayını aç</p>
+                            </a>
+                        @else
+                            <p class="mt-2 text-sm text-slate-900">
+                                {{ $usage->supplier?->name ?? 'Tedarikçi yok' }}
+                                @if($usage->order)
+                                    · {{ $usage->order->order_no }}
+                                @endif
+                                @if($usage->line)
+                                    · {{ $usage->line->product_code }} / Satır {{ $usage->line->line_no }}
+                                @endif
+                            </p>
+                        @endif
                     </div>
                 @empty
                     <div class="px-5 py-8 text-sm text-slate-500">Henüz kullanım kaydı yok.</div>

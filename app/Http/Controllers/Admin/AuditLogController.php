@@ -20,6 +20,7 @@ class AuditLogController extends Controller
         'artwork' => ['artwork.upload', 'artwork.view', 'artwork.viewed', 'artwork.download', 'artwork.delete', 'artwork.approved', 'artwork.rejected', 'artwork.revision.activate', 'artwork.preview.started', 'artwork.preview.success', 'artwork.preview.failed'],
         'gallery' => ['artwork.gallery.create', 'artwork.gallery.reuse', 'artwork.gallery.update', 'artwork.gallery.delete', 'artwork.gallery.download', 'artwork.gallery.activate', 'artwork.gallery.deactivate'],
         'stock' => ['stock_card.create', 'stock_card.update', 'stock_card.delete', 'stock_card.import'],
+        'supplier' => ['supplier.delete'],
         'order' => ['order.view', 'order.create', 'order.update', 'order.delete', 'order_line.view', 'portal.order.view', 'order_line.manual_artwork.complete'],
         'mail' => ['mail.notification.sent', 'mail.notification.failed', 'mail.notification.skipped', 'mail.notification.queued', 'mail.notification.queue_failed', 'mail.notification.test.sent', 'mail.notification.test.queued'],
         'erp' => ['erp.sync', 'mikro.test.success', 'mikro.test.failed'],
@@ -30,6 +31,7 @@ class AuditLogController extends Controller
         'artwork' => 'Artwork',
         'gallery' => 'Galeri',
         'stock' => 'Stok',
+        'supplier' => 'Tedarikçi',
         'order' => 'Sipariş',
         'mail' => 'Mail',
         'erp' => 'ERP',
@@ -60,6 +62,7 @@ class AuditLogController extends Controller
         'stock_card.update' => 'Stok kartı güncellendi',
         'stock_card.delete' => 'Stok kartı silindi',
         'stock_card.import' => 'Stok kartları içe aktarıldı',
+        'supplier.delete' => 'Tedarikçi arşivlendi',
         'order.view' => 'Sipariş görüntülendi',
         'order.create' => 'Sipariş oluşturuldu',
         'order.update' => 'Sipariş güncellendi',
@@ -98,6 +101,8 @@ class AuditLogController extends Controller
         'stock_card.update' => 'blue',
         'stock_card.delete' => 'red',
         'stock_card.import' => 'amber',
+        'supplier.delete' => 'red',
+        'supplier.delete' => 'Tedarikçi arşivlendi',
         'order.create' => 'amber',
         'order.update' => 'amber',
         'order.delete' => 'red',
@@ -332,3 +337,4 @@ class AuditLogController extends Controller
         return 'session';
     }
 }
+

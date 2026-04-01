@@ -162,6 +162,61 @@ class StockCardController extends Controller
             ->with('success', 'Stok kartı silindi.');
     }
 
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        abort_unless(auth()->user()->hasPermission('stock_cards', 'delete'), 403);
+
+        $validated = $request->validate([
+            'stock_card_ids' => ['required', 'array', 'min:1'],
+            'stock_card_ids.*' => ['integer', 'distinct', 'exists:stock_cards,id'],
+        ], [
+            'stock_card_ids.required' => 'Lütfen silinecek en az bir stok kartı seçin.',
+            'stock_card_ids.min' => 'Lütfen silinecek en az bir stok kartı seçin.',
+        ]);
+
+        $stockCards = StockCard::query()
+            ->withCount('galleryItems')
+            ->whereIn('id', $validated['stock_card_ids'])
+            ->get();
+
+        $blockedStockCards = $stockCards->filter(fn (StockCard $stockCard) => $stockCard->gallery_items_count > 0)->values();
+        $deletableStockCards = $stockCards->reject(fn (StockCard $stockCard) => $stockCard->gallery_items_count > 0)->values();
+
+        DB::transaction(function () use ($deletableStockCards) {
+            foreach ($deletableStockCards as $stockCard) {
+                $this->audit->log('stock_card.delete', $stockCard, [
+                    'stock_code' => $stockCard->stock_code,
+                    'stock_name' => $stockCard->stock_name,
+                    'bulk' => true,
+                ]);
+
+                $stockCard->delete();
+            }
+        });
+
+        $response = redirect()->route('admin.stock-cards.index');
+
+        if ($deletableStockCards->isNotEmpty()) {
+            $response->with('success', $deletableStockCards->count() . ' stok kartı silindi.');
+        }
+
+        if ($blockedStockCards->isNotEmpty()) {
+            $blockedCodes = $blockedStockCards->pluck('stock_code')->take(3)->implode(', ');
+            $suffix = $blockedStockCards->count() > 3 ? ' ve diğerleri' : '';
+
+            $response->with(
+                'error',
+                'Galeri kaydı bağlı olduğu için ' . $blockedStockCards->count() . ' stok kartı atlandı: ' . $blockedCodes . $suffix . '.'
+            );
+        }
+
+        if ($deletableStockCards->isEmpty() && $blockedStockCards->isEmpty()) {
+            $response->with('error', 'Seçilen stok kartları bulunamadı.');
+        }
+
+        return $response;
+    }
+
     public function importForm(): View
     {
         abort_unless(

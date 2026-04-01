@@ -126,12 +126,12 @@ class ArtworkGallery extends Model
         $extension = strtolower((string) pathinfo($this->name, PATHINFO_EXTENSION));
         $mimeType = strtolower((string) $this->file_type);
 
-        if ($mimeType === 'application/pdf' || $extension === 'pdf') {
-            return 'pdf';
-        }
-
         if (in_array($extension, ['ai', 'eps', 'psd', 'indd'], true)) {
             return 'design';
+        }
+
+        if ($mimeType === 'application/pdf' || $extension === 'pdf') {
+            return 'pdf';
         }
 
         if ($this->isBrowserPreviewableOriginal()) {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Supplier;
+use App\Services\AuditLogService;
 use App\Services\SupplierBulkImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -107,7 +108,7 @@ class SupplierController extends Controller
             ->with('success', 'Tedarikçi güncellendi.');
     }
 
-    public function destroy(Request $request, Supplier $supplier): RedirectResponse
+    public function destroy(Request $request, Supplier $supplier, AuditLogService $audit): RedirectResponse
     {
         abort_unless(auth()->user()->isAdmin(), 403);
 
@@ -119,13 +120,73 @@ class SupplierController extends Controller
             return back()->with('error', 'Sipariş bağlı olduğu için tedarikçi silinemez.');
         }
 
-        DB::transaction(function () use ($supplier) {
+        DB::transaction(function () use ($supplier, $audit) {
+            $audit->log('supplier.delete', $supplier, [
+                'supplier_name' => $supplier->name,
+                'supplier_code' => $supplier->code,
+                'bulk' => false,
+            ]);
             $supplier->delete();
         });
 
         return redirect()
             ->route('admin.suppliers.index')
             ->with('success', 'Tedarikçi arşivlendi.');
+    }
+
+    public function bulkDestroy(Request $request, AuditLogService $audit): RedirectResponse
+    {
+        abort_unless(auth()->user()->isAdmin(), 403);
+
+        $validated = $request->validate([
+            'supplier_ids' => ['required', 'array', 'min:1'],
+            'supplier_ids.*' => ['integer', 'distinct', 'exists:suppliers,id'],
+        ], [
+            'supplier_ids.required' => 'Lütfen silinecek en az bir tedarikçi seçin.',
+            'supplier_ids.min' => 'Lütfen silinecek en az bir tedarikçi seçin.',
+        ]);
+
+        $suppliers = Supplier::query()
+            ->withCount('purchaseOrders')
+            ->whereIn('id', $validated['supplier_ids'])
+            ->get();
+
+        $blockedSuppliers = $suppliers->filter(fn (Supplier $supplier) => $supplier->purchase_orders_count > 0)->values();
+        $deletableSuppliers = $suppliers->reject(fn (Supplier $supplier) => $supplier->purchase_orders_count > 0)->values();
+
+        DB::transaction(function () use ($deletableSuppliers, $audit) {
+            foreach ($deletableSuppliers as $supplier) {
+                $audit->log('supplier.delete', $supplier, [
+                    'supplier_name' => $supplier->name,
+                    'supplier_code' => $supplier->code,
+                    'bulk' => true,
+                ]);
+
+                $supplier->delete();
+            }
+        });
+
+        $response = redirect()->route('admin.suppliers.index');
+
+        if ($deletableSuppliers->isNotEmpty()) {
+            $response->with('success', $deletableSuppliers->count() . ' tedarikçi arşivlendi.');
+        }
+
+        if ($blockedSuppliers->isNotEmpty()) {
+            $blockedNames = $blockedSuppliers->pluck('name')->take(3)->implode(', ');
+            $suffix = $blockedSuppliers->count() > 3 ? ' ve diğerleri' : '';
+
+            $response->with(
+                'error',
+                'Sipariş bağlı olduğu için ' . $blockedSuppliers->count() . ' tedarikçi atlandı: ' . $blockedNames . $suffix . '.'
+            );
+        }
+
+        if ($deletableSuppliers->isEmpty() && $blockedSuppliers->isEmpty()) {
+            $response->with('error', 'Seçilen tedarikçiler bulunamadı.');
+        }
+
+        return $response;
     }
 
     public function importForm(): View

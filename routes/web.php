@@ -120,9 +120,11 @@ Route::middleware(['auth', 'active'])->group(function () {
 
             Route::get('/tedarikciler/{supplier}/duzenle', [SupplierController::class, 'edit'])->name('suppliers.edit');
             Route::patch('/tedarikciler/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
+            Route::delete('/tedarikciler/toplu-sil', [SupplierController::class, 'bulkDestroy'])->name('suppliers.bulk-destroy');
             Route::delete('/tedarikciler/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
             Route::get('/stok-kartlari/{stockCard}/duzenle', [StockCardController::class, 'edit'])->name('stock-cards.edit');
             Route::patch('/stok-kartlari/{stockCard}', [StockCardController::class, 'update'])->name('stock-cards.update');
+            Route::delete('/stok-kartlari/toplu-sil', [StockCardController::class, 'bulkDestroy'])->name('stock-cards.bulk-destroy');
             Route::delete('/stok-kartlari/{stockCard}', [StockCardController::class, 'destroy'])->name('stock-cards.destroy');
 
             Route::get('/yetkiler', [PermissionsController::class, 'index'])->name('permissions.index');
