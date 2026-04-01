@@ -7,6 +7,7 @@ use App\Models\Artwork;
 use App\Models\ArtworkCategory;
 use App\Models\ArtworkGallery;
 use App\Models\ArtworkGalleryUsage;
+use App\Jobs\GenerateGalleryPreviewJob;
 use App\Models\PurchaseOrder;
 use App\Models\ArtworkRevision;
 use App\Models\ArtworkTag;
@@ -14,9 +15,12 @@ use App\Models\PurchaseOrderLine;
 use App\Models\StockCard;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Services\ArtworkPreviewGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use App\Services\MultipartUploadService;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ArtworkGalleryAdminTest extends TestCase
@@ -231,6 +235,83 @@ class ArtworkGalleryAdminTest extends TestCase
                 'revision_no' => 2,
             ])
             ->assertSessionHasErrors('revision_no');
+    }
+
+    public function test_direct_gallery_upload_dispatches_preview_generation_job_for_supported_files(): void
+    {
+        Queue::fake();
+
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        $stockCard = StockCard::factory()->create([
+            'stock_code' => 'STK-888',
+            'stock_name' => 'Lider Kutu',
+        ]);
+
+        $this->mock(MultipartUploadService::class, function ($mock) {
+            $mock->shouldReceive('upload')->once()->andReturn([
+                'spaces_path' => 'artworks/gallery/2026/04/test-file.ai',
+                'original_filename' => 'master.ai',
+                'stored_filename' => 'test-file.ai',
+                'mime_type' => 'application/postscript',
+                'file_size' => 4096,
+            ]);
+        });
+
+        $this->actingAs($admin)
+            ->post(route('admin.artwork-gallery.direct-upload'), [
+                'artwork_file' => UploadedFile::fake()->create('master.ai', 100, 'application/postscript'),
+                'stock_code' => $stockCard->stock_code,
+                'revision_no' => 1,
+            ])
+            ->assertRedirect(route('admin.artwork-gallery.index'));
+
+        $galleryItem = ArtworkGallery::query()->latest('id')->firstOrFail();
+
+        Queue::assertPushed(
+            GenerateGalleryPreviewJob::class,
+            fn (GenerateGalleryPreviewJob $job) => $job->galleryItemId === $galleryItem->id
+        );
+    }
+
+    public function test_gallery_index_queues_missing_preview_for_supported_direct_gallery_items(): void
+    {
+        Queue::fake();
+
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        $galleryItem = ArtworkGallery::factory()->create([
+            'uploaded_by' => $admin->id,
+            'name' => 'stok-999-rev1.ai',
+            'file_type' => 'application/postscript',
+            'preview_file_path' => null,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.artwork-gallery.index'))
+            ->assertOk();
+
+        Queue::assertPushed(
+            GenerateGalleryPreviewJob::class,
+            fn (GenerateGalleryPreviewJob $job) => $job->galleryItemId === $galleryItem->id
+        );
+    }
+
+    public function test_preview_generator_returns_false_instead_of_throwing_for_supported_gallery_item_without_file(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        $galleryItem = ArtworkGallery::factory()->create([
+            'uploaded_by' => $admin->id,
+            'name' => 'stok-444-rev1.ai',
+            'file_path' => 'artworks/gallery/stok-444-rev1.ai',
+            'file_disk' => 'local',
+            'file_type' => 'application/postscript',
+            'preview_file_path' => null,
+        ]);
+
+        $result = app(ArtworkPreviewGenerator::class)->generateForGalleryItem($galleryItem);
+
+        $this->assertFalse($result);
     }
 
     public function test_gallery_index_shows_active_items_by_default_and_can_filter_inactive_items(): void

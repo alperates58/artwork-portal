@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ArtworkGalleryDirectUploadRequest;
 use App\Http\Requests\Admin\ArtworkGalleryUpdateRequest;
 use App\Jobs\GenerateArtworkPreviewJob;
+use App\Jobs\GenerateGalleryPreviewJob;
 use App\Models\ArtworkCategory;
 use App\Models\ArtworkGallery;
 use App\Models\ArtworkRevision;
@@ -100,6 +101,24 @@ class ArtworkGalleryController extends Controller
 
         if ($galleryIds->isEmpty()) {
             return;
+        }
+
+        foreach ($galleryItems as $galleryItem) {
+            if (! $galleryItem instanceof ArtworkGallery) {
+                continue;
+            }
+
+            if ($galleryItem->has_preview || ! $this->previewGenerator->supportsGalleryItem($galleryItem)) {
+                continue;
+            }
+
+            $cacheKey = 'artwork-gallery-preview:queued:' . $galleryItem->id;
+
+            if (! Cache::add($cacheKey, true, now()->addMinutes(10))) {
+                continue;
+            }
+
+            GenerateGalleryPreviewJob::dispatch($galleryItem->id);
         }
 
         $revisions = ArtworkRevision::query()

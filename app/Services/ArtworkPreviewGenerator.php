@@ -42,7 +42,7 @@ class ArtworkPreviewGenerator
 
     public function generateForGalleryItem(\App\Models\ArtworkGallery $galleryItem): bool
     {
-        if (! $this->supportsGalleryItem($galleryItem) || filled($galleryItem->getAttributeFromArray('preview_file_path'))) {
+        if (! $this->supportsGalleryItem($galleryItem) || filled($galleryItem->preview_file_path)) {
             return false;
         }
 

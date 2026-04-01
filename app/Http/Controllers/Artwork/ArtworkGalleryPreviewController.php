@@ -102,7 +102,7 @@ class ArtworkGalleryPreviewController extends Controller
     {
         $path = $revision->preview_spaces_path;
         $disk = $artworkGallery->file_disk
-            ?: $artworkGallery->getAttributeFromArray('preview_file_disk')
+            ?: $artworkGallery->preview_file_disk
             ?: $this->settings->filesystemDisk();
 
         if (! $path || ! $this->spaces->exists($path, $disk)) {
