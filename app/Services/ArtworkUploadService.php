@@ -16,6 +16,7 @@ use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ArtworkUploadService
 {
@@ -155,6 +156,50 @@ class ArtworkUploadService
             $this->dispatchPreviewGeneration($revision);
 
             return $revision;
+        });
+    }
+
+    public function storeDirectToGallery(UploadedFile $file, array $meta, User $uploader): ArtworkGallery
+    {
+        return DB::transaction(function () use ($file, $meta, $uploader) {
+            $stockCard = $this->resolveStockCard($meta['stock_code'] ?? null);
+            $revisionNo = (int) ($meta['revision_no'] ?? 1);
+            $ext = strtolower($file->getClientOriginalExtension());
+
+            $standardizedFilename = ArtworkFileName::original(
+                stockCode: $stockCard?->stock_code ?? ($meta['stock_code'] ? mb_strtoupper(trim((string) $meta['stock_code'])) : null),
+                revisionNo: $revisionNo,
+                extension: $ext,
+                fallback: 'gallery',
+            );
+
+            $path = 'artworks/gallery/' . now()->format('Y/m') . '/' . Str::uuid() . '.' . $ext;
+
+            $fileData = $this->multipart->upload($file, $path);
+
+            $galleryItem = ArtworkGallery::create([
+                'name' => $standardizedFilename,
+                'stock_code' => $stockCard?->stock_code ?? ($meta['stock_code'] ? mb_strtoupper(trim((string) $meta['stock_code'])) : null),
+                'revision_no' => $revisionNo,
+                'stock_card_id' => $stockCard?->id,
+                'category_id' => $stockCard?->category_id,
+                'file_path' => $fileData['spaces_path'],
+                'file_disk' => $this->settings->filesystemDisk(),
+                'file_size' => $fileData['file_size'],
+                'file_type' => $fileData['mime_type'],
+                'uploaded_by' => $uploader->id,
+                'revision_note' => $meta['notes'] ?? null,
+            ]);
+
+            $this->audit->log('artwork.gallery.create', $galleryItem, [
+                'stock_code' => $galleryItem->stock_code,
+                'category_id' => $galleryItem->category_id,
+                'direct_upload' => true,
+            ]);
+
+            $this->dashboardCache->forgetAllAfterCommit();
+
+            return $galleryItem;
         });
     }
 

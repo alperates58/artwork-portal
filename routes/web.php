@@ -178,6 +178,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/loglar', [AuditLogController::class, 'index'])->name('logs.index');
             Route::get('/loglar/zaman-cizelgesi', [AuditLogController::class, 'timeline'])->name('logs.timeline');
             Route::get('/artwork-galerisi', [ArtworkGalleryController::class, 'index'])->name('artwork-gallery.index');
+            Route::post('/artwork-galerisi/yukle', [ArtworkGalleryController::class, 'storeDirectUpload'])->name('artwork-gallery.direct-upload');
             Route::get('/artwork-galerisi/yonetim', [ArtworkGalleryController::class, 'manage'])->name('artwork-gallery.manage');
             Route::post('/artwork-galerisi/kategoriler', [ArtworkGalleryController::class, 'storeCategory'])->name('artwork-gallery.categories.store');
             Route::delete('/artwork-galerisi/kategoriler/{category}', [ArtworkGalleryController::class, 'destroyCategory'])->name('artwork-gallery.categories.destroy');

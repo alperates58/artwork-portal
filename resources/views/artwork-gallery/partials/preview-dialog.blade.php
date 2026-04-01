@@ -34,10 +34,6 @@
                             alt="{{ $artworkGallery->display_name }}"
                             class="h-full w-full object-contain transition duration-300 group-hover:scale-[1.01]"
                         >
-                        <div class="pointer-events-none absolute inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-2xl bg-slate-950/70 px-4 py-3 text-sm text-white backdrop-blur-sm">
-                            <span>Artwork’e tıklayıp büyütün</span>
-                            <span class="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">Büyük önizleme</span>
-                        </div>
                     </button>
                 @else
                     <div class="flex min-h-[28rem] items-center justify-center rounded-[24px] bg-white">
@@ -49,10 +45,6 @@
                     </div>
                 @endif
             </div>
-
-            @if($artworkGallery->has_preview)
-                <p class="text-xs font-medium text-brand-700">Daha rahat incelemek için görsele tıklayın.</p>
-            @endif
         </section>
 
         <aside class="space-y-4 xl:max-h-full xl:overflow-y-auto xl:pr-1">
@@ -60,14 +52,27 @@
                 <dl class="space-y-4">
                     <div>
                         <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Stok kodu / Revizyon</dt>
-                        <dd class="mt-1 text-base font-semibold text-slate-900">
-                            <span class="font-mono">{{ $artworkGallery->stock_code ?: '—' }}</span>
-                            · Rev.{{ $artworkGallery->revision_no ?: '—' }}
+                        <dd class="mt-1 font-mono text-base font-semibold text-slate-900">
+                            {{ $artworkGallery->stock_code ?: '—' }} · Rev.{{ $artworkGallery->revision_no ?: '—' }}
                         </dd>
                     </div>
+                    @if($artworkGallery->stockCard?->stock_name)
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Stok adı</dt>
+                        <dd class="mt-1 text-base text-slate-900">{{ $artworkGallery->stockCard->stock_name }}</dd>
+                    </div>
+                    @endif
                     <div>
                         <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Kategori</dt>
                         <dd class="mt-1 text-base text-slate-900">{{ $artworkGallery->category?->display_name ?? 'Kategorisiz' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Dosya boyutu</dt>
+                        <dd class="mt-1 text-base text-slate-900">{{ $artworkGallery->file_size_formatted }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Dosya tipi</dt>
+                        <dd class="mt-1 text-base text-slate-900">{{ $artworkGallery->file_type_display }} · {{ $artworkGallery->file_type_description }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Yükleyen</dt>
@@ -84,10 +89,6 @@
                     <div>
                         <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Kullanım sayısı</dt>
                         <dd class="mt-1 text-base text-slate-900">{{ $artworkGallery->usage_count }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Dosya tipi</dt>
-                        <dd class="mt-1 text-base text-slate-900">{{ $artworkGallery->file_type_display }} · {{ $artworkGallery->file_type_description }}</dd>
                     </div>
                 </dl>
             </div>

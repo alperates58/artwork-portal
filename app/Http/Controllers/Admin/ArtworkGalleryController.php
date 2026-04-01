@@ -12,6 +12,7 @@ use App\Models\ArtworkTag;
 use App\Models\StockCard;
 use App\Services\ArtworkCategoryService;
 use App\Services\ArtworkPreviewGenerator;
+use App\Services\ArtworkUploadService;
 use App\Services\AuditLogService;
 use App\Services\PortalSettings;
 use Illuminate\Database\Eloquent\Builder;
@@ -29,6 +30,7 @@ class ArtworkGalleryController extends Controller
         private PortalSettings $settings,
         private ArtworkCategoryService $categories,
         private ArtworkPreviewGenerator $previewGenerator,
+        private ArtworkUploadService $uploadService,
     ) {}
 
     public function index(): View
@@ -240,6 +242,31 @@ class ArtworkGalleryController extends Controller
         $tags = ArtworkTag::query()->orderBy('name')->get(['id', 'name']);
 
         return view('admin.artwork-gallery.edit', compact('artworkGallery', 'categories', 'tags'));
+    }
+
+    public function storeDirectUpload(): RedirectResponse
+    {
+        abort_if(
+            ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('gallery', 'manage'),
+            403
+        );
+
+        request()->validate([
+            'artwork_file' => ['required', 'file', 'max:1228800'],
+            'stock_code'   => ['required', 'string', 'max:100'],
+            'revision_no'  => ['required', 'integer', 'min:1', 'max:99'],
+            'notes'        => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $galleryItem = $this->uploadService->storeDirectToGallery(
+            file: request()->file('artwork_file'),
+            meta: request()->only('stock_code', 'revision_no', 'notes'),
+            uploader: auth()->user(),
+        );
+
+        return redirect()
+            ->route('admin.artwork-gallery.index')
+            ->with('success', '"' . $galleryItem->name . '" galeriye eklendi.');
     }
 
     public function destroy(ArtworkGallery $artworkGallery): RedirectResponse

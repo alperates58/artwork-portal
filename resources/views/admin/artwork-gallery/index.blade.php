@@ -35,6 +35,15 @@
     ];
 @endphp
 
+@section('header-actions')
+    <button type="button" data-dialog-open="gallery-direct-upload-dialog" class="btn btn-primary gap-2">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+        </svg>
+        Artwork Yükle
+    </button>
+@endsection
+
 @section('content')
 <div x-data="galleryPage()" x-init="init()" class="space-y-5">
 
@@ -77,20 +86,11 @@
                 @endif
             </div>
 
-            {{-- Format Sekmeleri --}}
-            <div class="mt-3 flex flex-wrap gap-2">
-                @foreach($typeTabs as $tabKey => $tabLabel)
-                    <a href="{{ route('admin.artwork-gallery.index', array_merge(request()->except(['type', 'page']), $tabKey !== '' ? ['type' => $tabKey] : [])) }}"
-                       class="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition {{ $typeFilter === $tabKey ? 'bg-brand-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
-                        {{ $tabLabel }}
-                    </a>
-                @endforeach
-            </div>
         </form>
     </div>
 
     {{-- Sayı + Yönetim Bağlantısı --}}
-    <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,540px)] xl:items-start">
+    <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex flex-wrap items-center gap-3">
             <p class="text-sm text-slate-500">
                 <span class="font-semibold text-slate-800">{{ $galleryItems->total() }}</span> dosya bulundu
@@ -99,15 +99,14 @@
                 @endif
             </p>
 
-            <form method="GET" action="{{ route('admin.artwork-gallery.index') }}" class="flex flex-wrap items-center gap-2">
+            <form method="GET" action="{{ route('admin.artwork-gallery.index') }}" class="flex items-center gap-2">
                 <input type="hidden" name="search" value="{{ request('search') }}">
                 <input type="hidden" name="stock_code" value="{{ request('stock_code') }}">
                 <input type="hidden" name="category_id" value="{{ request('category_id') }}">
                 <input type="hidden" name="tag_id" value="{{ request('tag_id') }}">
                 <input type="hidden" name="type" value="{{ request('type') }}">
 
-                <label for="gallery-sort-select" class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Sıralama</label>
-                <select id="gallery-sort-select" name="sort" class="input min-w-[240px] text-sm" onchange="this.form.submit()">
+                <select id="gallery-sort-select" name="sort" class="input text-sm" onchange="this.form.submit()">
                     @foreach($sortOptions as $value => $label)
                         <option value="{{ $value }}" @selected($sort === $value)>{{ $label }}</option>
                     @endforeach
@@ -115,31 +114,17 @@
             </form>
         </div>
 
-        <div class="rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
-            <div class="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                <span>Daha küçük</span>
-                <span x-text="`${selectedColumns()} kolon`" class="rounded-full bg-brand-50 px-3 py-1 text-[11px] tracking-normal text-brand-700"></span>
-                <span>Daha büyük</span>
-            </div>
-            <div class="mt-3 flex items-center gap-4">
-                <span class="text-xl font-light text-slate-300">−</span>
-                <input
-                    type="range"
-                    min="1"
-                    max="6"
-                    step="1"
-                    x-model.number="columnStep"
-                    @input="persistColumns()"
-                    class="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-brand-600"
-                    aria-label="Kolon sayısını ayarla"
-                >
-                <span class="text-xl font-light text-brand-600">+</span>
-            </div>
-            <div class="mt-2 grid grid-cols-6 text-[11px] font-semibold text-slate-400">
-                <template x-for="value in scaleValues" :key="value">
-                    <span class="text-center" :class="selectedColumns() === value ? 'text-brand-700' : ''" x-text="value"></span>
-                </template>
-            </div>
+        <div class="w-52">
+            <input
+                type="range"
+                min="3"
+                max="9"
+                step="0.01"
+                x-model.number="columnStep"
+                @input="persistColumns()"
+                class="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-brand-600"
+                aria-label="Kolon sayısını ayarla"
+            >
         </div>
     </div>
 
@@ -507,13 +492,12 @@
 <script>
 function galleryPage() {
     return {
-        columnStep: 1,
+        columnStep: 6,
         viewportWidth: window.innerWidth,
-        scaleValues: [6, 5, 4, 3, 2, 1],
 
         init() {
             const saved = Number(window.localStorage.getItem('artwork-gallery:column-step'));
-            if (saved >= 1 && saved <= 6) {
+            if (saved >= 3 && saved <= 9) {
                 this.columnStep = saved;
             }
 
@@ -522,17 +506,13 @@ function galleryPage() {
             });
         },
 
-        selectedColumns() {
-            return 7 - Number(this.columnStep || 1);
-        },
-
         effectiveColumns() {
-            const selected = this.selectedColumns();
+            const selected = Math.round(Number(this.columnStep));
 
             if (this.viewportWidth < 640) return Math.min(selected, 2);
             if (this.viewportWidth < 1024) return Math.min(selected, 3);
-            if (this.viewportWidth < 1280) return Math.min(selected, 4);
-            if (this.viewportWidth < 1536) return Math.min(selected, 5);
+            if (this.viewportWidth < 1280) return Math.min(selected, 5);
+            if (this.viewportWidth < 1536) return Math.min(selected, 7);
 
             return selected;
         },
@@ -565,5 +545,200 @@ function galleryPage() {
     if (stockInput)  stockInput.addEventListener('input', autoSubmit);
     if (catSelect)   catSelect.addEventListener('change', () => form && form.submit());
 })();
+
+// ── Doğrudan galeri yükleme diyaloğu ──────────────────────────────────────
+(function () {
+    const dialog      = document.getElementById('gallery-direct-upload-dialog');
+    const fileInput   = document.getElementById('gdu-file');
+    const dropZone    = document.getElementById('gdu-drop-zone');
+    const emptyState  = document.getElementById('gdu-drop-empty');
+    const selState    = document.getElementById('gdu-drop-selected');
+    const selName     = document.getElementById('gdu-selected-name');
+    const selMeta     = document.getElementById('gdu-selected-meta');
+    const stockInput  = document.getElementById('gdu-stock-code');
+    const stockName   = document.getElementById('gdu-stock-name');
+    const catName     = document.getElementById('gdu-category-name');
+    const lookupState = document.getElementById('gdu-lookup-state');
+    const submitBtn   = document.getElementById('gdu-submit');
+
+    if (!dialog) return;
+
+    let lookupTimer = null;
+
+    function setLookup(msg, tone) {
+        lookupState.textContent = msg;
+        lookupState.className = 'mt-1 text-xs ' + (tone === 'ok' ? 'text-emerald-600' : tone === 'err' ? 'text-red-600' : 'text-slate-400');
+        lookupState.classList.toggle('hidden', !msg);
+    }
+
+    async function lookupStock() {
+        const code = stockInput.value.trim().toUpperCase();
+        if (!code) { stockName.value = ''; catName.value = ''; setLookup('', ''); return; }
+        setLookup('Stok kartı kontrol ediliyor…', '');
+        try {
+            const res = await fetch(`{{ route('stock-cards.lookup') }}?stock_code=${encodeURIComponent(code)}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!res.ok) {
+                const p = await res.json().catch(() => ({}));
+                stockName.value = ''; catName.value = '';
+                setLookup(p.message ?? 'Stok kartı bulunamadı.', 'err');
+                return;
+            }
+            const p = await res.json();
+            stockInput.value = p.stock_code;
+            stockName.value = p.stock_name ?? '';
+            catName.value = p.category_name ?? '';
+            setLookup('Stok kartı doğrulandı.', 'ok');
+        } catch {
+            stockName.value = ''; catName.value = '';
+            setLookup('Bağlantı hatası oluştu.', 'err');
+        }
+    }
+
+    stockInput.addEventListener('input', () => {
+        clearTimeout(lookupTimer);
+        lookupTimer = setTimeout(lookupStock, 500);
+    });
+
+    function showFile(file) {
+        emptyState.classList.add('hidden');
+        selState.classList.remove('hidden');
+        selName.textContent = file.name;
+        selMeta.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+    }
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropZone.classList.add('border-brand-400', 'bg-brand-50/20');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('border-brand-400', 'bg-brand-50/20');
+    });
+
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('border-brand-400', 'bg-brand-50/20');
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            fileInput.files = dt.files;
+            showFile(file);
+        }
+    });
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files[0]) showFile(fileInput.files[0]);
+    });
+
+    document.getElementById('gdu-form').addEventListener('submit', () => {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Yükleniyor…';
+    });
+})();
 </script>
 @endpush
+
+{{-- Doğrudan Galeri Yükleme Diyaloğu --}}
+<dialog id="gallery-direct-upload-dialog" class="max-h-[96vh] w-[min(96vw,680px)] max-w-none overflow-hidden rounded-[32px] border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-950/60">
+    <div class="flex max-h-[96vh] flex-col bg-white">
+        {{-- Başlık --}}
+        <div class="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Artwork Galerisi</p>
+                <h3 class="mt-1 text-lg font-semibold text-slate-900">Galeriye Artwork Yükle</h3>
+            </div>
+            <button type="button" data-dialog-close class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        {{-- Form --}}
+        <div class="flex-1 overflow-y-auto px-6 py-5">
+            <form id="gdu-form" method="POST" action="{{ route('admin.artwork-gallery.direct-upload') }}" enctype="multipart/form-data" class="space-y-5">
+                @csrf
+
+                {{-- Dosya --}}
+                <div>
+                    <div class="mb-2 flex items-center justify-between">
+                        <label class="label mb-0">Dosya</label>
+                        <span class="text-xs text-slate-400">PDF, AI, EPS, ZIP, PSD, INDD, PNG, TIF · Maks. 1.2 GB</span>
+                    </div>
+                    <input type="file" id="gdu-file" name="artwork_file" class="hidden" accept=".pdf,.ai,.eps,.zip,.svg,.png,.jpg,.jpeg,.tif,.tiff,.psd,.indd">
+                    <div id="gdu-drop-zone" class="cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/40 px-5 py-6 text-center transition hover:border-brand-400 hover:bg-brand-50/20">
+                        <div id="gdu-drop-empty">
+                            <svg class="mx-auto h-9 w-9 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            </svg>
+                            <p class="mt-2.5 text-sm font-medium text-slate-700">Dosyayı sürükleyin veya <span class="text-brand-600">seçin</span></p>
+                        </div>
+                        <div id="gdu-drop-selected" class="hidden">
+                            <svg class="mx-auto h-8 w-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p class="mt-2 text-sm font-semibold text-emerald-700" id="gdu-selected-name">—</p>
+                            <p class="mt-0.5 text-xs text-emerald-600" id="gdu-selected-meta">—</p>
+                            <p class="mt-2 text-xs text-slate-400 underline">Dosyayı değiştirmek için tıklayın</p>
+                        </div>
+                    </div>
+                    @error('artwork_file')
+                        <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- Stok Kodu + Revizyon --}}
+                <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_140px]">
+                    <div>
+                        <label class="label" for="gdu-stock-code">Stok Kodu</label>
+                        <input type="text" id="gdu-stock-code" name="stock_code" value="{{ old('stock_code') }}" class="input font-mono" placeholder="Örn: 5010118005440" required autocomplete="off">
+                        <p id="gdu-lookup-state" class="mt-1 hidden text-xs text-slate-400"></p>
+                        @error('stock_code')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label class="label" for="gdu-revision-no">Revizyon No</label>
+                        <input type="number" id="gdu-revision-no" name="revision_no" value="{{ old('revision_no', 1) }}" min="1" max="99" class="input" required>
+                        @error('revision_no')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
+                {{-- Stok Adı + Kategori (otomatik dolu, salt okunur) --}}
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="label" for="gdu-stock-name">Stok Adı</label>
+                        <input type="text" id="gdu-stock-name" class="input bg-slate-50" readonly placeholder="Stok kodu girilince otomatik dolar">
+                    </div>
+                    <div>
+                        <label class="label" for="gdu-category-name">Kategori</label>
+                        <input type="text" id="gdu-category-name" class="input bg-slate-50" readonly placeholder="Otomatik">
+                    </div>
+                </div>
+
+                {{-- Açıklama --}}
+                <div>
+                    <label class="label" for="gdu-notes">Açıklama / Revizyon Notu</label>
+                    <textarea id="gdu-notes" name="notes" rows="3" class="input resize-none" placeholder="Revizyon veya baskı ile ilgili not ekleyebilirsiniz.">{{ old('notes') }}</textarea>
+                </div>
+
+                {{-- Bilgi kutusu --}}
+                <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-3 text-xs text-slate-500">
+                    Desteklenen formatlar için önizleme PNG'si otomatik üretilir. Dosya galeriye bağımsız kaydedilir; siparişe atamak için galeri kullanımı üzerinden yapılır.
+                </div>
+
+                <div class="flex gap-3 pt-1">
+                    <button type="submit" id="gdu-submit" class="btn btn-primary min-w-[160px] justify-center">Galeriye Ekle</button>
+                    <button type="button" data-dialog-close class="btn btn-secondary px-5">İptal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</dialog>
