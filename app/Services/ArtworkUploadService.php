@@ -121,6 +121,8 @@ class ArtworkUploadService
                 ]);
             }
 
+            $this->spaces->normalizeArtworkStoragePermissions($this->settings->filesystemDisk());
+
             $revision = $this->createRevision($artwork, $line, $uploader, $revisionNo, [
                 'artwork_gallery_id' => $galleryItem->id,
                 'spaces_path' => $galleryItem->file_path,

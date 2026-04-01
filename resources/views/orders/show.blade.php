@@ -341,7 +341,7 @@
                                 @endif
                             </span>
 
-                            <div class="pb-5 pt-0.5">
+                            <div class="pb-5 pl-8 pt-0.5">
                                 <p class="text-sm font-semibold text-slate-800">{{ $event['title'] }}</p>
                                 <p class="text-xs text-slate-500">{{ $event['sub'] }}</p>
                                 @if(! empty($event['body']))
