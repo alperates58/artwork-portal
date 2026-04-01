@@ -357,18 +357,19 @@
                                 @php
                                     $gap = $event['days_gap'];
                                     [$barBg, $textCls] = match (true) {
-                                        $gap < 1 => ['from-emerald-400 to-emerald-500', 'text-emerald-600'],
-                                        $gap < 3 => ['from-amber-400 to-amber-500', 'text-amber-600'],
-                                        $gap < 7 => ['from-orange-400 to-orange-500', 'text-orange-600'],
-                                        default => ['from-red-400 to-red-600', 'text-red-600'],
+                                        $gap < 1 => ['from-emerald-400 to-emerald-500', 'text-emerald-700'],
+                                        $gap < 3 => ['from-amber-400 to-amber-500', 'text-amber-700'],
+                                        $gap < 7 => ['from-orange-400 to-orange-500', 'text-orange-700'],
+                                        default => ['from-red-400 to-red-600', 'text-red-700'],
                                     };
-                                    $barPct = min(100, max(14, $gap <= 0 ? 14 : intval(min(log($gap + 1, 2) * 30, 100))));
-                                    $gapHeight = min(148, max(52, intval($barPct * 1.3)));
+                                    $gapHeight = max(60, min(120, $gap <= 0 ? 60 : intval(log($gap + 1, 2) * 38 + 44)));
                                 @endphp
-                                <div class="relative mb-4 ml-[-68px] flex items-center justify-center [&>span:last-child]:relative [&>span:last-child]:z-10 [&>span:last-child]:mt-0 [&>span:last-child]:rounded-full [&>span:last-child]:bg-white [&>span:last-child]:px-2 [&>span:last-child]:py-0.5 [&>span:last-child]:text-[11px]" style="height: {{ $gapHeight }}px">
-                                    <span class="absolute left-1/2 top-0 w-1 -translate-x-1/2 rounded-full bg-gradient-to-b {{ $barBg }}" style="height: calc(50% - 14px)"></span>
-                                    <span class="absolute left-1/2 bottom-0 w-1 -translate-x-1/2 rounded-full bg-gradient-to-b {{ $barBg }}" style="height: calc(50% - 14px)"></span>
-                                    <span class="mt-2 text-center text-[10px] font-semibold {{ $textCls }}">{{ number_format($gap, 1, ',', '.') }} gün</span>
+                                <div class="relative mb-3" style="height: {{ $gapHeight }}px">
+                                    <div class="absolute left-0 top-0 w-0.5 -translate-x-1/2 rounded-full bg-gradient-to-b {{ $barBg }}" style="height: calc(50% - 13px)"></div>
+                                    <div class="absolute left-0 bottom-0 w-0.5 -translate-x-1/2 rounded-full bg-gradient-to-b {{ $barBg }}" style="height: calc(50% - 13px)"></div>
+                                    <div class="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                                        <span class="whitespace-nowrap rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold ring-1 ring-slate-200 {{ $textCls }}">{{ number_format($gap, 1, ',', '.') }} gün</span>
+                                    </div>
                                 </div>
                             @endif
                         </li>
