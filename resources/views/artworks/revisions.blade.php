@@ -102,8 +102,8 @@
                     </div>
 
                     @if($rev->has_preview)
-                        <dialog id="revision-preview-{{ $rev->id }}" class="w-[min(96vw,1500px)] max-w-none overflow-hidden rounded-[32px] border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-950/70">
-                            <div class="flex max-h-[92vh] flex-col bg-white">
+                        <dialog id="revision-preview-{{ $rev->id }}" class="max-h-[92vh] w-[min(96vw,1380px)] max-w-none overflow-hidden rounded-[32px] border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-950/70">
+                            <div class="flex h-[min(92vh,920px)] min-h-0 flex-col bg-white">
                                 <div class="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-4">
                                     <div class="min-w-0">
                                         <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Revizyon önizleme</p>
@@ -121,7 +121,7 @@
                                     <img
                                         src="{{ route('artworks.preview', $rev, false) }}"
                                         alt="{{ $rev->original_filename }}"
-                                        class="mx-auto max-h-[82vh] w-full rounded-[24px] bg-white object-contain"
+                                        class="mx-auto h-full w-full rounded-[24px] bg-white object-contain"
                                     >
                                 </div>
                             </div>

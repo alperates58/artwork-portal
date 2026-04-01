@@ -1,5 +1,5 @@
-<dialog id="{{ $dialogId }}" class="w-[min(96vw,1440px)] max-w-none overflow-hidden rounded-[32px] border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-950/60">
-    <div class="flex max-h-[92vh] flex-col">
+<dialog id="{{ $dialogId }}" class="max-h-[92vh] w-[min(96vw,1440px)] max-w-none overflow-hidden rounded-[32px] border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-950/60">
+    <div class="flex h-[min(92vh,960px)] min-h-0 flex-col">
     <div class="shrink-0 border-b border-slate-200 px-6 py-5">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="min-w-0">
@@ -28,11 +28,11 @@
         <section class="min-h-0 space-y-3">
             <div class="rounded-[28px] border border-slate-200 bg-slate-50 p-3">
                 @if($artworkGallery->has_preview)
-                    <button type="button" data-dialog-open="{{ $dialogId }}-zoom" class="group relative block max-h-[calc(92vh-14rem)] w-full overflow-hidden rounded-[24px] bg-white text-left">
+                    <button type="button" data-dialog-open="{{ $dialogId }}-zoom" class="group relative block h-full max-h-[calc(92vh-15rem)] w-full overflow-hidden rounded-[24px] bg-white text-left">
                         <img
                             src="{{ route('artworks.gallery.preview', $artworkGallery, false) }}"
                             alt="{{ $artworkGallery->display_name }}"
-                            class="max-h-[calc(92vh-14rem)] w-full object-contain transition duration-300 group-hover:scale-[1.01]"
+                            class="h-full w-full object-contain transition duration-300 group-hover:scale-[1.01]"
                         >
                         <div class="pointer-events-none absolute inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-2xl bg-slate-950/70 px-4 py-3 text-sm text-white backdrop-blur-sm">
                             <span>Artwork’e tıklayıp büyütün</span>
@@ -102,20 +102,21 @@
 </dialog>
 
 @if($artworkGallery->has_preview)
-    <dialog id="{{ $dialogId }}-zoom" class="w-[min(98vw,1600px)] max-w-none rounded-[32px] border border-white/10 bg-slate-950/95 p-3 shadow-2xl backdrop:bg-slate-950/85">
-        <div class="relative">
+    <dialog id="{{ $dialogId }}-zoom" class="max-h-[94vh] w-[min(96vw,1500px)] max-w-none overflow-hidden rounded-[32px] border border-white/10 bg-slate-950/95 p-0 shadow-2xl backdrop:bg-slate-950/85">
+        <div class="relative flex h-[min(94vh,980px)] min-h-0 flex-col">
             <button type="button" data-dialog-close class="absolute right-3 top-3 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-slate-600 shadow-sm transition hover:bg-white hover:text-slate-950">
                 <span class="sr-only">Kapat</span>
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
             </button>
-
-            <img
-                src="{{ route('artworks.gallery.preview', $artworkGallery, false) }}"
-                alt="{{ $artworkGallery->display_name }}"
-                class="max-h-[88vh] w-full rounded-[24px] bg-white object-contain"
-            >
+            <div class="min-h-0 flex-1 overflow-auto p-3">
+                <img
+                    src="{{ route('artworks.gallery.preview', $artworkGallery, false) }}"
+                    alt="{{ $artworkGallery->display_name }}"
+                    class="h-full w-full rounded-[24px] bg-white object-contain"
+                >
+            </div>
         </div>
     </dialog>
 @endif

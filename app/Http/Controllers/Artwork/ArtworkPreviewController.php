@@ -7,7 +7,6 @@ use App\Models\ArtworkRevision;
 use App\Services\PortalSettings;
 use App\Services\SpacesStorageService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ArtworkPreviewController extends Controller
@@ -47,8 +46,12 @@ class ArtworkPreviewController extends Controller
             return redirect($this->spaces->presignedInlineUrl($path, 5, $disk));
         }
 
+        $absolutePath = $this->spaces->ensureReadable($path, $disk);
+
+        abort_unless($absolutePath, 404, 'Dosya bulunamadı. Lütfen yönetici ile iletişime geçin.');
+
         return response()->file(
-            Storage::disk($disk)->path($path),
+            $absolutePath,
             [
                 'Content-Type' => $mimeType,
                 'Content-Disposition' => 'inline; filename="' . $filename . '"',

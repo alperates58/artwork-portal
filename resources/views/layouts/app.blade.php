@@ -798,6 +798,12 @@
         var r = e.target.getBoundingClientRect();
         if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) e.target.close();
     });
+    document.addEventListener('keydown', function(e){
+        if (e.key !== 'Escape') return;
+        var openDialogs = Array.from(document.querySelectorAll('dialog[open]'));
+        var activeDialog = openDialogs[openDialogs.length - 1];
+        if (activeDialog && activeDialog.close) activeDialog.close();
+    });
 })();
 </script>
 

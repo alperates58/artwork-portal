@@ -5,10 +5,20 @@
 
 @php
     $typeFilter = request('type', '');
+    $sort = $sort ?? 'created_desc';
     $typeTabs   = ['' => 'Tümü'];
     foreach ($fileGroups as $group) {
         $typeTabs[$group['key']] = $group['label'];
     }
+
+    $sortOptions = [
+        'created_desc' => 'Yüklenme tarihi (Yeni → Eski)',
+        'created_asc' => 'Yüklenme tarihi (Eski → Yeni)',
+        'name_asc' => 'Dosya adı (A → Z)',
+        'name_desc' => 'Dosya adı (Z → A)',
+        'revision_desc' => 'Revizyon (Yüksek → Düşük)',
+        'revision_asc' => 'Revizyon (Düşük → Yüksek)',
+    ];
 
     $fileTypeColors = [
         'PDF'  => 'bg-red-50 text-red-700 border border-red-200',
@@ -26,11 +36,12 @@
 @endphp
 
 @section('content')
-<div class="space-y-5">
+<div x-data="galleryPage()" x-init="init()" class="space-y-5">
 
     {{-- Filtre Paneli --}}
     <div class="rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
         <form method="GET" action="{{ route('admin.artwork-gallery.index') }}" id="gallery-filter-form">
+            <input type="hidden" name="sort" value="{{ $sort }}">
             <div class="flex flex-wrap items-end gap-3">
 
                 <div class="w-full sm:min-w-[260px] lg:min-w-[320px] lg:flex-[1.25]">
@@ -61,7 +72,7 @@
                 </div>
 
                 <button type="submit" class="btn btn-primary">Filtrele</button>
-                @if(request()->hasAny(['search', 'stock_code', 'category_id', 'type']))
+                @if(request()->hasAny(['search', 'stock_code', 'category_id', 'type']) || $sort !== 'created_desc')
                     <a href="{{ route('admin.artwork-gallery.index') }}" class="btn btn-secondary">Temizle</a>
                 @endif
             </div>
@@ -79,13 +90,57 @@
     </div>
 
     {{-- Sayı + Yönetim Bağlantısı --}}
-    <div class="flex items-center justify-between gap-3">
-        <p class="text-sm text-slate-500">
-            <span class="font-semibold text-slate-800">{{ $galleryItems->total() }}</span> dosya bulundu
-            @if($galleryItems->total() !== $totalCount)
-                <span class="text-slate-400"> / toplam {{ $totalCount }}</span>
-            @endif
-        </p>
+    <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,540px)] xl:items-start">
+        <div class="flex flex-wrap items-center gap-3">
+            <p class="text-sm text-slate-500">
+                <span class="font-semibold text-slate-800">{{ $galleryItems->total() }}</span> dosya bulundu
+                @if($galleryItems->total() !== $totalCount)
+                    <span class="text-slate-400"> / toplam {{ $totalCount }}</span>
+                @endif
+            </p>
+
+            <form method="GET" action="{{ route('admin.artwork-gallery.index') }}" class="flex flex-wrap items-center gap-2">
+                <input type="hidden" name="search" value="{{ request('search') }}">
+                <input type="hidden" name="stock_code" value="{{ request('stock_code') }}">
+                <input type="hidden" name="category_id" value="{{ request('category_id') }}">
+                <input type="hidden" name="tag_id" value="{{ request('tag_id') }}">
+                <input type="hidden" name="type" value="{{ request('type') }}">
+
+                <label for="gallery-sort-select" class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Sıralama</label>
+                <select id="gallery-sort-select" name="sort" class="input min-w-[240px] text-sm" onchange="this.form.submit()">
+                    @foreach($sortOptions as $value => $label)
+                        <option value="{{ $value }}" @selected($sort === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </form>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
+            <div class="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <span>Daha küçük</span>
+                <span x-text="`${selectedColumns()} kolon`" class="rounded-full bg-brand-50 px-3 py-1 text-[11px] tracking-normal text-brand-700"></span>
+                <span>Daha büyük</span>
+            </div>
+            <div class="mt-3 flex items-center gap-4">
+                <span class="text-xl font-light text-slate-300">−</span>
+                <input
+                    type="range"
+                    min="1"
+                    max="6"
+                    step="1"
+                    x-model.number="columnStep"
+                    @input="persistColumns()"
+                    class="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-brand-600"
+                    aria-label="Kolon sayısını ayarla"
+                >
+                <span class="text-xl font-light text-brand-600">+</span>
+            </div>
+            <div class="mt-2 grid grid-cols-6 text-[11px] font-semibold text-slate-400">
+                <template x-for="value in scaleValues" :key="value">
+                    <span class="text-center" :class="selectedColumns() === value ? 'text-brand-700' : ''" x-text="value"></span>
+                </template>
+            </div>
+        </div>
     </div>
 
     {{-- Stok Kodu Araması Sonuçları --}}
@@ -303,7 +358,10 @@
             <a href="{{ route('admin.artwork-gallery.index') }}" class="mt-3 text-xs text-brand-600 hover:underline">Filtreleri temizle</a>
         </div>
     @else
-        <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+        <div
+            class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6"
+            :style="galleryGridStyle()"
+        >
             @foreach($galleryItems as $item)
                 @php
                     $ext        = strtoupper(pathinfo($item->file_path ?: $item->name, PATHINFO_EXTENSION));
@@ -447,6 +505,50 @@
 
 @push('scripts')
 <script>
+function galleryPage() {
+    return {
+        columnStep: 1,
+        viewportWidth: window.innerWidth,
+        scaleValues: [6, 5, 4, 3, 2, 1],
+
+        init() {
+            const saved = Number(window.localStorage.getItem('artwork-gallery:column-step'));
+            if (saved >= 1 && saved <= 6) {
+                this.columnStep = saved;
+            }
+
+            window.addEventListener('resize', () => {
+                this.viewportWidth = window.innerWidth;
+            });
+        },
+
+        selectedColumns() {
+            return 7 - Number(this.columnStep || 1);
+        },
+
+        effectiveColumns() {
+            const selected = this.selectedColumns();
+
+            if (this.viewportWidth < 640) return Math.min(selected, 2);
+            if (this.viewportWidth < 1024) return Math.min(selected, 3);
+            if (this.viewportWidth < 1280) return Math.min(selected, 4);
+            if (this.viewportWidth < 1536) return Math.min(selected, 5);
+
+            return selected;
+        },
+
+        galleryGridStyle() {
+            return {
+                gridTemplateColumns: `repeat(${this.effectiveColumns()}, minmax(0, 1fr))`,
+            };
+        },
+
+        persistColumns() {
+            window.localStorage.setItem('artwork-gallery:column-step', String(this.columnStep));
+        },
+    };
+}
+
 (function () {
     const form         = document.getElementById('gallery-filter-form');
     const searchInput  = document.getElementById('gallery-search-input');

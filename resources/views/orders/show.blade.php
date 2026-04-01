@@ -184,8 +184,8 @@
                         </div>
 
                         @if($line->activeRevision->has_preview)
-                            <dialog id="order-line-preview-{{ $line->id }}" class="w-[min(96vw,1500px)] max-w-none overflow-hidden rounded-[32px] border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-950/70">
-                                <div class="flex max-h-[92vh] flex-col bg-white">
+                            <dialog id="order-line-preview-{{ $line->id }}" class="max-h-[92vh] w-[min(96vw,1380px)] max-w-none overflow-hidden rounded-[32px] border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-950/70">
+                                <div class="flex h-[min(92vh,920px)] min-h-0 flex-col bg-white">
                                     <div class="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-4">
                                         <div class="min-w-0">
                                             <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Satır önizleme</p>
@@ -202,7 +202,7 @@
                                         <img
                                             src="{{ route('artworks.preview', $line->activeRevision, false) }}"
                                             alt="{{ $line->activeRevision->original_filename }}"
-                                            class="mx-auto max-h-[82vh] w-full rounded-[24px] bg-white object-contain"
+                                            class="mx-auto h-full w-full rounded-[24px] bg-white object-contain"
                                         >
                                     </div>
                                 </div>
@@ -318,9 +318,9 @@
             <div class="px-5 py-8 text-center text-sm text-slate-400">Henüz aktivite yok.</div>
         @else
             <div class="px-5 py-6">
-                <ol class="relative ml-3 border-l border-slate-200">
+                <ol class="relative ml-3">
                     @foreach($timeline as $event)
-                        <li class="ml-6 mb-0">
+                        <li class="relative ml-6 mb-0">
                             <span class="absolute -left-3 flex h-6 w-6 items-center justify-center rounded-full ring-4 ring-white @if($event['color'] === 'violet') bg-violet-100 text-violet-600 @elseif($event['color'] === 'blue') bg-blue-100 text-blue-600 @elseif($event['color'] === 'amber') bg-amber-100 text-amber-600 @elseif($event['color'] === 'emerald') bg-emerald-100 text-emerald-600 @else bg-slate-100 text-slate-500 @endif">
                                 @if($event['icon'] === 'plus')
                                     <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
@@ -357,9 +357,11 @@
                                         default => ['from-red-400 to-red-600', 'text-red-600'],
                                     };
                                     $barPct = min(100, max(14, $gap <= 0 ? 14 : intval(min(log($gap + 1, 2) * 30, 100))));
+                                    $gapHeight = min(148, max(52, intval($barPct * 1.3)));
                                 @endphp
-                                <div class="mb-4 ml-[-38px] flex w-16 flex-col items-center">
-                                    <div class="w-1 rounded-full bg-gradient-to-b {{ $barBg }}" style="height: {{ min(120, max(32, intval($barPct * 1.1))) }}px"></div>
+                                <div class="relative mb-4 ml-[-68px] flex items-center justify-center [&>span:last-child]:relative [&>span:last-child]:z-10 [&>span:last-child]:mt-0 [&>span:last-child]:rounded-full [&>span:last-child]:bg-white [&>span:last-child]:px-2 [&>span:last-child]:py-0.5 [&>span:last-child]:text-[11px]" style="height: {{ $gapHeight }}px">
+                                    <span class="absolute left-1/2 top-0 w-1 -translate-x-1/2 rounded-full bg-gradient-to-b {{ $barBg }}" style="height: calc(50% - 14px)"></span>
+                                    <span class="absolute left-1/2 bottom-0 w-1 -translate-x-1/2 rounded-full bg-gradient-to-b {{ $barBg }}" style="height: calc(50% - 14px)"></span>
                                     <span class="mt-2 text-center text-[10px] font-semibold {{ $textCls }}">{{ number_format($gap, 1, ',', '.') }} gün</span>
                                 </div>
                             @endif

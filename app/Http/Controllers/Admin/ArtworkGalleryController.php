@@ -14,6 +14,7 @@ use App\Services\ArtworkCategoryService;
 use App\Services\ArtworkPreviewGenerator;
 use App\Services\AuditLogService;
 use App\Services\PortalSettings;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
@@ -36,6 +37,8 @@ class ArtworkGalleryController extends Controller
             ! auth()->user()->isAdmin() && ! auth()->user()->hasPermission('gallery', 'view'),
             403
         );
+
+        $sort = (string) request('sort', 'created_desc');
 
         $query = ArtworkGallery::query()
             ->with([
@@ -60,13 +63,15 @@ class ArtworkGalleryController extends Controller
                 };
             });
 
+        $this->applySort($query, $sort);
+
         $totalCount = (clone $query)->count();
-        $galleryItems = $query->latest()->paginate(24)->withQueryString();
+        $galleryItems = $query->paginate(24)->withQueryString();
         $categories = ArtworkCategory::query()->orderBy('name')->get(['id', 'name']);
         $tags = ArtworkTag::query()->orderBy('name')->get(['id', 'name']);
         $fileGroups = $this->settings->fileGroups();
         $stockCodeFilter = trim((string) request('stock_code', ''));
-        $stockQuickMatches = $this->buildStockQuickMatches($stockCodeFilter);
+        $stockQuickMatches = $this->buildStockQuickMatches($stockCodeFilter, $sort);
         $stockHistory = $this->buildStockHistory($stockCodeFilter);
         $this->queueMissingGalleryPreviews($galleryItems->getCollection());
 
@@ -79,6 +84,7 @@ class ArtworkGalleryController extends Controller
             'stockQuickMatches',
             'stockHistory',
             'stockCodeFilter',
+            'sort',
         ));
     }
 
@@ -298,7 +304,7 @@ class ArtworkGalleryController extends Controller
             ->with('success', 'Artwork galerisi kaydı güncellendi.');
     }
 
-    private function buildStockQuickMatches(string $stockCodeFilter)
+    private function buildStockQuickMatches(string $stockCodeFilter, string $sort)
     {
         if ($stockCodeFilter === '') {
             return collect();
@@ -306,19 +312,36 @@ class ArtworkGalleryController extends Controller
 
         $normalized = mb_strtoupper($stockCodeFilter);
 
-        return ArtworkGallery::query()
+        $query = ArtworkGallery::query()
             ->with([
                 'stockCard:id,stock_code,stock_name,category_id',
                 'stockCard.category:id,name',
             ])
             ->withCount('usages')
             ->withMax('revisions', 'revision_no')
-            ->where('stock_code', 'like', '%' . $normalized . '%')
-            ->orderByRaw('CASE WHEN stock_code = ? THEN 0 ELSE 1 END', [$normalized])
-            ->orderByDesc('revision_no')
-            ->orderByDesc('created_at')
+            ->where('stock_code', 'like', '%' . $normalized . '%');
+
+        $this->applySort($query, $sort, $normalized);
+
+        return $query
             ->get()
             ->groupBy(fn (ArtworkGallery $item) => $item->stock_code ?: 'Belirsiz');
+    }
+
+    private function applySort(Builder $query, string $sort, ?string $exactStockCode = null): void
+    {
+        if ($exactStockCode) {
+            $query->orderByRaw('CASE WHEN stock_code = ? THEN 0 ELSE 1 END', [$exactStockCode]);
+        }
+
+        match ($sort) {
+            'created_asc' => $query->orderBy('created_at'),
+            'name_asc' => $query->orderBy('name')->orderByDesc('created_at'),
+            'name_desc' => $query->orderByDesc('name')->orderByDesc('created_at'),
+            'revision_asc' => $query->orderBy('revision_no')->orderBy('created_at'),
+            'revision_desc' => $query->orderByDesc('revision_no')->orderByDesc('created_at'),
+            default => $query->orderByDesc('created_at'),
+        };
     }
 
     private function buildStockHistory(string $stockCodeFilter)

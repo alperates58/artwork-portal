@@ -169,6 +169,25 @@ class SpacesStorageService
         return Storage::disk($this->diskName($disk))->exists($path);
     }
 
+    public function ensureReadable(string $path, ?string $disk = null): ?string
+    {
+        $resolvedDisk = $this->diskName($disk);
+        $absolutePath = Storage::disk($resolvedDisk)->path($path);
+
+        if ($this->usesSpaces($resolvedDisk)) {
+            return is_file($absolutePath) ? $absolutePath : null;
+        }
+
+        if (! is_file($absolutePath) || is_readable($absolutePath)) {
+            return is_file($absolutePath) ? $absolutePath : null;
+        }
+
+        $this->normalizeLocalPermissions($resolvedDisk, $path);
+        clearstatcache(true, $absolutePath);
+
+        return is_file($absolutePath) && is_readable($absolutePath) ? $absolutePath : null;
+    }
+
     public function usesSpaces(?string $disk = null): bool
     {
         return $this->diskName($disk) === 'spaces';
