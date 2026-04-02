@@ -140,32 +140,37 @@
                                 </div>
                             @endif
 
-                            @if($line->requiresRevision())
+                            @php $allRejections = $line->allRejectedApprovals; @endphp
+                            @if($line->requiresRevision() || $allRejections->isNotEmpty())
                                 <div class="mt-4 rounded-2xl border border-red-100 bg-red-50/80 px-4 py-3">
-                                    <div class="flex flex-wrap items-center justify-between gap-3">
+                                    <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
                                         <div>
-                                            <p class="text-xs font-semibold uppercase tracking-wide text-red-700">Revizyon talebi</p>
-                                            <p class="mt-1 text-sm text-slate-700">Bu artwork için tedarikçi tarafı yeni revizyon istedi.</p>
+                                            <p class="text-xs font-semibold uppercase tracking-wide text-red-700">Revizyon Talepleri</p>
+                                            <p class="mt-0.5 text-sm text-slate-700">Tedarikçi tarafından iletilen revizyon talepleri</p>
                                         </div>
-                                        <x-ui.badge variant="danger">Revizyon Gerekli</x-ui.badge>
-                                    </div>
-                                    <div class="mt-3 grid gap-3 md:grid-cols-2">
-                                        <div>
-                                            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Talep eden</p>
-                                            <p class="mt-1 text-sm text-slate-700">{{ $latestRejectedApproval?->user?->name ?? $latestRejectedApproval?->supplier?->name ?? 'Tedarikçi kullanıcısı' }}</p>
-                                            @if($latestRejectedApproval?->supplier?->name && $latestRejectedApproval?->user?->name)
-                                                <p class="text-xs text-slate-500">{{ $latestRejectedApproval->supplier->name }}</p>
+                                        <div class="flex items-center gap-2">
+                                            <span class="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">{{ $allRejections->count() }} talep</span>
+                                            @if($line->requiresRevision())
+                                                <x-ui.badge variant="danger">Revizyon Gerekli</x-ui.badge>
                                             @endif
                                         </div>
-                                        <div>
-                                            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Talep tarihi</p>
-                                            <p class="mt-1 text-sm text-slate-700">{{ $latestRejectedApproval?->actioned_at?->format('d.m.Y H:i') ?? 'Kayıt tarihi bulunamadı' }}</p>
+                                    </div>
+                                    @forelse($allRejections as $rejection)
+                                        <div class="mb-2 rounded-xl border border-red-100 bg-white/80 px-3 py-2.5 @if(!$loop->last) opacity-60 @endif">
+                                            <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                                                <span class="text-[11px] font-semibold text-slate-700">
+                                                    {{ $rejection->user?->name ?? 'Tedarikçi kullanıcısı' }}
+                                                    @if($rejection->supplier?->name)
+                                                        <span class="font-normal text-slate-500">· {{ $rejection->supplier->name }}</span>
+                                                    @endif
+                                                </span>
+                                                <span class="text-[10px] text-slate-400">{{ $rejection->actioned_at?->format('d.m.Y H:i') }}</span>
+                                            </div>
+                                            <p class="text-sm text-slate-700">{{ filled($rejection->notes) ? $rejection->notes : '—' }}</p>
                                         </div>
-                                    </div>
-                                    <div class="mt-3 rounded-xl border border-red-100 bg-white/80 px-3 py-2">
-                                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Tedarikçi notu</p>
-                                        <p class="mt-1 text-sm text-slate-700">{{ filled($latestRejectedApproval?->notes) ? $latestRejectedApproval->notes : 'Tedarikçi tarafından ek not bırakılmadı.' }}</p>
-                                    </div>
+                                    @empty
+                                        <p class="text-sm text-slate-500 italic">Henüz revizyon talebi oluşturulmamış.</p>
+                                    @endforelse
                                 </div>
                             @endif
                         </div>
@@ -271,7 +276,12 @@
                                 @csrf
                                 <input type="hidden" name="purchase_order_line_id" value="{{ $line->id }}">
                                 <label class="label">Sipariş açıklaması</label>
-                                <textarea name="body" rows="3" class="input resize-none" placeholder="Bu satırla ilgili açıklamanızı yazın...">{{ old('purchase_order_line_id') == $line->id && ! old('parent_id') ? old('body') : '' }}</textarea>
+                                @include('orders.partials.mention-textarea', [
+                                    'name' => 'body',
+                                    'rows' => 3,
+                                    'placeholder' => 'Bu satırla ilgili açıklamanızı yazın... (@isim ile kullanıcı etiketleyebilirsiniz)',
+                                    'value' => old('purchase_order_line_id') == $line->id && ! old('parent_id') ? old('body') : '',
+                                ])
                                 @if((string) old('purchase_order_line_id') === (string) $line->id && ! old('parent_id'))
                                     @error('body')
                                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -328,7 +338,12 @@
             <form method="POST" action="{{ route('orders.notes.store', $order) }}" class="space-y-3" x-show="showOrderNote" x-cloak>
                 @csrf
                 <div>
-                    <textarea name="body" rows="2" class="input resize-none" placeholder="Sipariş notu ekleyin...">{{ old('purchase_order_line_id') ? '' : old('body') }}</textarea>
+                    @include('orders.partials.mention-textarea', [
+                        'name' => 'body',
+                        'rows' => 2,
+                        'placeholder' => 'Sipariş notu ekleyin... (@isim ile kullanıcı etiketleyebilirsiniz)',
+                        'value' => old('purchase_order_line_id') ? '' : old('body'),
+                    ])
                     @if(! old('purchase_order_line_id') && ! old('parent_id'))
                         @error('body')
                             <p class="mt-1 text-xs text-red-600">{{ $message }}</p>

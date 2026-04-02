@@ -6,16 +6,70 @@
 @section('content')
 
 {{-- Filters --}}
-<div class="card p-5 mb-6">
+<div class="card p-5 mb-6"
+     x-data="{
+        supplierId: '{{ $selectedSupplier ?? '' }}',
+        orderId: '{{ $selectedOrder ?? '' }}',
+        lineId: '{{ $selectedLine ?? '' }}',
+        orders: [],
+        lines: [],
+        loadingOrders: false,
+        loadingLines: false,
+        async fetchOrders() {
+            this.orders = [];
+            this.orderId = '';
+            this.lines = [];
+            this.lineId = '';
+            if (!this.supplierId) return;
+            this.loadingOrders = true;
+            try {
+                const res = await fetch('{{ route('admin.reports.timeline.orders-json') }}?supplier_id=' + this.supplierId);
+                this.orders = await res.json();
+            } finally { this.loadingOrders = false; }
+        },
+        async fetchLines() {
+            this.lines = [];
+            this.lineId = '';
+            if (!this.orderId) return;
+            this.loadingLines = true;
+            try {
+                const res = await fetch('{{ route('admin.reports.timeline.lines-json') }}?order_id=' + this.orderId);
+                this.lines = await res.json();
+            } finally { this.loadingLines = false; }
+        },
+     }"
+     x-init="
+        if (supplierId) { await fetchOrders(); @if($selectedOrder) orderId = '{{ $selectedOrder }}'; await fetchLines(); @endif @if($selectedLine) lineId = '{{ $selectedLine }}'; @endif }
+     ">
     <form method="GET" action="{{ route('admin.reports.timeline') }}" class="flex flex-wrap items-end gap-4">
 
         <div class="flex flex-col gap-1 min-w-[180px]">
             <label class="label">Tedarikçi</label>
-            <select name="supplier_id" class="input">
+            <select name="supplier_id" class="input" x-model="supplierId" @change="fetchOrders()">
                 <option value="">Tüm tedarikçiler</option>
                 @foreach($suppliers as $s)
-                    <option value="{{ $s->id }}" @selected($selectedSupplier == $s->id)>{{ $s->name }}</option>
+                    <option value="{{ $s->id }}">{{ $s->name }}</option>
                 @endforeach
+            </select>
+        </div>
+
+        <div class="flex flex-col gap-1 min-w-[200px]" x-show="supplierId" x-cloak>
+            <label class="label">Sipariş No</label>
+            <select name="order_id" class="input" x-model="orderId" @change="fetchLines()">
+                <option value="">Tüm siparişler</option>
+                <template x-for="o in orders" :key="o.id">
+                    <option :value="o.id" x-text="o.label"></option>
+                </template>
+            </select>
+        </div>
+
+        <div class="flex flex-col gap-1 min-w-[220px]" x-show="orderId" x-cloak>
+            <label class="label">Stok Kodu / Satır</label>
+            <select name="line_id" class="input" x-model="lineId">
+                <option value="">Tüm satırlar</option>
+                <template x-for="l in lines" :key="l.id">
+                    <option :value="l.id" x-text="l.label"></option>
+                </template>
             </select>
         </div>
 

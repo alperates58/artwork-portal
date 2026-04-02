@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Order;
 
 use App\Http\Controllers\Controller;
+use App\Models\ArtworkRevision;
+use App\Models\AuditLog;
 use App\Models\PurchaseOrderLine;
 use App\Services\AuditLogService;
 use App\Services\DashboardCacheService;
@@ -27,14 +29,105 @@ class OrderLineController extends Controller
             'artwork.activeRevision.galleryItem',
             'artwork.activeRevision.latestRejectedApproval.user:id,name',
             'artwork.activeRevision.latestRejectedApproval.supplier:id,name',
-            'artwork.revisions' => fn ($q) => $q->with(['uploadedBy', 'galleryItem'])->orderByDesc('revision_no'),
+            'artwork.revisions' => fn ($q) => $q->with(['uploadedBy', 'galleryItem', 'rejectedApprovals.user:id,name', 'rejectedApprovals.supplier:id,name'])->orderByDesc('revision_no'),
             'lineNotes.user:id,name',
             'lineNotes.replies.user:id,name',
         ]);
 
         $this->audit->log('order_line.view', $line);
 
-        return view('orders.line-show', compact('line'));
+        // ─── Timeline ────────────────────────────────────────────────────
+        $timeline = collect();
+
+        foreach ($line->artwork?->revisions ?? [] as $revision) {
+            $timeline->push([
+                'at'    => $revision->created_at,
+                'icon'  => 'upload',
+                'color' => 'blue',
+                'title' => "Revizyon #{$revision->revision_no} yüklendi",
+                'sub'   => $revision->uploadedBy?->name ?? '—',
+            ]);
+        }
+
+        foreach ($line->lineNotes as $note) {
+            $timeline->push([
+                'at'    => $note->created_at,
+                'icon'  => 'note',
+                'color' => 'amber',
+                'title' => 'Satır açıklaması eklendi',
+                'sub'   => $note->user?->name ?? '—',
+                'body'  => mb_strimwidth($note->body, 0, 120, '…'),
+            ]);
+
+            foreach ($note->replies as $reply) {
+                $timeline->push([
+                    'at'    => $reply->created_at,
+                    'icon'  => 'reply',
+                    'color' => 'amber',
+                    'title' => 'Açıklama yanıtlandı',
+                    'sub'   => $reply->user?->name ?? '—',
+                    'body'  => mb_strimwidth($reply->body, 0, 120, '…'),
+                ]);
+            }
+        }
+
+        // Manual artwork completion logs
+        $manualArtworkLogs = AuditLog::query()
+            ->select(['id', 'user_id', 'action', 'model_type', 'model_id', 'payload', 'created_at'])
+            ->with('user:id,name')
+            ->where('model_type', PurchaseOrderLine::class)
+            ->where('model_id', $line->id)
+            ->where('action', 'order_line.manual_artwork.complete')
+            ->orderByDesc('created_at')
+            ->get();
+
+        foreach ($manualArtworkLogs as $log) {
+            $payload = $log->payload ?? [];
+            $timeline->push([
+                'at'    => $log->created_at,
+                'icon'  => 'mail',
+                'color' => 'emerald',
+                'title' => 'Manuel gönderildi olarak işaretlendi',
+                'sub'   => $log->user?->name ?? '—',
+                'body'  => $payload['note'] ?? null,
+            ]);
+        }
+
+        // Rejection logs
+        $revisionIds = collect($line->artwork?->revisions ?? [])->pluck('id');
+        if ($revisionIds->isNotEmpty()) {
+            $rejectionLogs = AuditLog::query()
+                ->select(['id', 'user_id', 'action', 'model_type', 'model_id', 'payload', 'created_at'])
+                ->with('user:id,name')
+                ->where('model_type', ArtworkRevision::class)
+                ->whereIn('model_id', $revisionIds)
+                ->where('action', 'artwork.rejected')
+                ->orderByDesc('created_at')
+                ->get();
+
+            foreach ($rejectionLogs as $log) {
+                $payload = $log->payload ?? [];
+                $timeline->push([
+                    'at'    => $log->created_at,
+                    'icon'  => 'x',
+                    'color' => 'red',
+                    'title' => 'Revizyon talebi oluşturuldu',
+                    'sub'   => $payload['supplier_name'] ?? $log->user?->name ?? '—',
+                    'body'  => $payload['notes'] ?? null,
+                ]);
+            }
+        }
+
+        $sorted = $timeline->sortByDesc('at')->values();
+        $timeline = $sorted->map(function ($event, $idx) use ($sorted) {
+            $next = $sorted->get($idx + 1);
+            $event['days_gap'] = $next
+                ? round(abs($event['at']->diffInMinutes($next['at'])) / 1440, 1)
+                : null;
+            return $event;
+        });
+
+        return view('orders.line-show', compact('line', 'timeline'));
     }
 
     public function markManualArtwork(Request $request, PurchaseOrderLine $line): RedirectResponse

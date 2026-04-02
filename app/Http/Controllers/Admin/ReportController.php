@@ -395,12 +395,47 @@ class ReportController extends Controller
         return view('admin.reports.category', compact('categories', 'tags', 'pendingByCategory', 'suppliers', 'selectedSupplierId', 'dateFrom', 'dateTo'));
     }
 
+    public function timelineOrdersJson(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $this->checkAccess();
+        $supplierId = $request->integer('supplier_id') ?: null;
+
+        $orders = PurchaseOrder::query()
+            ->when($supplierId, fn ($q) => $q->where('supplier_id', $supplierId))
+            ->orderByDesc('order_date')
+            ->get(['id', 'order_no']);
+
+        return response()->json($orders->map(fn ($o) => ['id' => $o->id, 'label' => $o->order_no]));
+    }
+
+    public function timelineLinesJson(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $this->checkAccess();
+        $orderId = $request->integer('order_id') ?: null;
+
+        if (! $orderId) {
+            return response()->json([]);
+        }
+
+        $lines = PurchaseOrderLine::query()
+            ->where('purchase_order_id', $orderId)
+            ->orderBy('line_no')
+            ->get(['id', 'line_no', 'product_code', 'description']);
+
+        return response()->json($lines->map(fn ($l) => [
+            'id'    => $l->id,
+            'label' => $l->product_code . ($l->description ? ' — ' . mb_strimwidth($l->description, 0, 40, '…') : ''),
+        ]));
+    }
+
     public function timeline(Request $request): View
     {
         $this->checkAccess();
 
         $suppliers         = Supplier::orderBy('name')->get(['id', 'name']);
         $selectedSupplier  = $request->input('supplier_id');
+        $selectedOrder     = $request->input('order_id');
+        $selectedLine      = $request->input('line_id');
         $dateFrom          = $request->input('date_from', now()->subDays(30)->format('Y-m-d'));
         $dateTo            = $request->input('date_to', now()->format('Y-m-d'));
         $types             = $request->input('types', ['order', 'artwork', 'note']);
@@ -418,6 +453,8 @@ class ReportController extends Controller
             $orders = PurchaseOrder::query()
                 ->with(['supplier:id,name', 'createdBy:id,name'])
                 ->when($selectedSupplier, fn ($q) => $q->where('supplier_id', $selectedSupplier))
+                ->when($selectedOrder, fn ($q) => $q->where('id', $selectedOrder))
+                ->when($selectedLine, fn ($q) => $q->whereHas('lines', fn ($lq) => $lq->where('id', $selectedLine)))
                 ->whereBetween('created_at', [$from, $to])
                 ->get(['id', 'order_no', 'supplier_id', 'created_by', 'created_at']);
 
@@ -447,6 +484,14 @@ class ReportController extends Controller
                 ->when($selectedSupplier, fn ($q) => $q->whereHas(
                     'artwork.orderLine.purchaseOrder',
                     fn ($oq) => $oq->where('supplier_id', $selectedSupplier)
+                ))
+                ->when($selectedOrder, fn ($q) => $q->whereHas(
+                    'artwork.orderLine',
+                    fn ($lq) => $lq->where('purchase_order_id', $selectedOrder)
+                ))
+                ->when($selectedLine, fn ($q) => $q->whereHas(
+                    'artwork',
+                    fn ($aq) => $aq->where('order_line_id', $selectedLine)
                 ))
                 ->whereBetween('artwork_revisions.created_at', [$from, $to])
                 ->get();
@@ -479,6 +524,8 @@ class ReportController extends Controller
                     'order',
                     fn ($oq) => $oq->where('supplier_id', $selectedSupplier)
                 ))
+                ->when($selectedOrder, fn ($q) => $q->where('purchase_order_id', $selectedOrder))
+                ->when($selectedLine, fn ($q) => $q->where('purchase_order_line_id', $selectedLine))
                 ->whereBetween('created_at', [$from, $to])
                 ->get();
 
@@ -529,7 +576,7 @@ class ReportController extends Controller
 
         return view('admin.reports.timeline', compact(
             'timeline', 'stats', 'chartDays',
-            'suppliers', 'selectedSupplier', 'dateFrom', 'dateTo', 'types'
+            'suppliers', 'selectedSupplier', 'selectedOrder', 'selectedLine', 'dateFrom', 'dateTo', 'types'
         ));
     }
 

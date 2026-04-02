@@ -87,18 +87,14 @@ class ArtworkApprovalService
     public function reject(ArtworkRevision $revision, User $user, string $notes): ArtworkApproval
     {
         $approval = DB::transaction(function () use ($revision, $user, $notes) {
-            $approval = ArtworkApproval::updateOrCreate(
-                [
-                    'artwork_revision_id' => $revision->id,
-                    'user_id'             => $user->id,
-                ],
-                [
-                    'supplier_id' => $user->supplier_id,
-                    'status'      => 'rejected',
-                    'notes'       => $notes,
-                    'actioned_at' => now(),
-                ]
-            );
+            $approval = ArtworkApproval::create([
+                'artwork_revision_id' => $revision->id,
+                'user_id'             => $user->id,
+                'supplier_id'         => $user->supplier_id,
+                'status'              => 'rejected',
+                'notes'               => $notes,
+                'actioned_at'         => now(),
+            ]);
 
             $revision->artwork->orderLine->update(['artwork_status' => 'revision']);
 

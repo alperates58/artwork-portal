@@ -234,7 +234,12 @@
                     <form method="POST" action="{{ route('orders.notes.store', $line->purchaseOrder) }}" class="rounded-xl border border-dashed border-slate-300 bg-white p-3" x-show="showCreate" x-cloak>
                         @csrf
                         <input type="hidden" name="purchase_order_line_id" value="{{ $line->id }}">
-                        <textarea name="body" rows="3" class="input resize-none" placeholder="Bu satırla ilgili açıklamanızı yazın...">{{ old('purchase_order_line_id') == $line->id && ! old('parent_id') ? old('body') : '' }}</textarea>
+                        @include('orders.partials.mention-textarea', [
+                            'name' => 'body',
+                            'rows' => 3,
+                            'placeholder' => 'Bu satırla ilgili açıklamanızı yazın... (@isim ile etiketleyebilirsiniz)',
+                            'value' => old('purchase_order_line_id') == $line->id && ! old('parent_id') ? old('body') : '',
+                        ])
                         @if((string) old('purchase_order_line_id') === (string) $line->id && ! old('parent_id'))
                             @error('body')
                                 <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -249,6 +254,83 @@
             </div>
         </div>
     </div>
+
+    {{-- Aktivite Zaman Çizelgesi --}}
+    @if($timeline->isNotEmpty())
+    <div class="card overflow-hidden">
+        <div class="border-b border-slate-100 px-6 py-4">
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-base font-semibold text-slate-900">Aktivite Zaman Çizelgesi</h3>
+                    <p class="mt-0.5 text-xs text-slate-500">{{ $timeline->count() }} olay</p>
+                </div>
+            </div>
+        </div>
+        <div class="px-6 py-5">
+            <ol class="relative space-y-0">
+                @foreach($timeline as $event)
+                    <li class="relative flex gap-4">
+                        {{-- Connector line --}}
+                        @if(!$loop->last)
+                            <div class="absolute left-[15px] top-8 bottom-0 w-px bg-slate-200"></div>
+                        @endif
+
+                        {{-- Dot --}}
+                        <div class="relative z-10 mt-1 flex h-8 w-8 flex-none items-center justify-center rounded-full
+                            @if($event['color'] === 'violet') bg-violet-100 text-violet-600
+                            @elseif($event['color'] === 'blue') bg-blue-100 text-blue-600
+                            @elseif($event['color'] === 'amber') bg-amber-100 text-amber-600
+                            @elseif($event['color'] === 'emerald') bg-emerald-100 text-emerald-600
+                            @elseif($event['color'] === 'red') bg-red-100 text-red-600
+                            @else bg-slate-100 text-slate-500
+                            @endif">
+                            @if($event['icon'] === 'upload')
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            @elseif($event['icon'] === 'note')
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            @elseif($event['icon'] === 'reply')
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                            @elseif($event['icon'] === 'mail')
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            @elseif($event['icon'] === 'x')
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                            @else
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/></svg>
+                            @endif
+                        </div>
+
+                        <div class="flex-1 pb-6">
+                            <div class="flex flex-wrap items-baseline gap-x-2">
+                                <p class="text-sm font-semibold text-slate-800">{{ $event['title'] }}</p>
+                                <p class="text-xs text-slate-400">{{ $event['at']->format('d.m.Y H:i') }}</p>
+                            </div>
+                            @if(!empty($event['sub']))
+                                <p class="mt-0.5 text-xs text-slate-500">{{ $event['sub'] }}</p>
+                            @endif
+                            @if(!empty($event['body']))
+                                <p class="mt-1 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">{{ $event['body'] }}</p>
+                            @endif
+
+                            @if(!$loop->last && ($event['days_gap'] ?? 0) >= 0.1)
+                                <div class="mt-3 flex items-center gap-2">
+                                    <div class="h-px flex-1 bg-slate-100"></div>
+                                    <span class="text-[10px] font-medium text-slate-400">
+                                        @if($event['days_gap'] >= 1)
+                                            {{ round($event['days_gap']) }} gün
+                                        @else
+                                            {{ round($event['days_gap'] * 24) }} saat
+                                        @endif
+                                    </span>
+                                    <div class="h-px flex-1 bg-slate-100"></div>
+                                </div>
+                            @endif
+                        </div>
+                    </li>
+                @endforeach
+            </ol>
+        </div>
+    </div>
+    @endif
 
     @if($line->hasActiveArtwork() && $line->activeRevision->has_preview)
         <div x-show="previewOpen" x-cloak x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-6" @click.self="previewOpen = false" @keydown.escape.window="previewOpen = false">

@@ -93,4 +93,14 @@ class PurchaseOrderLine extends Model
     {
         return $this->activeRevision?->latestRejectedApproval;
     }
+
+    /** Tüm revizyonlardaki revizyon talepleri (yeniden eskiye) */
+    public function getAllRejectedApprovalsAttribute(): \Illuminate\Support\Collection
+    {
+        return $this->artwork?->revisions
+            ?->flatMap(fn ($rev) => $rev->rejectedApprovals ?? collect())
+            ->sortByDesc('actioned_at')
+            ->values()
+            ?? collect();
+    }
 }

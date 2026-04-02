@@ -80,6 +80,13 @@ class ArtworkRevision extends Model
             );
     }
 
+    public function rejectedApprovals(): HasMany
+    {
+        return $this->hasMany(ArtworkApproval::class, 'artwork_revision_id')
+            ->where('status', 'rejected')
+            ->orderByDesc('actioned_at');
+    }
+
     // ─── Scopes ──────────────────────────────────────────────────
 
     public function scopeActive($query)

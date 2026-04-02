@@ -43,6 +43,13 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/search', [SearchController::class, 'search'])->name('search');
     Route::get('/bildirimler', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/bildirimler/okundu', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::get('/api/internal-users', fn () => response()->json(
+        \App\Models\User::where('is_active', true)
+            ->whereNotIn('role', ['supplier'])
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])
+    ))->name('api.internal-users');
 
     Route::get('/profil', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profil', [ProfileController::class, 'update'])->name('profile.update');
@@ -168,6 +175,8 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/raporlar/kategori', [ReportController::class, 'category'])->name('reports.category');
             Route::get('/raporlar/stok-kodu', [ReportController::class, 'stockCode'])->name('reports.stock-code');
             Route::get('/raporlar/aktivite', [ReportController::class, 'timeline'])->name('reports.timeline');
+            Route::get('/raporlar/aktivite/orders-json', [ReportController::class, 'timelineOrdersJson'])->name('reports.timeline.orders-json');
+            Route::get('/raporlar/aktivite/lines-json', [ReportController::class, 'timelineLinesJson'])->name('reports.timeline.lines-json');
             Route::get('/raporlar/performans', [ReportController::class, 'performance'])->name('reports.performance');
             // Report Factory
             Route::post('/raporlar/fabrika/onizleme', [ReportFactoryController::class, 'preview'])->name('reports.factory.preview');

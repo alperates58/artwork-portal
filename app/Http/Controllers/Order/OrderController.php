@@ -9,6 +9,7 @@ use App\Models\OrderNote;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
+use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\DashboardCacheService;
 use App\Services\NotificationService;
@@ -67,6 +68,8 @@ class OrderController extends Controller
             'lines.artwork.revisions' => fn ($query) => $query->orderByDesc('revision_no'),
             'lines.artwork.revisions.uploadedBy:id,name',
             'lines.artwork.revisions.galleryItem',
+            'lines.artwork.revisions.rejectedApprovals.user:id,name',
+            'lines.artwork.revisions.rejectedApprovals.supplier:id,name',
             'orderNotes.user:id,name',
             'orderNotes.replies.user:id,name',
         ]);
@@ -371,6 +374,27 @@ class OrderController extends Controller
             'line_id' => $lineId,
             'parent_id' => $parentId,
         ]);
+
+        // @mention notifications
+        preg_match_all('/@([\p{L}\p{N}_\s\.]+?)(?=\s|$|@)/u', $validated['body'], $matches);
+        if (!empty($matches[1])) {
+            $mentionedNames = array_unique(array_map('trim', $matches[1]));
+            $mentionedUsers = User::where('is_active', true)
+                ->whereNotIn('role', ['supplier'])
+                ->whereIn('name', $mentionedNames)
+                ->where('id', '!=', auth()->id())
+                ->get();
+
+            foreach ($mentionedUsers as $mentionedUser) {
+                $this->notifications->notify(
+                    $mentionedUser,
+                    'mention',
+                    auth()->user()->name . ' sizi bir notta etiketledi',
+                    mb_strimwidth($validated['body'], 0, 120, '…'),
+                    route('orders.show', $order),
+                );
+            }
+        }
 
         return back()->with('success', $parentNote
             ? 'Yanıt eklendi.'
