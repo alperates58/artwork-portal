@@ -61,7 +61,7 @@ class ArtworkUploadRequest extends FormRequest
                 if (! $selectedGalleryItem->is_active) {
                     $validator->errors()->add(
                         'gallery_item_id',
-                        'Pasif galeri kaydı siparişe tekrar kullanılamaz.'
+                        'Pasif galeri kaydı siparişte tekrar kullanılamaz.'
                     );
                 }
 

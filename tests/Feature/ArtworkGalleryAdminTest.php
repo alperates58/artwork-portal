@@ -109,7 +109,10 @@ class ArtworkGalleryAdminTest extends TestCase
             ->assertOk()
             ->assertSee('etiket-onizleme.png')
             ->assertSee('Ambalaj')
-            ->assertSee('Onizleme');
+            ->assertSee('Onizleme')
+            ->assertSee('Görüntüle')
+            ->assertSee('İndir')
+            ->assertSee('Düzenle');
     }
 
     public function test_admin_gallery_filters_apply_search_category_and_tag_together(): void

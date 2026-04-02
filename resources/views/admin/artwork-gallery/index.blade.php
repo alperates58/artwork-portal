@@ -372,6 +372,7 @@
                     $badgeClass = $fileTypeColors[$ext] ?? 'bg-slate-100 text-slate-600 border border-slate-200';
                     $stockName  = $item->stockCard?->stock_name ?? null;
                     $catName    = $item->stockCard?->category?->display_name ?? ($item->category?->display_name ?? null);
+                    $canManageGalleryItem = auth()->user()->isAdmin() || auth()->user()->hasPermission('gallery', 'manage');
                 @endphp
 
                 <div class="group relative flex flex-col rounded-2xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition hover:border-slate-300 hover:shadow-[0_4px_16px_rgba(15,23,42,0.08)]">
@@ -429,8 +430,8 @@
                         @endif
 
                         {{-- Hover Aksiyonları --}}
-                        <div class="absolute inset-0 flex items-center justify-center gap-2 bg-slate-900/0 transition-all group-hover:bg-slate-900/30">
-                            <div class="flex translate-y-2 gap-2 opacity-0 transition-all group-hover:translate-y-0 group-hover:opacity-100">
+                        <div class="pointer-events-none absolute inset-0 hidden items-center justify-center gap-2 bg-slate-900/0 transition-all group-hover:bg-slate-900/30 sm:flex">
+                            <div class="pointer-events-auto flex translate-y-2 gap-2 opacity-0 transition-all group-hover:translate-y-0 group-hover:opacity-100">
                                 <button
                                     type="button"
                                     data-dialog-open="gallery-preview-{{ $item->id }}"
@@ -451,7 +452,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                                     </svg>
                                 </a>
-                                @if(auth()->user()->isAdmin() || auth()->user()->hasPermission('gallery', 'manage'))
+                                @if($canManageGalleryItem)
                                 <a
                                     href="{{ route('admin.artwork-gallery.edit', $item) }}"
                                     class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/90 text-slate-700 shadow-lg backdrop-blur-sm transition hover:bg-white hover:text-brand-700"
@@ -464,6 +465,40 @@
                                 @endif
                             </div>
                         </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 border-t border-slate-200 bg-slate-50/80 p-2.5 sm:hidden">
+                        <button
+                            type="button"
+                            data-dialog-open="gallery-preview-{{ $item->id }}"
+                            class="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:text-brand-700"
+                        >
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            Görüntüle
+                        </button>
+                        <a
+                            href="{{ route('artworks.gallery.download', $item) }}"
+                            class="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"
+                        >
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            İndir
+                        </a>
+                        @if($canManageGalleryItem)
+                            <a
+                                href="{{ route('admin.artwork-gallery.edit', $item) }}"
+                                class="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand-200 hover:text-brand-700"
+                            >
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                                Düzenle
+                            </a>
+                        @endif
                     </div>
 
                     {{-- Kart Alt Bilgisi --}}

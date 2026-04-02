@@ -42,10 +42,12 @@ class ArtworkController extends Controller
                 ->where('stock_code', mb_strtoupper(trim((string) $prefillStockCode)))
                 ->first()
             : null;
+
         $nextRevisionNo = $this->revisionNumbers->nextUploadRevisionNo(
             line: $line,
             stockCode: $resolvedStockCard?->stock_code ?? $prefillStockCode,
         );
+
         $galleryCandidates = ArtworkGallery::query()
             ->active()
             ->select([
@@ -81,6 +83,7 @@ class ArtworkController extends Controller
             ->get()
             ->unique(fn (ArtworkGallery $item) => ($item->stock_code ?? '') . '|' . (string) ($item->revision_no ?? 0))
             ->values();
+
         $galleryCategories = ArtworkCategory::query()->orderBy('name')->get(['id', 'name']);
 
         return view('artworks.create', compact('line', 'resolvedStockCard', 'nextRevisionNo', 'galleryCandidates', 'galleryCategories'));
@@ -108,6 +111,7 @@ class ArtworkController extends Controller
 
         $line->load('purchaseOrder:id,order_no,supplier_id');
         $orderNo = $line->purchaseOrder?->order_no ?? 'Sipariş';
+
         $this->notifications->notifyDepartment(
             null,
             'artwork_uploaded',

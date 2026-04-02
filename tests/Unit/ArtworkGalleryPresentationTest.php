@@ -29,4 +29,23 @@ class ArtworkGalleryPresentationTest extends TestCase
         $this->assertSame('AI', $galleryItem->file_type_display);
         $this->assertSame('Tasarım dosyası', $galleryItem->file_type_description);
     }
+
+    public function test_browser_previewable_gallery_items_prefer_original_file_over_generated_preview(): void
+    {
+        $galleryItem = new ArtworkGallery([
+            'name' => 'urun-fotografi.jpg',
+            'file_type' => 'image/jpeg',
+            'file_disk' => 'spaces',
+            'file_path' => 'artworks/gallery/original/urun-fotografi.jpg',
+            'preview_file_disk' => 'spaces',
+            'preview_file_path' => 'artworks/gallery/preview/urun-fotografi.png',
+            'preview_file_type' => 'image/png',
+            'preview_file_name' => 'urun-fotografi-preview.png',
+        ]);
+
+        $this->assertSame('spaces', $galleryItem->preview_disk);
+        $this->assertSame('artworks/gallery/original/urun-fotografi.jpg', $galleryItem->preview_path);
+        $this->assertSame('image/jpeg', $galleryItem->preview_mime_type);
+        $this->assertSame('urun-fotografi.jpg', $galleryItem->preview_filename);
+    }
 }

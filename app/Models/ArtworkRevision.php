@@ -106,22 +106,29 @@ class ArtworkRevision extends Model
 
     public function getPreviewDiskAttribute(): ?string
     {
+        if ($this->isBrowserPreviewableOriginal()) {
+            return $this->galleryItem?->file_disk;
+        }
+
         return $this->galleryItem?->preview_disk ?: $this->galleryItem?->file_disk;
     }
 
     public function getPreviewPathAttribute(): ?string
     {
-        return $this->getAttributeFromArray('preview_spaces_path') ?: ($this->isBrowserPreviewableOriginal() ? $this->spaces_path : null);
+        return ($this->isBrowserPreviewableOriginal() ? $this->spaces_path : null)
+            ?: $this->getAttributeFromArray('preview_spaces_path');
     }
 
     public function getPreviewMimeTypeAttribute(): ?string
     {
-        return $this->getAttributeFromArray('preview_mime_type') ?: ($this->isBrowserPreviewableOriginal() ? $this->mime_type : null);
+        return ($this->isBrowserPreviewableOriginal() ? $this->mime_type : null)
+            ?: $this->getAttributeFromArray('preview_mime_type');
     }
 
     public function getPreviewFilenameAttribute(): ?string
     {
-        return $this->getAttributeFromArray('preview_original_filename') ?: ($this->isBrowserPreviewableOriginal() ? $this->original_filename : null);
+        return ($this->isBrowserPreviewableOriginal() ? $this->original_filename : null)
+            ?: $this->getAttributeFromArray('preview_original_filename');
     }
 
     private function isBrowserPreviewableOriginal(): bool

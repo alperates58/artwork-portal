@@ -2166,30 +2166,49 @@ docker compose exec app php artisan portal:update</textarea>
             }
 
             try {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
+                var copied = false;
+                var temp = document.createElement('textarea');
+                temp.value = text;
+                temp.setAttribute('readonly', 'readonly');
+                temp.style.position = 'fixed';
+                temp.style.top = '0';
+                temp.style.left = '-9999px';
+                temp.style.opacity = '0';
+                document.body.appendChild(temp);
+                temp.focus({ preventScroll: true });
+                temp.select();
+                temp.setSelectionRange(0, temp.value.length);
+
+                try {
+                    copied = document.execCommand('copy') === true;
+                } catch (error) {
+                    copied = false;
+                }
+
+                document.body.removeChild(temp);
+
+                if (!copied && navigator.clipboard && navigator.clipboard.writeText) {
                     await navigator.clipboard.writeText(text);
-                } else {
-                    var temp = document.createElement('textarea');
-                    temp.value = text;
-                    temp.setAttribute('readonly', 'readonly');
-                    temp.style.position = 'absolute';
-                    temp.style.left = '-9999px';
-                    document.body.appendChild(temp);
-                    temp.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(temp);
+                    copied = true;
+                }
+
+                if (!copied) {
+                    window.prompt('Komutu manuel kopyalayın:', text);
+                    throw new Error('clipboard-unavailable');
                 }
 
                 button.textContent = 'Kopyalandı';
                 button.classList.add('border-emerald-300', 'bg-emerald-50', 'text-emerald-700');
             } catch (error) {
-                button.textContent = 'Kopyalanamadı';
-                button.classList.add('border-red-300', 'bg-red-50', 'text-red-700');
+                button.textContent = error && error.message === 'clipboard-unavailable'
+                    ? 'Elle Kopyalayın'
+                    : 'Kopyalanamadı';
+                button.classList.add('border-amber-300', 'bg-amber-50', 'text-amber-700');
             }
 
             window.setTimeout(function () {
                 button.textContent = button.dataset.originalText || originalText;
-                button.classList.remove('border-emerald-300', 'bg-emerald-50', 'text-emerald-700', 'border-red-300', 'bg-red-50', 'text-red-700');
+                button.classList.remove('border-emerald-300', 'bg-emerald-50', 'text-emerald-700', 'border-amber-300', 'bg-amber-50', 'text-amber-700');
             }, 1600);
         });
     });

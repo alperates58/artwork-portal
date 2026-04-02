@@ -39,19 +39,19 @@
             </div>
         </div>
 
-        <div class="grid min-h-0 flex-1 gap-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5 xl:grid-cols-[minmax(0,1.9fr)_310px]">
+        <div class="grid min-h-0 flex-1 gap-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5 xl:grid-cols-[minmax(0,1.9fr)_310px] xl:gap-5">
             <section class="min-h-0 min-w-0 space-y-3">
                 <div class="rounded-[24px] border border-slate-200 bg-slate-50 p-2 sm:rounded-[28px] sm:p-3">
                     @if($artworkGallery->has_preview)
-                        <button type="button" data-dialog-open="{{ $dialogId }}-zoom" class="group relative flex min-h-[16rem] w-full items-center justify-center overflow-hidden rounded-[20px] bg-white p-2 text-left sm:min-h-[24rem] sm:rounded-[24px] sm:p-4 xl:min-h-[calc(92vh-19rem)]">
+                        <button type="button" data-dialog-open="{{ $dialogId }}-zoom" class="group relative flex h-[min(42dvh,22rem)] w-full items-center justify-center overflow-hidden rounded-[20px] bg-white p-2 text-left sm:h-[min(54dvh,30rem)] sm:rounded-[24px] sm:p-4 xl:h-[calc(92vh-19rem)] xl:min-h-[24rem]">
                             <img
                                 src="{{ route('artworks.gallery.preview', $artworkGallery, false) }}"
                                 alt="{{ $artworkGallery->display_name }}"
-                                class="block max-h-full max-w-full object-contain transition duration-300 group-hover:scale-[1.01]"
+                                class="block h-full w-full max-h-full max-w-full object-contain transition duration-300 group-hover:scale-[1.01]"
                             >
                         </button>
                     @else
-                        <div class="flex min-h-[16rem] items-center justify-center rounded-[20px] bg-white p-4 sm:min-h-[24rem] sm:rounded-[24px] xl:min-h-[calc(92vh-19rem)]">
+                        <div class="flex h-[min(42dvh,22rem)] items-center justify-center rounded-[20px] bg-white p-4 sm:h-[min(54dvh,30rem)] sm:rounded-[24px] xl:h-[calc(92vh-19rem)] xl:min-h-[24rem]">
                             @include('artwork-gallery.partials.file-visual', [
                                 'artworkGallery' => $artworkGallery,
                                 'sizeClass' => 'h-32 w-32 sm:h-40 sm:w-40',
@@ -146,7 +146,7 @@
                     <img
                         src="{{ route('artworks.gallery.preview', $artworkGallery, false) }}"
                         alt="{{ $artworkGallery->display_name }}"
-                        class="block max-h-full max-w-full rounded-[20px] bg-white object-contain sm:rounded-[24px]"
+                        class="block h-auto max-h-full w-auto max-w-full rounded-[20px] bg-white object-contain sm:rounded-[24px]"
                     >
                 </div>
             </div>

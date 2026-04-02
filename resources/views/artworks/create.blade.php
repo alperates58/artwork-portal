@@ -4,18 +4,27 @@
 @section('page-subtitle', 'Stok kartı doğrulaması ile yeni dosya yükleyin veya galeriden revizyon seçin.')
 
 @section('header-actions')
-    <a href="{{ route('orders.show', $line->purchaseOrder) }}" class="btn btn-secondary">� Siparişe Dön</a>
+    <a href="{{ route('orders.show', $line->purchaseOrder) }}" class="btn btn-secondary">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Siparişe Dön
+    </a>
 @endsection
 
 @php
+    use App\Support\DisplayText;
+
     $initialSourceType = old('source_type', 'upload');
     $initialGalleryItemId = old('gallery_item_id', '');
-    $currentMaxRevision = (int) ($line->artwork?->revisions()->max('revision_no') ?? 0);
+    $currentMaxRevision = (int) ($line->artwork?->revisions->max('revision_no') ?? 0);
     $nextRevisionNoValue = $nextRevisionNo;
+    $resolvedStockName = old('stock_name', DisplayText::normalize($resolvedStockCard?->stock_name));
+    $resolvedCategoryName = old('category_name', DisplayText::normalize($resolvedStockCard?->category?->display_name));
 @endphp
 
 @section('content')
-<div class="mx-auto max-w-6xl space-y-5">
+<div class="mx-auto max-w-6xl space-y-6">
     <div class="card p-5">
         <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="min-w-0">
@@ -23,7 +32,7 @@
                     <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-sm font-bold text-slate-600">{{ $line->line_no }}</span>
                     <div>
                         <p class="text-2xl font-semibold text-slate-900">{{ $line->purchaseOrder->order_no }}</p>
-                        <p class="mt-1 text-sm text-slate-500">{{ $line->purchaseOrder->supplier->name }}</p>
+                        <p class="mt-1 text-sm text-slate-500">{{ DisplayText::normalize($line->purchaseOrder->supplier->name) }}</p>
                     </div>
                 </div>
                 <div class="mt-4 flex flex-wrap items-center gap-2 text-xs">
@@ -53,7 +62,7 @@
             </div>
 
             <div class="flex justify-center">
-                <button type="button" id="gallery-modal-open" class="inline-flex min-w-[260px] items-center justify-center rounded-2xl border border-brand-200 bg-brand-50 px-6 py-3 text-sm font-semibold text-brand-700 shadow-sm transition hover:bg-brand-100 hover:border-brand-300">
+                <button type="button" id="gallery-modal-open" class="inline-flex min-w-[260px] items-center justify-center rounded-2xl border border-brand-200 bg-brand-50 px-6 py-3 text-sm font-semibold text-brand-700 shadow-sm transition hover:border-brand-300 hover:bg-brand-100">
                     Galeriden Seç
                 </button>
             </div>
@@ -111,7 +120,7 @@
                 </div>
             </div>
 
-                <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+            <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
                 <div>
                     <label class="label" for="stock_code">Stok Kodu</label>
                     <input type="text" id="stock_code" name="stock_code" value="{{ old('stock_code', $resolvedStockCard?->stock_code ?? $line->product_code) }}" class="input font-mono" placeholder="Stok kodu girin" required>
@@ -134,11 +143,11 @@
             <div class="grid gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(220px,0.8fr)]">
                 <div>
                     <label class="label" for="stock_name">Stok Adı</label>
-                    <input type="text" id="stock_name" name="stock_name" value="{{ old('stock_name', $resolvedStockCard?->stock_name) }}" class="input bg-slate-50" readonly>
+                    <input type="text" id="stock_name" name="stock_name" value="{{ $resolvedStockName }}" class="input bg-slate-50" readonly>
                 </div>
                 <div>
                     <label class="label" for="category_name">Kategori</label>
-                    <input type="text" id="category_name" name="category_name" value="{{ old('category_name', $resolvedStockCard?->category?->display_name) }}" class="input bg-slate-50" readonly>
+                    <input type="text" id="category_name" name="category_name" value="{{ $resolvedCategoryName }}" class="input bg-slate-50" readonly>
                 </div>
             </div>
 
@@ -161,7 +170,7 @@
                                     @if($rev->is_active)
                                         <span class="badge badge-success">Aktif</span>
                                     @endif
-                                    <span class="text-sm text-slate-700">{{ $rev->original_filename }}</span>
+                                    <span class="text-sm text-slate-700">{{ DisplayText::normalize($rev->original_filename) }}</span>
                                 </div>
                                 <span class="text-xs text-slate-400">{{ $rev->created_at->format('d.m.Y H:i') }}</span>
                             </div>
@@ -201,7 +210,7 @@
                         <select id="galleryCategoryFilter" class="input">
                             <option value="">Tüm kategoriler</option>
                             @foreach($galleryCategories as $category)
-                                <option value="{{ $category->id }}">{{ $category->display_name }}</option>
+                                <option value="{{ $category->id }}">{{ DisplayText::normalize($category->display_name) }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -214,8 +223,8 @@
                 <div id="galleryGrid" class="grid max-h-[50vh] gap-3 overflow-y-auto pr-1 md:grid-cols-2">
                     @foreach($galleryCandidates as $candidate)
                         @php
-                            $candidateStockName = $candidate->stockCard?->stock_name ?? 'Stok kartı eşleşmedi';
-                            $candidateCategoryName = $candidate->stockCard?->category?->display_name ?? 'Kategorisiz';
+                            $candidateStockName = DisplayText::normalize($candidate->stockCard?->stock_name ?? 'Stok kartı eşleşmedi');
+                            $candidateCategoryName = DisplayText::normalize($candidate->stockCard?->category?->display_name ?? 'Kategorisiz');
                             $revisionBadge = 'REV' . str_pad((string) ((int) ($candidate->revision_no ?? 0)), 2, '0', STR_PAD_LEFT);
                             $systemRevisionBadge = ((int) ($candidate->revisions_max_revision_no ?? 0)) > 0
                                 ? 'Sistemde Rev.' . str_pad((string) ((int) $candidate->revisions_max_revision_no), 2, '0', STR_PAD_LEFT)
@@ -231,8 +240,8 @@
                             data-stock-name="{{ e($candidateStockName) }}"
                             data-category-id="{{ $candidate->stockCard?->category_id ?? $candidate->category_id }}"
                             data-category-name="{{ e($candidateCategoryName) }}"
-                            data-file-name="{{ e($candidate->name) }}"
-                            data-search="{{ mb_strtolower($candidate->name . ' ' . $candidate->stock_code . ' ' . $candidateStockName . ' ' . $candidateCategoryName) }}"
+                            data-file-name="{{ e($candidate->display_name) }}"
+                            data-search="{{ mb_strtolower($candidate->display_name . ' ' . $candidate->stock_code . ' ' . $candidateStockName . ' ' . $candidateCategoryName) }}"
                         >
                             <div class="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white/80">
                                 <div class="aspect-[16/9] w-full bg-slate-100">
@@ -356,7 +365,7 @@ async function resolveStockCard() {
         return;
     }
 
-    setLookupState('Stok kartı kontrol ediliyor…');
+    setLookupState('Stok kartı kontrol ediliyor...');
 
     try {
         const response = await fetch(`{{ route('stock-cards.lookup') }}?stock_code=${encodeURIComponent(stockCode)}`, {
@@ -443,6 +452,7 @@ function openGalleryModal() {
         const sidebarWidth = window.innerWidth >= 1024 && sidebarWrap ? sidebarWrap.getBoundingClientRect().width : 0;
         galleryModalViewport.style.transform = sidebarWidth > 0 ? `translateX(${sidebarWidth / 2}px)` : 'translateX(0)';
     }
+
     galleryModal.classList.remove('hidden');
     galleryModal.setAttribute('aria-hidden', 'false');
     syncGalleryFilterFromStock();
@@ -457,6 +467,7 @@ function closeGalleryModal() {
 
 if (modalOpenBtn) modalOpenBtn.addEventListener('click', openGalleryModal);
 if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeGalleryModal);
+
 if (galleryModal) {
     galleryModal.addEventListener('click', event => {
         if (event.target === galleryModal || event.target.classList.contains('bg-slate-900/45')) {
@@ -502,11 +513,13 @@ if (dropZone) {
         event.preventDefault();
         dropZone.classList.add('border-brand-400', 'bg-brand-50/60');
     });
+
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-brand-400', 'bg-brand-50/60'));
     dropZone.addEventListener('drop', event => {
         event.preventDefault();
         dropZone.classList.remove('border-brand-400', 'bg-brand-50/60');
         const file = event.dataTransfer.files[0];
+
         if (file) {
             fileInput.files = event.dataTransfer.files;
             setSourceMode('upload');
@@ -517,8 +530,10 @@ if (dropZone) {
 
 function showFile(file) {
     if (!file) return;
+
     const mb = (file.size / 1048576).toFixed(1);
     const ext = file.name.split('.').pop().toUpperCase();
+
     document.getElementById('drop-empty').classList.add('hidden');
     document.getElementById('drop-selected').classList.remove('hidden');
     document.getElementById('selected-file-name').textContent = file.name;
@@ -559,7 +574,7 @@ function startUpload() {
     uploadInProgress = true;
     progressW.classList.remove('hidden');
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Yükleniyor…';
+    submitBtn.textContent = 'Yükleniyor...';
     progressBar.style.width = '0%';
     progressPct.textContent = '0%';
 
@@ -568,7 +583,10 @@ function startUpload() {
         const pct = Math.round(event.loaded / event.total * 100);
         progressBar.style.width = `${pct}%`;
         progressPct.textContent = `${pct}%`;
-        if (pct === 100) submitBtn.textContent = 'Kaydediliyor…';
+
+        if (pct === 100) {
+            submitBtn.textContent = 'Kaydediliyor...';
+        }
     });
 
     xhr.addEventListener('load', () => {
@@ -604,6 +622,7 @@ function startUpload() {
         }
 
         setUploadError(errorMessage);
+
         if (xhr.status === 422 && stockInput) {
             stockInput.focus();
         }
@@ -670,4 +689,3 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 @endpush
-

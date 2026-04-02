@@ -9,7 +9,7 @@
         <img
             src="{{ route('artworks.gallery.preview', $artworkGallery, false) }}"
             alt="{{ $artworkGallery->display_name }}"
-            class="{{ $sizeClass }} {{ $roundedClass }} object-cover ring-1 ring-slate-200 bg-slate-50"
+            class="{{ $sizeClass }} {{ $roundedClass }} object-contain bg-white p-1.5 ring-1 ring-slate-200"
             loading="lazy"
             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
         >

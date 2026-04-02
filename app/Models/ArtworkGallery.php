@@ -155,27 +155,31 @@ class ArtworkGallery extends Model
 
     public function getPreviewDiskAttribute(): ?string
     {
+        if ($this->isBrowserPreviewableOriginal()) {
+            return $this->file_disk;
+        }
+
         return $this->getAttributeFromArray('preview_file_disk') ?: $this->file_disk;
     }
 
     public function getPreviewPathAttribute(): ?string
     {
-        return $this->getAttributeFromArray('preview_file_path')
-            ?: ($this->isBrowserPreviewableOriginal() ? $this->file_path : null)
+        return ($this->isBrowserPreviewableOriginal() ? $this->file_path : null)
+            ?: $this->getAttributeFromArray('preview_file_path')
             ?: $this->fallbackPreviewPath();
     }
 
     public function getPreviewMimeTypeAttribute(): ?string
     {
-        return $this->getAttributeFromArray('preview_file_type')
-            ?: ($this->isBrowserPreviewableOriginal() ? $this->file_type : null)
+        return ($this->isBrowserPreviewableOriginal() ? $this->file_type : null)
+            ?: $this->getAttributeFromArray('preview_file_type')
             ?: $this->fallbackPreviewRevision()?->preview_mime_type;
     }
 
     public function getPreviewFilenameAttribute(): ?string
     {
-        return $this->getAttributeFromArray('preview_file_name')
-            ?: ($this->isBrowserPreviewableOriginal() ? $this->name : null)
+        return ($this->isBrowserPreviewableOriginal() ? $this->name : null)
+            ?: $this->getAttributeFromArray('preview_file_name')
             ?: $this->fallbackPreviewRevision()?->preview_original_filename;
     }
 

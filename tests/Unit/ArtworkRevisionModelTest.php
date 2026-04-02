@@ -45,4 +45,20 @@ class ArtworkRevisionModelTest extends TestCase
         $this->assertTrue($active->isVisibleToSupplier());
         $this->assertFalse($archived->isVisibleToSupplier());
     }
+
+    public function test_browser_previewable_revisions_prefer_original_file_over_generated_preview(): void
+    {
+        $revision = new ArtworkRevision([
+            'original_filename' => 'urun-fotografi.png',
+            'mime_type' => 'image/png',
+            'spaces_path' => 'artworks/revisions/original/urun-fotografi.png',
+            'preview_spaces_path' => 'artworks/revisions/preview/urun-fotografi.png',
+            'preview_mime_type' => 'image/jpeg',
+            'preview_original_filename' => 'urun-fotografi-preview.jpg',
+        ]);
+
+        $this->assertSame('artworks/revisions/original/urun-fotografi.png', $revision->preview_path);
+        $this->assertSame('image/png', $revision->preview_mime_type);
+        $this->assertSame('urun-fotografi.png', $revision->preview_filename);
+    }
 }
