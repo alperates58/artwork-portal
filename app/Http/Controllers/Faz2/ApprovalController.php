@@ -8,6 +8,7 @@ use App\Models\ArtworkRevision;
 use App\Services\Faz2\ArtworkApprovalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class ApprovalController extends Controller
 {
@@ -39,6 +40,26 @@ class ApprovalController extends Controller
         $this->approvalService->approve($revision, auth()->user());
 
         return back()->with('success', 'Artwork onaylandi. Tesekkurler.');
+    }
+
+    public function reject(ArtworkRevision $revision, Request $request): RedirectResponse
+    {
+        abort_unless(auth()->user()->isSupplier(), 403);
+        abort_unless(
+            auth()->user()->canAccessOrder($revision->artwork->orderLine->purchaseOrder),
+            403
+        );
+
+        $request->validate([
+            'notes' => ['required', 'string', 'min:10', 'max:1000'],
+        ], [
+            'notes.required' => 'Revizyon talebi için bir açıklama girmelisiniz.',
+            'notes.min'      => 'Açıklama en az 10 karakter olmalıdır.',
+        ]);
+
+        $this->approvalService->reject($revision, auth()->user(), $request->notes);
+
+        return back()->with('success', 'Revizyon talebiniz iletildi. Grafik ekibi en kısa sürede dönüş yapacak.');
     }
 
     public function status(ArtworkRevision $revision): JsonResponse

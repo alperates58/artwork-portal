@@ -203,5 +203,6 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::middleware(['auth', 'active', 'role:supplier'])->group(function () {
         Route::post('/revizyon/{revision}/gordum', [\App\Http\Controllers\Faz2\ApprovalController::class, 'confirmSeen'])->name('approval.seen');
         Route::post('/revizyon/{revision}/onayla', [\App\Http\Controllers\Faz2\ApprovalController::class, 'approve'])->name('approval.approve');
+        Route::post('/revizyon/{revision}/reddet', [\App\Http\Controllers\Faz2\ApprovalController::class, 'reject'])->name('approval.reject');
     });
 });
