@@ -83,4 +83,14 @@ class PurchaseOrderLine extends Model
     {
         return $this->artwork?->activeRevision;
     }
+
+    public function requiresRevision(): bool
+    {
+        return ($this->artwork_status?->value ?? $this->artwork_status) === ArtworkStatus::REVISION->value;
+    }
+
+    public function getLatestRejectedApprovalAttribute(): ?ArtworkApproval
+    {
+        return $this->activeRevision?->latestRejectedApproval;
+    }
 }

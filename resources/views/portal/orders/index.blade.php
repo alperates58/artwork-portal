@@ -36,6 +36,9 @@
 {{-- Orders list --}}
 <div class="space-y-3">
     @forelse($orders as $order)
+        @php
+            $revisionRequestCount = $order->lines->filter(fn ($line) => $line->requiresRevision())->count();
+        @endphp
         <div class="card hover:shadow-sm transition-shadow">
             <div class="p-5">
                 <div class="flex items-start justify-between gap-4">
@@ -44,6 +47,9 @@
                             <span class="font-mono font-semibold text-slate-900">{{ $order->order_no }}</span>
                             @php $cls = $order->status === 'active' ? 'badge-success' : 'badge-gray'; @endphp
                             <x-ui.badge :variant="str_replace('badge-', '', $cls)">{{ $order->status_label }}</x-ui.badge>
+                            @if($revisionRequestCount > 0)
+                                <x-ui.badge variant="danger">{{ $revisionRequestCount }} revizyon bekliyor</x-ui.badge>
+                            @endif
                         </div>
                         <p class="text-xs text-slate-500">
                             {{ $order->order_date->format('d.m.Y') }}
@@ -62,11 +68,9 @@
                         <div class="bg-slate-50 rounded-lg px-3 py-2">
                             <div class="flex items-center justify-between gap-2">
                                 <p class="text-xs font-medium text-slate-700 truncate">{{ $line->product_code }}</p>
-                                @if($line->hasActiveArtwork())
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
-                                @else
-                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0"></span>
-                                @endif
+                                <x-ui.badge :variant="match($line->artwork_status?->value ?? 'pending'){'uploaded' => 'success','revision' => 'danger','approved' => 'info',default => 'warning'}">
+                                    {{ $line->artwork_status?->label() ?? 'Bekliyor' }}
+                                </x-ui.badge>
                             </div>
                             <p class="text-xs text-slate-400 mt-0.5">
                                 {{ $line->hasActiveArtwork() ? 'Hazır' : 'Bekliyor' }}

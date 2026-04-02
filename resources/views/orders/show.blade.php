@@ -110,6 +110,9 @@
 
         <div class="divide-y divide-slate-100">
             @foreach($order->lines as $line)
+                @php
+                    $latestRejectedApproval = $line->latestRejectedApproval;
+                @endphp
                 <div class="px-5 py-5" x-data="{ showCreate: false, replyTo: {{ old('parent_id') ? (int) old('parent_id') : 'null' }}, editTarget: {{ old('edit_note_id') ? (int) old('edit_note_id') : 'null' }} }">
                     <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                         <div class="min-w-0 flex-1">
@@ -134,6 +137,35 @@
                                     <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">Manuel gönderim notu</p>
                                     <p class="mt-2 text-sm text-slate-700">{{ $line->manual_artwork_note }}</p>
                                     <p class="mt-1 text-xs text-slate-500">{{ $line->manualArtworkCompletedBy?->name ?? '—' }} · {{ $line->manual_artwork_completed_at?->format('d.m.Y H:i') }}</p>
+                                </div>
+                            @endif
+
+                            @if($line->requiresRevision())
+                                <div class="mt-4 rounded-2xl border border-red-100 bg-red-50/80 px-4 py-3">
+                                    <div class="flex flex-wrap items-center justify-between gap-3">
+                                        <div>
+                                            <p class="text-xs font-semibold uppercase tracking-wide text-red-700">Revizyon talebi</p>
+                                            <p class="mt-1 text-sm text-slate-700">Bu artwork için tedarikçi tarafı yeni revizyon istedi.</p>
+                                        </div>
+                                        <x-ui.badge variant="danger">Revizyon Gerekli</x-ui.badge>
+                                    </div>
+                                    <div class="mt-3 grid gap-3 md:grid-cols-2">
+                                        <div>
+                                            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Talep eden</p>
+                                            <p class="mt-1 text-sm text-slate-700">{{ $latestRejectedApproval?->user?->name ?? $latestRejectedApproval?->supplier?->name ?? 'Tedarikçi kullanıcısı' }}</p>
+                                            @if($latestRejectedApproval?->supplier?->name && $latestRejectedApproval?->user?->name)
+                                                <p class="text-xs text-slate-500">{{ $latestRejectedApproval->supplier->name }}</p>
+                                            @endif
+                                        </div>
+                                        <div>
+                                            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Talep tarihi</p>
+                                            <p class="mt-1 text-sm text-slate-700">{{ $latestRejectedApproval?->actioned_at?->format('d.m.Y H:i') ?? 'Kayıt tarihi bulunamadı' }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 rounded-xl border border-red-100 bg-white/80 px-3 py-2">
+                                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Tedarikçi notu</p>
+                                        <p class="mt-1 text-sm text-slate-700">{{ filled($latestRejectedApproval?->notes) ? $latestRejectedApproval->notes : 'Tedarikçi tarafından ek not bırakılmadı.' }}</p>
+                                    </div>
                                 </div>
                             @endif
                         </div>

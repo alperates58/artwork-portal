@@ -97,6 +97,9 @@
             <div x-show="open" x-cloak class="border-t border-slate-100 bg-slate-50/70 px-4 py-4">
                 <div class="space-y-3">
                     @foreach($order->lines as $line)
+                        @php
+                            $latestRejectedApproval = $line->latestRejectedApproval;
+                        @endphp
                         <a href="{{ route('order-lines.show', $line) }}" class="block rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-brand-200 hover:shadow-sm">
                             <div class="flex flex-wrap items-start justify-between gap-3">
                                 <div class="min-w-0 flex-1">
@@ -105,6 +108,14 @@
                                         <x-ui.badge :variant="match($line->artwork_status?->value ?? 'pending'){'uploaded' => 'success','revision' => 'danger','approved' => 'info',default => 'warning'}">{{ $line->artwork_status?->label() ?? 'Bekliyor' }}</x-ui.badge>
                                     </div>
                                     <p class="mt-1 text-sm text-slate-600">{{ $line->description }}</p>
+                                    @if($line->requiresRevision())
+                                        <p class="mt-1 text-xs text-red-600">
+                                            Talep eden: {{ $latestRejectedApproval?->user?->name ?? $latestRejectedApproval?->supplier?->name ?? 'Tedarikçi kullanıcısı' }}
+                                            @if($latestRejectedApproval?->actioned_at)
+                                                · {{ $latestRejectedApproval->actioned_at->format('d.m.Y H:i') }}
+                                            @endif
+                                        </p>
+                                    @endif
                                 </div>
                                 <div class="text-right text-sm text-slate-500">
                                     <p>{{ $line->quantity }} {{ $line->unit }}</p>
@@ -213,6 +224,7 @@
                                                 @foreach($order->lines as $line)
                                                     @php
                                                         $lineUploadAt = $line->artwork?->activeRevision?->created_at;
+                                                        $latestRejectedApproval = $line->latestRejectedApproval;
                                                         $lineDays = $lineUploadAt
                                                             ? round($order->order_date->diffInMinutes($lineUploadAt, false) / 1440, 1)
                                                             : null;
@@ -237,6 +249,17 @@
                                                         <td class="px-4 py-3 whitespace-nowrap text-slate-500">{{ $order->order_date->format('d.m.Y') }}</td>
                                                         <td class="px-4 py-3">
                                                             <x-ui.badge :variant="match($line->artwork_status?->value ?? 'pending'){'uploaded' => 'success','revision' => 'danger','approved' => 'info',default => 'warning'}">{{ $line->artwork_status?->label() ?? 'Bekliyor' }}</x-ui.badge>
+                                                            @if($line->requiresRevision())
+                                                                <p class="mt-1 text-[11px] text-red-600">
+                                                                    {{ $latestRejectedApproval?->user?->name ?? $latestRejectedApproval?->supplier?->name ?? 'Tedarikçi kullanıcısı' }}
+                                                                    @if($latestRejectedApproval?->actioned_at)
+                                                                        · {{ $latestRejectedApproval->actioned_at->format('d.m.Y H:i') }}
+                                                                    @endif
+                                                                </p>
+                                                                @if(filled($latestRejectedApproval?->notes))
+                                                                    <p class="mt-1 line-clamp-1 text-[11px] text-slate-500">Not: {{ $latestRejectedApproval->notes }}</p>
+                                                                @endif
+                                                            @endif
                                                         </td>
                                                         <td class="px-4 py-3 whitespace-nowrap text-slate-500">{{ $lineUploadAt?->format('d.m.Y') ?? '—' }}</td>
                                                         <td class="px-4 py-3 min-w-[150px]">

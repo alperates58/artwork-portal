@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ArtworkRevision extends Model
 {
@@ -62,6 +64,20 @@ class ArtworkRevision extends Model
     public function uploadedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    public function approvals(): HasMany
+    {
+        return $this->hasMany(ArtworkApproval::class, 'artwork_revision_id');
+    }
+
+    public function latestRejectedApproval(): HasOne
+    {
+        return $this->hasOne(ArtworkApproval::class, 'artwork_revision_id')
+            ->ofMany(
+                ['actioned_at' => 'max', 'id' => 'max'],
+                fn ($query) => $query->where('status', 'rejected')
+            );
     }
 
     // ─── Scopes ──────────────────────────────────────────────────

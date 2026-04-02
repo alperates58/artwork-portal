@@ -30,6 +30,9 @@
 
     <div class="space-y-3">
         @foreach($order->lines as $line)
+            @php
+                $latestRejectedApproval = $line->latestRejectedApproval;
+            @endphp
             <div class="card">
                 <div class="p-5">
                     <div class="flex items-start justify-between gap-4 mb-3">
@@ -37,6 +40,9 @@
                             <div class="flex items-center gap-2 mb-0.5">
                                 <span class="text-xs font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">{{ $line->line_no }}</span>
                                 <span class="text-sm font-semibold text-slate-900">{{ $line->product_code }}</span>
+                                <x-ui.badge :variant="match($line->artwork_status?->value ?? 'pending'){'uploaded' => 'success','revision' => 'danger','approved' => 'info',default => 'warning'}">
+                                    {{ $line->artwork_status?->label() ?? 'Bekliyor' }}
+                                </x-ui.badge>
                             </div>
                             <p class="text-sm text-slate-600">{{ $line->description }}</p>
                             <p class="text-xs text-slate-400 mt-0.5">
@@ -96,6 +102,35 @@
                                 </div>
                             @endif
                         </div>
+
+                        @if($line->requiresRevision())
+                            <div class="mt-3 rounded-xl border border-red-100 bg-red-50/80 p-4">
+                                <div class="flex flex-wrap items-center justify-between gap-3">
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase tracking-wide text-red-700">Revizyon talebi</p>
+                                        <p class="mt-1 text-sm text-slate-700">Bu dosya için yeni revizyon talebi oluşturuldu.</p>
+                                    </div>
+                                    <x-ui.badge variant="danger">Revizyon Gerekli</x-ui.badge>
+                                </div>
+                                <div class="mt-3 grid gap-3 md:grid-cols-2">
+                                    <div>
+                                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Talep eden</p>
+                                        <p class="mt-1 text-sm text-slate-700">{{ $latestRejectedApproval?->user?->name ?? $latestRejectedApproval?->supplier?->name ?? 'Tedarikçi kullanıcısı' }}</p>
+                                        @if($latestRejectedApproval?->supplier?->name && $latestRejectedApproval?->user?->name)
+                                            <p class="text-xs text-slate-500">{{ $latestRejectedApproval->supplier->name }}</p>
+                                        @endif
+                                    </div>
+                                    <div>
+                                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Talep tarihi</p>
+                                        <p class="mt-1 text-sm text-slate-700">{{ $latestRejectedApproval?->actioned_at?->format('d.m.Y H:i') ?? 'Kayıt tarihi bulunamadı' }}</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3 rounded-lg border border-red-100 bg-white/80 px-3 py-2">
+                                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Tedarikçi notu</p>
+                                    <p class="mt-1 text-sm text-slate-700">{{ filled($latestRejectedApproval?->notes) ? $latestRejectedApproval->notes : 'Bu revizyon talebi için ek not bırakılmadı.' }}</p>
+                                </div>
+                            </div>
+                        @endif
                     @else
                         <div class="bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-center gap-3">
                             <svg class="w-8 h-8 text-amber-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

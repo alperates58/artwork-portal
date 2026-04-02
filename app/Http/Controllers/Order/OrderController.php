@@ -34,6 +34,8 @@ class OrderController extends Controller
                 'lines:id,purchase_order_id,product_code,description,quantity,unit,artwork_status',
                 'lines.artwork:id,order_line_id',
                 'lines.artwork.activeRevision:id,artwork_id,created_at',
+                'lines.artwork.activeRevision.latestRejectedApproval.user:id,name',
+                'lines.artwork.activeRevision.latestRejectedApproval.supplier:id,name',
             ])
             ->withListMetrics()
             ->when($request->supplier_id, fn ($query) => $query->where('supplier_id', $request->supplier_id))
@@ -59,6 +61,8 @@ class OrderController extends Controller
             'lines.lineNotes.replies.user:id,name',
             'lines.artwork.activeRevision.uploadedBy',
             'lines.artwork.activeRevision.galleryItem',
+            'lines.artwork.activeRevision.latestRejectedApproval.user:id,name',
+            'lines.artwork.activeRevision.latestRejectedApproval.supplier:id,name',
             'lines.artwork.revisions' => fn ($query) => $query->orderByDesc('revision_no'),
             'lines.artwork.revisions.uploadedBy:id,name',
             'lines.artwork.revisions.galleryItem',

@@ -28,7 +28,7 @@ class PortalOrderController extends Controller
             ->whereIn('supplier_id', $user->accessibleSupplierIds()->all())
             ->with([
                 'supplier:id,name',
-                'lines' => fn ($query) => $query->select('id', 'purchase_order_id', 'line_no', 'product_code', 'description', 'quantity', 'unit'),
+                'lines' => fn ($query) => $query->select('id', 'purchase_order_id', 'line_no', 'product_code', 'description', 'quantity', 'unit', 'artwork_status'),
                 'lines.artwork:id,order_line_id',
                 'lines.artwork.activeRevision:id,artwork_id',
             ])
@@ -55,6 +55,8 @@ class PortalOrderController extends Controller
             'supplier',
             'lines.artwork.activeRevision.uploadedBy',
             'lines.artwork.activeRevision.galleryItem',
+            'lines.artwork.activeRevision.latestRejectedApproval.user:id,name',
+            'lines.artwork.activeRevision.latestRejectedApproval.supplier:id,name',
         ]);
 
         $this->artworkUploadService->logViews(
