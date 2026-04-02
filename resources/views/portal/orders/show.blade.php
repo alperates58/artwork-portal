@@ -7,7 +7,7 @@
 @endsection
 
 @section('content')
-<div class="max-w-4xl">
+<div class="space-y-6">
     <div class="card p-4 mb-5 grid grid-cols-2 md:grid-cols-5 gap-4">
         <div class="md:col-span-2">
             <p class="text-xs text-slate-500 mb-0.5">Sipariş</p>

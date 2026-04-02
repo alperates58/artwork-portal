@@ -80,6 +80,7 @@ class OrderController extends Controller
             'color' => 'violet',
             'title' => 'Sipariş oluşturuldu',
             'sub' => $order->createdBy?->name ?? '—',
+            'line_id' => null,
         ]);
 
         foreach ($order->lines as $line) {
@@ -90,6 +91,7 @@ class OrderController extends Controller
                     'color' => 'blue',
                     'title' => "Revizyon #{$revision->revision_no} yüklendi",
                     'sub' => ($revision->uploadedBy?->name ?? '—') . ' · ' . ($line->description ?? $line->product_code ?? "Satır #{$line->id}"),
+                    'line_id' => $line->id,
                 ]);
             }
         }
@@ -102,6 +104,7 @@ class OrderController extends Controller
                 'title' => 'Not eklendi',
                 'sub' => $note->user?->name ?? '—',
                 'body' => mb_strimwidth($note->body, 0, 120, '…'),
+                'line_id' => null,
             ]);
 
             foreach ($note->replies as $reply) {
@@ -112,6 +115,7 @@ class OrderController extends Controller
                     'title' => 'Not yanıtlandı',
                     'sub' => $reply->user?->name ?? '—',
                     'body' => mb_strimwidth($reply->body, 0, 120, '…'),
+                    'line_id' => null,
                 ]);
             }
         }
@@ -125,6 +129,7 @@ class OrderController extends Controller
                     'title' => 'Satır açıklaması eklendi',
                     'sub' => ($note->user?->name ?? '—') . ' · ' . ($line->product_code ?? "Satır #{$line->id}"),
                     'body' => mb_strimwidth($note->body, 0, 120, '…'),
+                    'line_id' => $line->id,
                 ]);
 
                 foreach ($note->replies as $reply) {
@@ -135,6 +140,7 @@ class OrderController extends Controller
                         'title' => 'Satır açıklaması yanıtlandı',
                         'sub' => ($reply->user?->name ?? '—') . ' · ' . ($line->product_code ?? "Satır #{$line->id}"),
                         'body' => mb_strimwidth($reply->body, 0, 120, '…'),
+                        'line_id' => $line->id,
                     ]);
                 }
             }
@@ -159,6 +165,7 @@ class OrderController extends Controller
                 'title' => 'Satır manuel gönderildi olarak işaretlendi',
                 'sub' => ($log->user?->name ?? '—') . ' · ' . ($payload['product_code'] ?? ('Satır #' . ($payload['line_no'] ?? $log->model_id))),
                 'body' => $payload['note'] ?? null,
+                'line_id' => $log->model_id,
             ]);
         }
 

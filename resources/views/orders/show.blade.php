@@ -343,13 +343,26 @@
         </div>
     </div>
 
-    <div class="card">
-        <div class="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
-            <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="card" x-data="{ selectedLine: 'all' }">
+        <div class="flex flex-wrap items-center gap-3 border-b border-slate-100 px-5 py-4">
+            <svg class="h-5 w-5 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             <h3 class="text-sm font-semibold text-slate-800">Aktivite Zaman Çizelgesi</h3>
-            <span class="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">{{ $timeline->count() }} olay</span>
+            <div class="ml-auto flex items-center gap-3">
+                @if($order->lines->count() > 1)
+                    <select
+                        x-model="selectedLine"
+                        class="rounded-lg border border-slate-200 bg-white py-1.5 pl-3 pr-8 text-xs text-slate-700 shadow-sm focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-300"
+                    >
+                        <option value="all">Tüm Satırlar</option>
+                        @foreach($order->lines as $line)
+                            <option value="{{ $line->id }}">{{ $line->product_code }}{{ $line->description ? ' — ' . \Illuminate\Support\Str::limit($line->description, 40) : '' }}</option>
+                        @endforeach
+                    </select>
+                @endif
+                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">{{ $timeline->count() }} olay</span>
+            </div>
         </div>
 
         @if($timeline->isEmpty())
@@ -358,7 +371,12 @@
             <div class="px-5 py-6">
                 <ol class="relative ml-3">
                     @foreach($timeline as $event)
-                        <li class="relative ml-6 mb-0">
+                        @php $lineId = $event['line_id'] ?? null; @endphp
+                        <li
+                            class="relative ml-6 mb-0"
+                            x-show="selectedLine === 'all' || {{ $lineId === null ? 'true' : 'false' }} || selectedLine === '{{ $lineId }}'"
+                            x-cloak
+                        >
                             <span class="absolute -left-3 flex h-6 w-6 items-center justify-center rounded-full ring-4 ring-white @if($event['color'] === 'violet') bg-violet-100 text-violet-600 @elseif($event['color'] === 'blue') bg-blue-100 text-blue-600 @elseif($event['color'] === 'amber') bg-amber-100 text-amber-600 @elseif($event['color'] === 'emerald') bg-emerald-100 text-emerald-600 @else bg-slate-100 text-slate-500 @endif">
                                 @if($event['icon'] === 'plus')
                                     <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
@@ -396,7 +414,11 @@
                                     };
                                     $gapHeight = max(60, min(120, $gap <= 0 ? 60 : intval(log($gap + 1, 2) * 38 + 44)));
                                 @endphp
-                                <div class="relative mb-3" style="height: {{ $gapHeight }}px">
+                                <div
+                                    class="relative mb-3"
+                                    style="height: {{ $gapHeight }}px"
+                                    x-show="selectedLine === 'all'"
+                                >
                                     <div class="absolute left-0 top-0 w-0.5 -translate-x-1/2 rounded-full bg-gradient-to-b {{ $barBg }}" style="height: calc(50% - 13px)"></div>
                                     <div class="absolute left-0 bottom-0 w-0.5 -translate-x-1/2 rounded-full bg-gradient-to-b {{ $barBg }}" style="height: calc(50% - 13px)"></div>
                                     <div class="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2">
