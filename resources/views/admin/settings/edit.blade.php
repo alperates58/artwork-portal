@@ -391,6 +391,12 @@
                                         </svg>
                                         Commit Geçmişini Yükle
                                     </button>
+                                    <button type="button" class="btn btn-secondary" data-dialog-open="update-fix-dialog">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                        </svg>
+                                        Fix Rehberi
+                                    </button>
                                     <button type="button" class="btn btn-primary" data-dialog-open="deploy-dialog"
                                         style="background:linear-gradient(180deg,#059669,#047857);box-shadow:0 6px 16px rgba(5,150,105,.25);">
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1747,6 +1753,262 @@
 @endpush
 
 @push('modals')
+{{-- Update Fix Dialog --}}
+<dialog id="update-fix-dialog" class="update-modal w-full max-w-5xl rounded-3xl border border-slate-200 p-0 shadow-2xl">
+    <div class="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+        <div>
+            <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">Fix ve Operasyon Notları</p>
+            <h3 class="mt-2 text-lg font-semibold text-slate-900">Güncelleme Sonrası Hızlı Çözüm Rehberi</h3>
+            <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                Görünüm tarafındaki değişiklikleri asıl olarak <span class="font-mono font-semibold text-slate-700">npm run build</span> üretir.
+                Yani evet, grafik ve arayüz güncellemeleri için kritik adım npm/Vite derlemesidir. Paneldeki
+                <span class="font-semibold text-slate-700">GitHub'dan Güncelle</span> akışı bunu otomatik denemeye çalışır.
+            </p>
+        </div>
+        <button type="button" data-dialog-close class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900">
+            <span class="sr-only">Kapat</span>
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="max-h-[85vh] space-y-4 overflow-y-auto px-6 py-6">
+        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4">
+            <p class="text-sm font-semibold text-emerald-900">Önce bunu deneyin</p>
+            <p class="mt-1 text-sm leading-6 text-emerald-800">
+                Normal senaryoda sadece <span class="font-semibold">GitHub'dan Güncelle</span> yeterlidir.
+                Bu akış sırasıyla <span class="font-mono text-[12px]">git pull</span>,
+                <span class="font-mono text-[12px]">config:clear</span>,
+                <span class="font-mono text-[12px]">cache:clear</span>,
+                <span class="font-mono text-[12px]">portal:update</span>,
+                <span class="font-mono text-[12px]">npm ci</span> ve
+                <span class="font-mono text-[12px]">npm run build</span> adımlarını dener.
+            </p>
+            <p class="mt-2 text-xs leading-5 text-emerald-700">
+                Aşağıdaki butonlar komutu doğrudan çalıştırmaz; ilgili local veya sunucu komutunu panoya kopyalar.
+            </p>
+        </div>
+
+        <div class="grid gap-4 xl:grid-cols-2">
+            <section class="rounded-2xl border border-slate-200 bg-white p-5">
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-700">1</span>
+                    <h4 class="text-sm font-semibold text-slate-900">Görünüm eski kaldıysa</h4>
+                </div>
+                <p class="mt-3 text-sm leading-6 text-slate-600">
+                    Buton renkleri eskiyse, yeni sayfa düzeni görünmüyorsa, mobil görünüm bozuksa veya
+                    “Vite manifest / CSS / JS” benzeri uyarılar görüyorsanız bu adımı çalıştırın.
+                </p>
+                <pre class="mt-3 overflow-x-auto rounded-2xl bg-slate-950 px-4 py-3 text-[11px] leading-5 text-slate-100"><code>docker compose run --rm node npm ci
+docker compose run --rm node npm run build
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan cache:clear
+docker compose exec app php artisan portal:update</code></pre>
+                <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <button type="button" class="btn btn-secondary justify-center sm:justify-start" data-copy-target="fix-local-1">Local Komutunu Kopyala</button>
+                    <button type="button" class="btn btn-secondary justify-center sm:justify-end" data-copy-target="fix-server-1">Sunucu Komutunu Kopyala</button>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                    <span class="rounded-full bg-slate-100 px-2.5 py-1">Local yaklaşık 2:30 dk</span>
+                    <span class="rounded-full bg-slate-100 px-2.5 py-1">Sunucu yaklaşık 1:30 dk</span>
+                </div>
+                <textarea id="fix-local-1" class="hidden">Set-Location 'C:\Users\alper\Desktop\artwork-portal'
+docker compose run --rm node npm ci
+docker compose run --rm node npm run build
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan cache:clear
+docker compose exec app php artisan portal:update</textarea>
+                <textarea id="fix-server-1" class="hidden">cd /var/www/artwork-portal
+docker compose run --rm node npm ci
+docker compose run --rm node npm run build
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan cache:clear
+docker compose exec app php artisan portal:update</textarea>
+                <p class="mt-3 text-xs leading-5 text-slate-500">
+                    Grafik değişikliklerini ekrana taşıyan ana adım budur. Özellikle Blade, Tailwind veya JS değişikliği sonrası gereklidir.
+                </p>
+            </section>
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-5">
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-sky-100 text-sky-700">2</span>
+                    <h4 class="text-sm font-semibold text-slate-900">Kod çekildi ama sistem toparlanmadıysa</h4>
+                </div>
+                <p class="mt-3 text-sm leading-6 text-slate-600">
+                    Git pull işlemini terminalden manuel yaptıysanız, güncelleme sonrası sayfa yarım açılıyorsa,
+                    migration veya queue tarafı geride kaldıysa bu akışı uygulayın.
+                </p>
+                <pre class="mt-3 overflow-x-auto rounded-2xl bg-slate-950 px-4 py-3 text-[11px] leading-5 text-slate-100"><code>docker compose exec app php artisan config:clear
+docker compose exec app php artisan cache:clear
+docker compose exec app php artisan portal:update</code></pre>
+                <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <button type="button" class="btn btn-secondary justify-center sm:justify-start" data-copy-target="fix-local-2">Local Komutunu Kopyala</button>
+                    <button type="button" class="btn btn-secondary justify-center sm:justify-end" data-copy-target="fix-server-2">Sunucu Komutunu Kopyala</button>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                    <span class="rounded-full bg-slate-100 px-2.5 py-1">Local yaklaşık 0:45 dk</span>
+                    <span class="rounded-full bg-slate-100 px-2.5 py-1">Sunucu yaklaşık 0:30 dk</span>
+                </div>
+                <textarea id="fix-local-2" class="hidden">Set-Location 'C:\Users\alper\Desktop\artwork-portal'
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan cache:clear
+docker compose exec app php artisan portal:update</textarea>
+                <textarea id="fix-server-2" class="hidden">cd /var/www/artwork-portal
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan cache:clear
+docker compose exec app php artisan portal:update</textarea>
+                <p class="mt-3 text-xs leading-5 text-slate-500">
+                    <span class="font-mono">portal:update</span> içinde migrate, storage:link, optimize:clear, queue:restart ve production cache adımları bulunur.
+                </p>
+            </section>
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-5">
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-rose-100 text-rose-700">3</span>
+                    <h4 class="text-sm font-semibold text-slate-900">npm EACCES / node_modules izin hatası</h4>
+                </div>
+                <p class="mt-3 text-sm leading-6 text-slate-600">
+                    <span class="font-mono">npm ERR! EACCES</span>, <span class="font-mono">permission denied</span> veya
+                    <span class="font-mono">node_modules</span> yazılamıyor uyarısı alırsanız izin düzeltmesi gerekir.
+                </p>
+                <pre class="mt-3 overflow-x-auto rounded-2xl bg-slate-950 px-4 py-3 text-[11px] leading-5 text-slate-100"><code>cd /var/www/artwork-portal
+docker compose exec -u root app sh -lc "mkdir -p /var/www/html/node_modules /var/www/.npm /var/www/.config /var/www/html/public/build && chown -R www-data:www-data /var/www/html/node_modules /var/www/.npm /var/www/.config /var/www/html/public/build"
+docker compose exec -u www-data app sh -lc "npm install --no-audit --no-fund && npm run build"
+docker compose restart app nginx</code></pre>
+                <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <button type="button" class="btn btn-secondary justify-center sm:justify-start" data-copy-target="fix-local-3">Local Komutunu Kopyala</button>
+                    <button type="button" class="btn btn-secondary justify-center sm:justify-end" data-copy-target="fix-server-3">Sunucu Komutunu Kopyala</button>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                    <span class="rounded-full bg-slate-100 px-2.5 py-1">Local yaklaşık 1:45 dk</span>
+                    <span class="rounded-full bg-slate-100 px-2.5 py-1">Sunucu yaklaşık 1:15 dk</span>
+                </div>
+                <textarea id="fix-local-3" class="hidden">Set-Location 'C:\Users\alper\Desktop\artwork-portal'
+docker compose run --rm node npm install --no-audit --no-fund
+docker compose run --rm node npm run build
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan cache:clear
+docker compose exec app php artisan portal:update</textarea>
+                <textarea id="fix-server-3" class="hidden">cd /var/www/artwork-portal
+docker compose exec -u root app sh -lc "mkdir -p /var/www/html/node_modules /var/www/.npm /var/www/.config /var/www/html/public/build && chown -R www-data:www-data /var/www/html/node_modules /var/www/.npm /var/www/.config /var/www/html/public/build"
+docker compose exec -u www-data app sh -lc "npm install --no-audit --no-fund && npm run build"
+docker compose restart app nginx</textarea>
+                <p class="mt-3 text-xs leading-5 text-slate-500">
+                    Bu düzeltme genelde paneldeki web update butonunun asset build aşamasını tekrar çalıştırabilir hale getirir.
+                </p>
+            </section>
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-5">
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-violet-100 text-violet-700">4</span>
+                    <h4 class="text-sm font-semibold text-slate-900">Git izin / safe.directory hatası</h4>
+                </div>
+                <p class="mt-3 text-sm leading-6 text-slate-600">
+                    <span class="font-mono">detected dubious ownership</span>, <span class="font-mono">safe.directory</span>,
+                    <span class="font-mono">.git permission denied</span> veya panelde git çekememe hatası aldığınızda bunu uygulayın.
+                </p>
+                <pre class="mt-3 overflow-x-auto rounded-2xl bg-slate-950 px-4 py-3 text-[11px] leading-5 text-slate-100"><code>cd /var/www/artwork-portal
+git config --global --add safe.directory /var/www/artwork-portal
+sudo chown -R www-data:www-data /var/www/artwork-portal</code></pre>
+                <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <button type="button" class="btn btn-secondary justify-center sm:justify-start" data-copy-target="fix-local-4">Local Komutunu Kopyala</button>
+                    <button type="button" class="btn btn-secondary justify-center sm:justify-end" data-copy-target="fix-server-4">Sunucu Komutunu Kopyala</button>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                    <span class="rounded-full bg-slate-100 px-2.5 py-1">Local yaklaşık 0:10 dk</span>
+                    <span class="rounded-full bg-slate-100 px-2.5 py-1">Sunucu yaklaşık 0:20 dk</span>
+                </div>
+                <textarea id="fix-local-4" class="hidden">Set-Location 'C:\Users\alper\Desktop\artwork-portal'
+git config --global --add safe.directory "C:/Users/alper/Desktop/artwork-portal"
+git status
+git pull origin main</textarea>
+                <textarea id="fix-server-4" class="hidden">cd /var/www/artwork-portal
+git config --global --add safe.directory /var/www/artwork-portal
+sudo chown -R www-data:www-data /var/www/artwork-portal
+git pull origin main</textarea>
+                <p class="mt-3 text-xs leading-5 text-slate-500">
+                    Sonrasında <span class="font-mono">git pull</span>'u manuel çalıştırıp panelde çıkan
+                    <span class="font-semibold">Artisan Adımlarını Uygula</span> butonunu kullanabilirsiniz.
+                </p>
+            </section>
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-5">
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-orange-100 text-orange-700">5</span>
+                    <h4 class="text-sm font-semibold text-slate-900">Composer veya yeni paket geldiğinde</h4>
+                </div>
+                <p class="mt-3 text-sm leading-6 text-slate-600">
+                    <span class="font-mono">Class not found</span>, yeni servis/provider bulunamıyor veya
+                    <span class="font-mono">composer.json</span> değişmişse bağımlılıkları da güncelleyin.
+                </p>
+                <pre class="mt-3 overflow-x-auto rounded-2xl bg-slate-950 px-4 py-3 text-[11px] leading-5 text-slate-100"><code>cd /var/www/artwork-portal
+docker compose exec app composer install --no-dev --optimize-autoloader
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan cache:clear
+docker compose exec app php artisan portal:update</code></pre>
+                <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <button type="button" class="btn btn-secondary justify-center sm:justify-start" data-copy-target="fix-local-5">Local Komutunu Kopyala</button>
+                    <button type="button" class="btn btn-secondary justify-center sm:justify-end" data-copy-target="fix-server-5">Sunucu Komutunu Kopyala</button>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                    <span class="rounded-full bg-slate-100 px-2.5 py-1">Local yaklaşık 1:30 dk</span>
+                    <span class="rounded-full bg-slate-100 px-2.5 py-1">Sunucu yaklaşık 1:00 dk</span>
+                </div>
+                <textarea id="fix-local-5" class="hidden">Set-Location 'C:\Users\alper\Desktop\artwork-portal'
+docker compose exec app composer install --no-dev --optimize-autoloader
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan cache:clear
+docker compose exec app php artisan portal:update</textarea>
+                <textarea id="fix-server-5" class="hidden">cd /var/www/artwork-portal
+docker compose exec app composer install --no-dev --optimize-autoloader
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan cache:clear
+docker compose exec app php artisan portal:update</textarea>
+                <p class="mt-3 text-xs leading-5 text-slate-500">
+                    Web update akışı composer adımını dener; ama yeni paketlerde manuel doğrulama daha güvenlidir.
+                </p>
+            </section>
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-5">
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-slate-200 text-slate-700">6</span>
+                    <h4 class="text-sm font-semibold text-slate-900">Container/image değiştiyse</h4>
+                </div>
+                <p class="mt-3 text-sm leading-6 text-slate-600">
+                    <span class="font-mono">npm bulunamadı</span>, preview araçları eksikse veya Dockerfile değişikliği sonrası
+                    eski image ile çalışıyorsanız container yeniden oluşturulmalıdır.
+                </p>
+                <pre class="mt-3 overflow-x-auto rounded-2xl bg-slate-950 px-4 py-3 text-[11px] leading-5 text-slate-100"><code>cd /var/www/artwork-portal
+docker compose build app queue scheduler
+docker compose up -d --force-recreate app queue scheduler
+docker compose run --rm node npm run build</code></pre>
+                <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <button type="button" class="btn btn-secondary justify-center sm:justify-start" data-copy-target="fix-local-6">Local Komutunu Kopyala</button>
+                    <button type="button" class="btn btn-secondary justify-center sm:justify-end" data-copy-target="fix-server-6">Sunucu Komutunu Kopyala</button>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                    <span class="rounded-full bg-slate-100 px-2.5 py-1">Local yaklaşık 3:00 dk</span>
+                    <span class="rounded-full bg-slate-100 px-2.5 py-1">Sunucu yaklaşık 2:30 dk</span>
+                </div>
+                <textarea id="fix-local-6" class="hidden">Set-Location 'C:\Users\alper\Desktop\artwork-portal'
+docker compose build app queue scheduler
+docker compose up -d --force-recreate app queue scheduler
+docker compose run --rm node npm run build
+docker compose exec app php artisan portal:update</textarea>
+                <textarea id="fix-server-6" class="hidden">cd /var/www/artwork-portal
+docker compose build app queue scheduler
+docker compose up -d --force-recreate app queue scheduler
+docker compose run --rm node npm run build
+docker compose exec app php artisan portal:update</textarea>
+                <p class="mt-3 text-xs leading-5 text-slate-500">
+                    Özellikle Ghostscript, ImageMagick veya Node tarafı image içinde değiştiğinde bu adım gerekir.
+                </p>
+            </section>
+        </div>
+    </div>
+</dialog>
+
 {{-- Deploy Dialog --}}
 <dialog id="deploy-dialog" class="update-modal w-full max-w-xl rounded-3xl border border-slate-200 p-0 shadow-2xl">
     <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
@@ -1885,6 +2147,52 @@
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
     }
+})();
+</script>
+<script>
+(function () {
+    document.querySelectorAll('[data-copy-target]').forEach(function (button) {
+        button.addEventListener('click', async function () {
+            var target = document.getElementById(button.dataset.copyTarget);
+            var text = target ? (target.value || target.textContent || '') : '';
+            var originalText = button.dataset.originalText || button.textContent;
+
+            if (!button.dataset.originalText) {
+                button.dataset.originalText = originalText;
+            }
+
+            if (!text) {
+                return;
+            }
+
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    var temp = document.createElement('textarea');
+                    temp.value = text;
+                    temp.setAttribute('readonly', 'readonly');
+                    temp.style.position = 'absolute';
+                    temp.style.left = '-9999px';
+                    document.body.appendChild(temp);
+                    temp.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(temp);
+                }
+
+                button.textContent = 'Kopyalandı';
+                button.classList.add('border-emerald-300', 'bg-emerald-50', 'text-emerald-700');
+            } catch (error) {
+                button.textContent = 'Kopyalanamadı';
+                button.classList.add('border-red-300', 'bg-red-50', 'text-red-700');
+            }
+
+            window.setTimeout(function () {
+                button.textContent = button.dataset.originalText || originalText;
+                button.classList.remove('border-emerald-300', 'bg-emerald-50', 'text-emerald-700', 'border-red-300', 'bg-red-50', 'text-red-700');
+            }, 1600);
+        });
+    });
 })();
 </script>
 @endpush

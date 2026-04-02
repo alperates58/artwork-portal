@@ -789,21 +789,89 @@
     /* ── Dialog helpers ── */
     document.addEventListener('click', function(e){
         var open = e.target.closest('[data-dialog-open]');
-        if (open) { var d = document.getElementById(open.dataset.dialogOpen); if (d && d.showModal) d.showModal(); }
+        if (open) {
+            openDialog(document.getElementById(open.dataset.dialogOpen));
+        }
         var close = e.target.closest('[data-dialog-close]');
-        if (close) { var d2 = close.closest('dialog'); if (d2 && d2.close) d2.close(); }
+        if (close) {
+            closeDialog(close.closest('dialog'));
+        }
     });
+    function syncDialogScrollState() {
+        var hasOpenDialog = document.querySelector('dialog[open]') !== null;
+
+        if (hasOpenDialog) {
+            if (document.body.dataset.dialogScrollLocked === 'true') {
+                return;
+            }
+
+            var scrollY = window.scrollY || window.pageYOffset || 0;
+
+            document.body.dataset.dialogScrollLocked = 'true';
+            document.body.dataset.dialogScrollY = String(scrollY);
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.top = '-' + scrollY + 'px';
+            document.body.style.left = '0';
+            document.body.style.right = '0';
+            document.body.style.width = '100%';
+            document.body.style.overflow = 'hidden';
+            return;
+        }
+
+        if (document.body.dataset.dialogScrollLocked !== 'true') {
+            return;
+        }
+
+        var restoreY = parseInt(document.body.dataset.dialogScrollY || '0', 10);
+
+        document.documentElement.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        delete document.body.dataset.dialogScrollLocked;
+        delete document.body.dataset.dialogScrollY;
+
+        window.scrollTo(0, restoreY);
+    }
+
+    function openDialog(dialog) {
+        if (!(dialog instanceof HTMLDialogElement) || !dialog.showModal || dialog.open) {
+            return;
+        }
+
+        dialog.showModal();
+        syncDialogScrollState();
+    }
+
+    function closeDialog(dialog) {
+        if (!(dialog instanceof HTMLDialogElement) || !dialog.close || !dialog.open) {
+            return;
+        }
+
+        dialog.close();
+        syncDialogScrollState();
+    }
+
     document.addEventListener('click', function(e){
         if (!(e.target instanceof HTMLDialogElement)) return;
         var r = e.target.getBoundingClientRect();
-        if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) e.target.close();
+        var isOutside = e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+        if (isOutside) closeDialog(e.target);
     });
     document.addEventListener('keydown', function(e){
         if (e.key !== 'Escape') return;
         var openDialogs = Array.from(document.querySelectorAll('dialog[open]'));
         var activeDialog = openDialogs[openDialogs.length - 1];
-        if (activeDialog && activeDialog.close) activeDialog.close();
+        if (activeDialog) closeDialog(activeDialog);
     });
+    document.addEventListener('close', function(e){
+        if (!(e.target instanceof HTMLDialogElement)) return;
+        window.requestAnimationFrame(syncDialogScrollState);
+    }, true);
 })();
 </script>
 
