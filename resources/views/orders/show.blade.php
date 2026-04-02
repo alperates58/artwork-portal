@@ -343,7 +343,15 @@
         </div>
     </div>
 
-    <div class="card" x-data="{ selectedLine: 'all' }">
+    @php
+        $lineEventCounts = ['all' => $timeline->count()];
+        foreach ($order->lines as $ln) {
+            $lineEventCounts[(string) $ln->id] = $timeline->filter(
+                fn ($e) => ($e['line_id'] ?? null) === null || (string) ($e['line_id'] ?? '') === (string) $ln->id
+            )->count();
+        }
+    @endphp
+    <div class="card" x-data="{ selectedLine: 'all', counts: {{ json_encode($lineEventCounts) }} }">
         <div class="flex flex-wrap items-center gap-3 border-b border-slate-100 px-5 py-4">
             <svg class="h-5 w-5 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -361,7 +369,7 @@
                         @endforeach
                     </select>
                 @endif
-                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">{{ $timeline->count() }} olay</span>
+                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500" x-text="(counts[selectedLine] ?? 0) + ' olay'"></span>
             </div>
         </div>
 
@@ -419,7 +427,6 @@
                                 <div
                                     class="relative mb-3"
                                     style="height: {{ $gapHeight }}px"
-                                    x-show="selectedLine === 'all'"
                                 >
                                     <div class="absolute left-0 top-0 w-0.5 -translate-x-1/2 rounded-full bg-gradient-to-b {{ $barBg }}" style="height: calc(50% - 13px)"></div>
                                     <div class="absolute left-0 bottom-0 w-0.5 -translate-x-1/2 rounded-full bg-gradient-to-b {{ $barBg }}" style="height: calc(50% - 13px)"></div>

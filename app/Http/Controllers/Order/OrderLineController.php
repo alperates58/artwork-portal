@@ -25,7 +25,11 @@ class OrderLineController extends Controller
             'manualArtworkCompletedBy:id,name',
             'artwork.activeRevision.uploadedBy',
             'artwork.activeRevision.galleryItem',
+            'artwork.activeRevision.latestRejectedApproval.user:id,name',
+            'artwork.activeRevision.latestRejectedApproval.supplier:id,name',
             'artwork.revisions' => fn ($q) => $q->with(['uploadedBy', 'galleryItem'])->orderByDesc('revision_no'),
+            'lineNotes.user:id,name',
+            'lineNotes.replies.user:id,name',
         ]);
 
         $this->audit->log('order_line.view', $line);

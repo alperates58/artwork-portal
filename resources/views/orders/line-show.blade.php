@@ -12,7 +12,7 @@
 @endsection
 
 @section('content')
-<div x-data="{ previewOpen: false }" class="space-y-6">
+<div x-data="{ previewOpen: false, showCreate: false, replyTo: {{ old('parent_id') ? (int) old('parent_id') : 'null' }}, editTarget: {{ old('edit_note_id') ? (int) old('edit_note_id') : 'null' }} }" class="space-y-6">
     <div class="card overflow-hidden">
         <div class="border-b border-slate-100 px-6 py-5">
             <div class="flex flex-wrap items-start justify-between gap-4">
@@ -33,6 +33,35 @@
                 </div>
             </div>
         </div>
+        @if($line->requiresRevision())
+            @php $latestRejectedApproval = $line->latestRejectedApproval; @endphp
+            <div class="mx-6 mb-4 mt-0 rounded-2xl border border-red-100 bg-red-50/80 px-4 py-3">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-red-700">Revizyon talebi</p>
+                        <p class="mt-1 text-sm text-slate-700">Bu artwork için tedarikçi tarafı yeni revizyon istedi.</p>
+                    </div>
+                    <x-ui.badge variant="danger">Revizyon Gerekli</x-ui.badge>
+                </div>
+                <div class="mt-3 grid gap-3 md:grid-cols-2">
+                    <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Talep eden</p>
+                        <p class="mt-1 text-sm text-slate-700">{{ $latestRejectedApproval?->user?->name ?? $latestRejectedApproval?->supplier?->name ?? 'Tedarikçi kullanıcısı' }}</p>
+                        @if($latestRejectedApproval?->supplier?->name && $latestRejectedApproval?->user?->name)
+                            <p class="text-xs text-slate-500">{{ $latestRejectedApproval->supplier->name }}</p>
+                        @endif
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Talep tarihi</p>
+                        <p class="mt-1 text-sm text-slate-700">{{ $latestRejectedApproval?->actioned_at?->format('d.m.Y H:i') ?? 'Kayıt tarihi bulunamadı' }}</p>
+                    </div>
+                </div>
+                <div class="mt-3 rounded-xl border border-red-100 bg-white/80 px-3 py-2">
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Tedarikçi notu</p>
+                    <p class="mt-1 text-sm text-slate-700">{{ filled($latestRejectedApproval?->notes) ? $latestRejectedApproval->notes : 'Tedarikçi tarafından ek not bırakılmadı.' }}</p>
+                </div>
+            </div>
+        @endif
         <div class="grid gap-0 md:grid-cols-2 xl:grid-cols-4">
             <div class="border-b border-slate-100 px-6 py-4 xl:border-b-0 xl:border-r">
                 <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Ürün Kodu</p>
@@ -181,6 +210,43 @@
                     </div>
                 </div>
             @endif
+
+            {{-- Satır Açıklamaları --}}
+            <div class="card overflow-hidden">
+                <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-900">Satır Açıklamaları</h3>
+                        <p class="text-xs text-slate-500">Bu satıra özel not ve yanıtlar</p>
+                    </div>
+                    <button type="button" class="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800" @click="showCreate = !showCreate; if (showCreate) { replyTo = null; }">
+                        <span class="text-base leading-none">+</span>
+                        <span>Ekle</span>
+                    </button>
+                </div>
+
+                <div class="space-y-3 px-5 py-4">
+                    @forelse($line->lineNotes as $note)
+                        @include('orders.partials.note-thread', ['note' => $note, 'order' => $line->purchaseOrder, 'line' => $line])
+                    @empty
+                        <p class="text-sm text-slate-400">Henüz açıklama eklenmemiş.</p>
+                    @endforelse
+
+                    <form method="POST" action="{{ route('orders.notes.store', $line->purchaseOrder) }}" class="rounded-xl border border-dashed border-slate-300 bg-white p-3" x-show="showCreate" x-cloak>
+                        @csrf
+                        <input type="hidden" name="purchase_order_line_id" value="{{ $line->id }}">
+                        <textarea name="body" rows="3" class="input resize-none" placeholder="Bu satırla ilgili açıklamanızı yazın...">{{ old('purchase_order_line_id') == $line->id && ! old('parent_id') ? old('body') : '' }}</textarea>
+                        @if((string) old('purchase_order_line_id') === (string) $line->id && ! old('parent_id'))
+                            @error('body')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        @endif
+                        <div class="mt-3 flex items-center justify-end gap-2">
+                            <button type="button" class="btn btn-secondary" @click="showCreate = false">Vazgeç</button>
+                            <button type="submit" class="btn btn-primary">Ekle</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
