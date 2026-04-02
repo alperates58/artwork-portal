@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Models\Artwork;
+use App\Models\ArtworkRevision;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
@@ -147,5 +149,82 @@ class ManualArtworkCompletionTest extends TestCase
             ->get(route('orders.show', $order))
             ->assertOk()
             ->assertSee($order->order_no);
+    }
+
+    public function test_graphic_user_can_mark_revision_request_as_completed(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $user = User::factory()->create(['role' => UserRole::GRAPHIC]);
+        $order = PurchaseOrder::factory()->create([
+            'supplier_id' => $supplier->id,
+        ]);
+
+        $line = PurchaseOrderLine::factory()->create([
+            'purchase_order_id' => $order->id,
+            'artwork_status' => 'revision',
+        ]);
+
+        $artwork = Artwork::factory()->create([
+            'order_line_id' => $line->id,
+        ]);
+
+        $revision = ArtworkRevision::factory()->create([
+            'artwork_id' => $artwork->id,
+            'revision_no' => 12,
+            'is_active' => true,
+        ]);
+
+        $artwork->update(['active_revision_id' => $revision->id]);
+
+        $this->actingAs($user)
+            ->post(route('order-lines.revision-complete.store', $line))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('purchase_order_lines', [
+            'id' => $line->id,
+            'artwork_status' => 'uploaded',
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $user->id,
+            'action' => 'order_line.revision.complete',
+            'model_type' => PurchaseOrderLine::class,
+            'model_id' => $line->id,
+        ]);
+    }
+
+    public function test_purchasing_user_cannot_mark_revision_request_as_completed(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $user = User::factory()->create(['role' => UserRole::PURCHASING]);
+        $order = PurchaseOrder::factory()->create([
+            'supplier_id' => $supplier->id,
+        ]);
+
+        $line = PurchaseOrderLine::factory()->create([
+            'purchase_order_id' => $order->id,
+            'artwork_status' => 'revision',
+        ]);
+
+        $artwork = Artwork::factory()->create([
+            'order_line_id' => $line->id,
+        ]);
+
+        $revision = ArtworkRevision::factory()->create([
+            'artwork_id' => $artwork->id,
+            'revision_no' => 3,
+            'is_active' => true,
+        ]);
+
+        $artwork->update(['active_revision_id' => $revision->id]);
+
+        $this->actingAs($user)
+            ->post(route('order-lines.revision-complete.store', $line))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('purchase_order_lines', [
+            'id' => $line->id,
+            'artwork_status' => 'revision',
+        ]);
     }
 }

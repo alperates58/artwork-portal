@@ -61,6 +61,48 @@ class OrderNotesTest extends TestCase
         $this->assertSame(2, AuditLog::query()->where('action', 'order.note.create')->count());
     }
 
+    public function test_internal_users_endpoint_excludes_suppliers_and_inactive_users(): void
+    {
+        $author = User::factory()->admin()->create(['name' => 'Admin Kullanıcı']);
+        $graphic = User::factory()->graphic()->create(['name' => 'Grafik Ekip']);
+        $purchasing = User::factory()->purchasing()->create(['name' => 'Satın Alma']);
+        $inactive = User::factory()->graphic()->inactive()->create(['name' => 'Pasif Grafik']);
+        $supplier = Supplier::factory()->create();
+        $supplierUser = User::factory()->supplier($supplier->id)->create(['name' => 'Tedarikçi Kullanıcı']);
+
+        $response = $this->actingAs($author)->get(route('api.internal-users'));
+
+        $response->assertOk()
+            ->assertJsonFragment(['id' => $author->id, 'name' => 'Admin Kullanıcı'])
+            ->assertJsonFragment(['id' => $graphic->id, 'name' => 'Grafik Ekip'])
+            ->assertJsonFragment(['id' => $purchasing->id, 'name' => 'Satın Alma'])
+            ->assertJsonMissing(['id' => $inactive->id, 'name' => 'Pasif Grafik'])
+            ->assertJsonMissing(['id' => $supplierUser->id, 'name' => 'Tedarikçi Kullanıcı']);
+    }
+
+    public function test_note_create_sends_mention_notification_for_full_name_mentions(): void
+    {
+        $author = User::factory()->admin()->create(['name' => 'Not Sahibi']);
+        $mentionedUser = User::factory()->graphic()->create(['name' => 'Alper Ateş']);
+        $supplier = Supplier::factory()->create();
+        $order = PurchaseOrder::factory()->create([
+            'supplier_id' => $supplier->id,
+            'created_by' => $author->id,
+        ]);
+
+        $this->actingAs($author)
+            ->post(route('orders.notes.store', $order), [
+                'body' => '@Alper Ateş lütfen bu revizyonu kontrol eder misin?',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('portal_notifications', [
+            'user_id' => $mentionedUser->id,
+            'type' => 'mention',
+            'url' => route('orders.show', $order),
+        ]);
+    }
+
     public function test_line_note_reply_accepts_browser_string_ids(): void
     {
         $user = User::factory()->admin()->create();

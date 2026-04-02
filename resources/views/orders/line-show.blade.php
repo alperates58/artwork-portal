@@ -41,7 +41,19 @@
                         <p class="text-xs font-semibold uppercase tracking-wide text-red-700">Revizyon talebi</p>
                         <p class="mt-1 text-sm text-slate-700">Bu artwork için tedarikçi tarafı yeni revizyon istedi.</p>
                     </div>
-                    <x-ui.badge variant="danger">Revizyon Gerekli</x-ui.badge>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <x-ui.badge variant="danger">Revizyon Gerekli</x-ui.badge>
+                        @can('completeRevision', $line)
+                            @if($line->hasActiveArtwork())
+                                <form method="POST" action="{{ route('order-lines.revision-complete.store', $line) }}" onsubmit="return confirm('Mevcut aktif revizyon tedarikçi için tekrar hazır olarak işaretlenecek. Devam edilsin mi?');">
+                                    @csrf
+                                    <button type="submit" class="btn btn-secondary border-emerald-200 px-3 py-1.5 text-xs text-emerald-700 hover:bg-emerald-50">
+                                        Tamamlandı
+                                    </button>
+                                </form>
+                            @endif
+                        @endcan
+                    </div>
                 </div>
                 <div class="mt-3 grid gap-3 md:grid-cols-2">
                     <div>
@@ -292,6 +304,8 @@
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
                             @elseif($event['icon'] === 'mail')
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            @elseif($event['icon'] === 'check')
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                             @elseif($event['icon'] === 'x')
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                             @else

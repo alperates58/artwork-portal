@@ -21,7 +21,12 @@
                 @method('PATCH')
                 <input type="hidden" name="edit_note_id" value="{{ $note->id }}">
                 <label class="label">{{ $note->parent_id ? 'Yanıtı düzenle' : 'Açıklamayı düzenle' }}</label>
-                <textarea name="body" rows="3" class="input resize-none" placeholder="Metni güncelleyin...">{{ old('edit_note_id') == $note->id ? old('body') : $note->body }}</textarea>
+                @include('orders.partials.mention-textarea', [
+                    'name' => 'body',
+                    'rows' => 3,
+                    'placeholder' => 'Metni güncelleyin... (@isim ile kullanıcı etiketleyebilirsiniz)',
+                    'value' => old('edit_note_id') == $note->id ? old('body') : $note->body,
+                ])
                 @if((string) old('edit_note_id') === (string) $note->id)
                     @error('body')
                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -67,7 +72,13 @@
                                 @method('PATCH')
                                 <input type="hidden" name="edit_note_id" value="{{ $reply->id }}">
                                 <label class="label">Yanıtı düzenle</label>
-                                <textarea name="body" rows="2" class="input resize-none" placeholder="Yanıtı güncelleyin...">{{ old('edit_note_id') == $reply->id ? old('body') : $reply->body }}</textarea>
+                                @include('orders.partials.mention-textarea', [
+                                    'name' => 'body',
+                                    'rows' => 2,
+                                    'placeholder' => 'Yanıtı güncelleyin... (@isim ile kullanıcı etiketleyebilirsiniz)',
+                                    'value' => old('edit_note_id') == $reply->id ? old('body') : $reply->body,
+                                    'inputClass' => 'input resize-none text-sm',
+                                ])
                                 @if((string) old('edit_note_id') === (string) $reply->id)
                                     @error('body')
                                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -99,7 +110,13 @@
                 @endif
                 <input type="hidden" name="parent_id" value="{{ $note->id }}">
                 <label class="label">Yanıt</label>
-                <textarea name="body" rows="2" class="input resize-none text-sm" placeholder="Yanıtınızı yazın...">{{ old('parent_id') == $note->id ? old('body') : '' }}</textarea>
+                @include('orders.partials.mention-textarea', [
+                    'name' => 'body',
+                    'rows' => 2,
+                    'placeholder' => 'Yanıtınızı yazın... (@isim ile kullanıcı etiketleyebilirsiniz)',
+                    'value' => old('parent_id') == $note->id ? old('body') : '',
+                    'inputClass' => 'input resize-none text-sm',
+                ])
                 @if((string) old('parent_id') === (string) $note->id)
                     @error('body')
                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>

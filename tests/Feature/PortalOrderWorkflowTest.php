@@ -11,6 +11,7 @@ use App\Models\Supplier;
 use App\Models\SupplierUser;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class PortalOrderWorkflowTest extends TestCase
@@ -152,5 +153,63 @@ class PortalOrderWorkflowTest extends TestCase
             ->assertOk()
             ->assertSee($allowedOrder->order_no)
             ->assertDontSee($blockedOrder->order_no);
+    }
+
+    public function test_supplier_with_pivot_mapping_can_request_revision_after_marking_seen(): void
+    {
+        Notification::fake();
+
+        $supplier = Supplier::factory()->create();
+        $user = User::factory()->create([
+            'role' => UserRole::SUPPLIER,
+            'supplier_id' => null,
+        ]);
+
+        SupplierUser::create([
+            'supplier_id' => $supplier->id,
+            'user_id' => $user->id,
+            'is_primary' => true,
+            'can_download' => true,
+            'can_approve' => true,
+        ]);
+
+        $order = PurchaseOrder::factory()->create(['supplier_id' => $supplier->id]);
+        $line = PurchaseOrderLine::factory()->create([
+            'purchase_order_id' => $order->id,
+            'artwork_status' => 'uploaded',
+        ]);
+        $artwork = Artwork::factory()->create(['order_line_id' => $line->id]);
+        $revision = ArtworkRevision::factory()->create([
+            'artwork_id' => $artwork->id,
+            'is_active' => true,
+            'revision_no' => 1,
+        ]);
+
+        $artwork->update(['active_revision_id' => $revision->id]);
+
+        $this->actingAs($user)
+            ->post(route('approval.seen', $revision))
+            ->assertRedirect();
+
+        $notes = 'Renk tonu ve logo yerleşimi güncellenmeli.';
+
+        $this->actingAs($user)
+            ->post(route('approval.reject', $revision), [
+                'notes' => $notes,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseCount('artwork_approvals', 1);
+        $this->assertDatabaseHas('artwork_approvals', [
+            'artwork_revision_id' => $revision->id,
+            'user_id' => $user->id,
+            'supplier_id' => $supplier->id,
+            'status' => 'rejected',
+            'notes' => $notes,
+        ]);
+        $this->assertDatabaseHas('purchase_order_lines', [
+            'id' => $line->id,
+            'artwork_status' => 'revision',
+        ]);
     }
 }

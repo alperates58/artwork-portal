@@ -4,7 +4,6 @@ namespace App\Services\Faz2;
 
 use App\Models\ArtworkApproval;
 use App\Models\ArtworkRevision;
-use App\Models\PurchaseOrderLine;
 use App\Models\User;
 use App\Notifications\ArtworkApprovedNotification;
 use App\Notifications\ArtworkRejectedNotification;
@@ -26,20 +25,22 @@ class ArtworkApprovalService
      */
     public function markViewed(ArtworkRevision $revision, User $user): ArtworkApproval
     {
+        $supplierId = $this->resolveSupplierId($revision);
+
         $approval = ArtworkApproval::updateOrCreate(
             [
                 'artwork_revision_id' => $revision->id,
                 'user_id'             => $user->id,
             ],
             [
-                'supplier_id' => $user->supplier_id,
+                'supplier_id' => $supplierId,
                 'status'      => 'viewed',
                 'actioned_at' => now(),
             ]
         );
 
         $this->audit->log('artwork.viewed', $revision, [
-            'supplier_id' => $user->supplier_id,
+            'supplier_id' => $supplierId,
         ]);
 
         return $approval;
@@ -50,14 +51,16 @@ class ArtworkApprovalService
      */
     public function approve(ArtworkRevision $revision, User $user, ?string $notes = null): ArtworkApproval
     {
-        $approval = DB::transaction(function () use ($revision, $user, $notes) {
+        $supplierId = $this->resolveSupplierId($revision);
+
+        $approval = DB::transaction(function () use ($revision, $user, $notes, $supplierId) {
             $approval = ArtworkApproval::updateOrCreate(
                 [
                     'artwork_revision_id' => $revision->id,
                     'user_id'             => $user->id,
                 ],
                 [
-                    'supplier_id' => $user->supplier_id,
+                    'supplier_id' => $supplierId,
                     'status'      => 'approved',
                     'notes'       => $notes,
                     'actioned_at' => now(),
@@ -67,7 +70,7 @@ class ArtworkApprovalService
             $revision->artwork->orderLine->update(['artwork_status' => 'approved']);
 
             $this->audit->log('artwork.approved', $revision, [
-                'supplier_id' => $user->supplier_id,
+                'supplier_id' => $supplierId,
                 'notes'       => $notes,
             ]);
 
@@ -86,20 +89,23 @@ class ArtworkApprovalService
      */
     public function reject(ArtworkRevision $revision, User $user, string $notes): ArtworkApproval
     {
-        $approval = DB::transaction(function () use ($revision, $user, $notes) {
-            $approval = ArtworkApproval::create([
+        $supplierId = $this->resolveSupplierId($revision);
+
+        $approval = DB::transaction(function () use ($revision, $user, $notes, $supplierId) {
+            $approval = ArtworkApproval::updateOrCreate([
                 'artwork_revision_id' => $revision->id,
                 'user_id'             => $user->id,
-                'supplier_id'         => $user->supplier_id,
-                'status'              => 'rejected',
-                'notes'               => $notes,
-                'actioned_at'         => now(),
+            ], [
+                'supplier_id' => $supplierId,
+                'status'      => 'rejected',
+                'notes'       => $notes,
+                'actioned_at' => now(),
             ]);
 
             $revision->artwork->orderLine->update(['artwork_status' => 'revision']);
 
             $this->audit->log('artwork.rejected', $revision, [
-                'supplier_id'  => $user->supplier_id,
+                'supplier_id'  => $supplierId,
                 'supplier_name' => $user->supplier?->name ?? $user->name,
                 'notes'        => $notes,
                 'line_id'      => $revision->artwork->orderLine->id,
@@ -125,6 +131,11 @@ class ArtworkApprovalService
         $this->notifyInternalUsers($revision, 'rejected', $notes);
 
         return $approval;
+    }
+
+    private function resolveSupplierId(ArtworkRevision $revision): int
+    {
+        return $revision->artwork->orderLine->purchaseOrder->supplier_id;
     }
 
     private function notifyInternalUsers(ArtworkRevision $revision, string $action, ?string $notes = null): void

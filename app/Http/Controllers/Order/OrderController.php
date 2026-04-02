@@ -173,6 +173,29 @@ class OrderController extends Controller
             ]);
         }
 
+        $revisionCompletionLogs = AuditLog::query()
+            ->select(['id', 'user_id', 'action', 'model_type', 'model_id', 'payload', 'created_at'])
+            ->with('user:id,name')
+            ->where('model_type', PurchaseOrderLine::class)
+            ->whereIn('model_id', $order->lines->pluck('id'))
+            ->where('action', 'order_line.revision.complete')
+            ->orderByDesc('created_at')
+            ->get();
+
+        foreach ($revisionCompletionLogs as $log) {
+            $payload = $log->payload ?? [];
+
+            $timeline->push([
+                'at' => $log->created_at,
+                'icon' => 'check',
+                'color' => 'emerald',
+                'title' => 'Revizyon tamamlandı olarak işaretlendi',
+                'sub' => ($log->user?->name ?? '—') . ' · ' . ($payload['product_code'] ?? ('Satır #' . ($payload['line_no'] ?? $log->model_id))),
+                'body' => $payload['summary'] ?? null,
+                'line_id' => $log->model_id,
+            ]);
+        }
+
         // Revizyon talepleri (tedarikçi tarafından)
         $revisionIds = $order->lines
             ->flatMap(fn ($line) => $line->artwork?->revisions ?? collect())
@@ -375,25 +398,14 @@ class OrderController extends Controller
             'parent_id' => $parentId,
         ]);
 
-        // @mention notifications
-        preg_match_all('/@([\p{L}\p{N}_\s\.]+?)(?=\s|$|@)/u', $validated['body'], $matches);
-        if (!empty($matches[1])) {
-            $mentionedNames = array_unique(array_map('trim', $matches[1]));
-            $mentionedUsers = User::where('is_active', true)
-                ->whereNotIn('role', ['supplier'])
-                ->whereIn('name', $mentionedNames)
-                ->where('id', '!=', auth()->id())
-                ->get();
-
-            foreach ($mentionedUsers as $mentionedUser) {
-                $this->notifications->notify(
-                    $mentionedUser,
-                    'mention',
-                    auth()->user()->name . ' sizi bir notta etiketledi',
-                    mb_strimwidth($validated['body'], 0, 120, '…'),
-                    route('orders.show', $order),
-                );
-            }
+        foreach ($this->resolveMentionedUsers($validated['body']) as $mentionedUser) {
+            $this->notifications->notify(
+                $mentionedUser,
+                'mention',
+                auth()->user()->name . ' sizi bir notta etiketledi',
+                mb_strimwidth($validated['body'], 0, 120, '…'),
+                route('orders.show', $order),
+            );
         }
 
         return back()->with('success', $parentNote
@@ -448,5 +460,58 @@ class OrderController extends Controller
         return redirect()
             ->route('orders.index')
             ->with('success', 'Sipariş ve bağlı satırlar silindi.');
+    }
+
+    private function resolveMentionedUsers(string $body): \Illuminate\Support\Collection
+    {
+        $candidates = User::query()
+            ->where('is_active', true)
+            ->whereNotIn('role', ['supplier'])
+            ->where('id', '!=', auth()->id())
+            ->get(['id', 'name'])
+            ->sortByDesc(fn (User $user) => mb_strlen($user->name))
+            ->values();
+
+        $matchedUserIds = [];
+        $occupiedRanges = [];
+
+        foreach ($candidates as $candidate) {
+            $pattern = '/(?<!\S)@' . preg_quote($candidate->name, '/') . '(?=$|[\s\.,;:!\?\)\]])/u';
+
+            if (! preg_match_all($pattern, $body, $matches, PREG_OFFSET_CAPTURE)) {
+                continue;
+            }
+
+            foreach ($matches[0] as [$match, $offset]) {
+                $end = $offset + strlen($match);
+
+                if ($this->mentionOverlaps($offset, $end, $occupiedRanges)) {
+                    continue;
+                }
+
+                $occupiedRanges[] = [$offset, $end];
+                $matchedUserIds[] = $candidate->id;
+                break;
+            }
+        }
+
+        if ($matchedUserIds === []) {
+            return collect();
+        }
+
+        return $candidates
+            ->whereIn('id', array_values(array_unique($matchedUserIds)))
+            ->values();
+    }
+
+    private function mentionOverlaps(int $start, int $end, array $occupiedRanges): bool
+    {
+        foreach ($occupiedRanges as [$occupiedStart, $occupiedEnd]) {
+            if ($start < $occupiedEnd && $end > $occupiedStart) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

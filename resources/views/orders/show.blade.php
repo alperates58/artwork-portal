@@ -148,11 +148,21 @@
                                             <p class="text-xs font-semibold uppercase tracking-wide text-red-700">Revizyon Talepleri</p>
                                             <p class="mt-0.5 text-sm text-slate-700">Tedarikçi tarafından iletilen revizyon talepleri</p>
                                         </div>
-                                        <div class="flex items-center gap-2">
+                                        <div class="flex flex-wrap items-center justify-end gap-2">
                                             <span class="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">{{ $allRejections->count() }} talep</span>
                                             @if($line->requiresRevision())
                                                 <x-ui.badge variant="danger">Revizyon Gerekli</x-ui.badge>
                                             @endif
+                                            @can('completeRevision', $line)
+                                                @if($line->requiresRevision() && $line->hasActiveArtwork())
+                                                    <form method="POST" action="{{ route('order-lines.revision-complete.store', $line) }}" onsubmit="return confirm('Mevcut aktif revizyon tedarikçi için tekrar hazır olarak işaretlenecek. Devam edilsin mi?');">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-secondary border-emerald-200 px-3 py-1.5 text-xs text-emerald-700 hover:bg-emerald-50">
+                                                            Tamamlandı
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            @endcan
                                         </div>
                                     </div>
                                     @forelse($allRejections as $rejection)
@@ -411,6 +421,8 @@
                                     <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
                                 @elseif($event['icon'] === 'mail')
                                     <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8m-2 10H5a2 2 0 01-2-2V8a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2z"/></svg>
+                                @elseif($event['icon'] === 'check')
+                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                                 @elseif($event['icon'] === 'x')
                                     <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                                 @endif

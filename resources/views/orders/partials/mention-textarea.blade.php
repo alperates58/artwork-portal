@@ -2,13 +2,15 @@
     Mention-aware textarea.
     Props: name, rows (default 3), placeholder, value, inputClass
 --}}
-<div x-data="mentionPicker()" class="relative">
+<div x-data="mentionPicker()" class="relative" @click.outside="close()">
     <textarea
         x-ref="ta"
         name="{{ $name }}"
         rows="{{ $rows ?? 3 }}"
         class="{{ $inputClass ?? 'input resize-none' }}"
         placeholder="{{ $placeholder ?? '' }}"
+        @input="refresh()"
+        @click="refresh()"
         @keyup="onKeyup($event)"
         @keydown="onKeydown($event)"
     >{{ $value ?? '' }}</textarea>

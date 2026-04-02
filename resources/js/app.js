@@ -14,25 +14,59 @@ Alpine.data('mentionPicker', () => ({
         try {
             const res = await fetch('/api/internal-users');
             this.users = await res.json();
+            this.refresh();
         } catch (_) {}
     },
 
-    onKeyup(e) {
+    close() {
+        this.show = false;
+        this.filtered = [];
+        this.cursorIndex = 0;
+    },
+
+    normalize(value) {
+        return String(value ?? '')
+            .toLocaleLowerCase('tr')
+            .replace(/\s+/g, ' ')
+            .trim();
+    },
+
+    refresh() {
         const ta = this.$refs.ta;
-        const pos = ta.selectionStart;
-        const text = ta.value.substring(0, pos);
-        const atIdx = text.lastIndexOf('@');
 
-        if (atIdx === -1) { this.show = false; return; }
+        if (!ta) {
+            this.close();
+            return;
+        }
 
-        const fragment = text.substring(atIdx + 1);
-        if (/\s/.test(fragment)) { this.show = false; return; }
+        const caretPosition = ta.selectionStart ?? 0;
+        const textBeforeCaret = ta.value.substring(0, caretPosition);
+        const match = textBeforeCaret.match(/(?:^|\s)@([^\s@]*)$/u);
 
-        this.atStart = atIdx;
-        this.query = fragment.toLowerCase();
-        this.filtered = this.users.filter(u => u.name.toLowerCase().startsWith(this.query));
+        if (!match) {
+            this.close();
+            return;
+        }
+
+        const fragment = match[1] ?? '';
+        this.atStart = caretPosition - fragment.length - 1;
+        this.query = this.normalize(fragment);
+
+        const filteredUsers = this.query === ''
+            ? this.users
+            : this.users.filter((user) => this.normalize(user.name).includes(this.query));
+
+        this.filtered = filteredUsers.slice(0, 12);
         this.show = this.filtered.length > 0;
         this.cursorIndex = 0;
+    },
+
+    onKeyup(e) {
+        if (['ArrowDown', 'ArrowUp', 'Enter', 'Tab', 'Escape'].includes(e.key)) {
+            return;
+        }
+
+        this.refresh();
     },
 
     onKeydown(e) {
@@ -40,7 +74,7 @@ Alpine.data('mentionPicker', () => ({
         if (e.key === 'ArrowDown') { e.preventDefault(); this.cursorIndex = Math.min(this.cursorIndex + 1, this.filtered.length - 1); }
         if (e.key === 'ArrowUp')   { e.preventDefault(); this.cursorIndex = Math.max(this.cursorIndex - 1, 0); }
         if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); this.select(this.filtered[this.cursorIndex]); }
-        if (e.key === 'Escape') { this.show = false; }
+        if (e.key === 'Escape') { this.close(); }
     },
 
     select(user) {
@@ -52,7 +86,7 @@ Alpine.data('mentionPicker', () => ({
         const newPos = before.length + user.name.length + 2;
         ta.setSelectionRange(newPos, newPos);
         ta.dispatchEvent(new Event('input'));
-        this.show = false;
+        this.close();
         ta.focus();
     },
 }));

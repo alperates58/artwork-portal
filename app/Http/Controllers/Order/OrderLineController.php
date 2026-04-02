@@ -93,6 +93,27 @@ class OrderLineController extends Controller
             ]);
         }
 
+        $revisionCompletionLogs = AuditLog::query()
+            ->select(['id', 'user_id', 'action', 'model_type', 'model_id', 'payload', 'created_at'])
+            ->with('user:id,name')
+            ->where('model_type', PurchaseOrderLine::class)
+            ->where('model_id', $line->id)
+            ->where('action', 'order_line.revision.complete')
+            ->orderByDesc('created_at')
+            ->get();
+
+        foreach ($revisionCompletionLogs as $log) {
+            $payload = $log->payload ?? [];
+            $timeline->push([
+                'at'    => $log->created_at,
+                'icon'  => 'check',
+                'color' => 'emerald',
+                'title' => 'Revizyon tamamlandı olarak işaretlendi',
+                'sub'   => $log->user?->name ?? '—',
+                'body'  => $payload['summary'] ?? null,
+            ]);
+        }
+
         // Rejection logs
         $revisionIds = collect($line->artwork?->revisions ?? [])->pluck('id');
         if ($revisionIds->isNotEmpty()) {
@@ -158,5 +179,36 @@ class OrderLineController extends Controller
         });
 
         return back()->with('success', 'Sipariş satırı manuel gönderildi olarak işaretlendi.');
+    }
+
+    public function markRevisionComplete(PurchaseOrderLine $line): RedirectResponse
+    {
+        $this->authorize('completeRevision', $line);
+
+        $line->loadMissing([
+            'purchaseOrder:id,order_no,supplier_id',
+            'artwork.activeRevision:id,artwork_id,revision_no',
+        ]);
+
+        abort_if(! $line->hasActiveArtwork(), 422, 'Aktif artwork olmayan satır revizyon tamamlandı olarak işaretlenemez.');
+        abort_if(! $line->requiresRevision(), 422, 'Bu satır için açık bir revizyon talebi bulunmuyor.');
+
+        DB::transaction(function () use ($line) {
+            $line->update([
+                'artwork_status' => 'uploaded',
+            ]);
+
+            $this->audit->log('order_line.revision.complete', $line, [
+                'order_no' => $line->purchaseOrder->order_no,
+                'line_no' => $line->line_no,
+                'product_code' => $line->product_code,
+                'revision_no' => $line->activeRevision?->revision_no,
+                'summary' => 'Aktif revizyon tekrar incelenmeye hazır olarak işaretlendi.',
+            ]);
+
+            $this->dashboardCache->forgetMetricsAfterCommit();
+        });
+
+        return back()->with('success', 'Revizyon talebi tamamlandı olarak işaretlendi.');
     }
 }
