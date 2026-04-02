@@ -10,6 +10,7 @@ use App\Notifications\ArtworkApprovedNotification;
 use App\Notifications\ArtworkRejectedNotification;
 use App\Services\AuditLogService;
 use App\Services\DashboardCacheService;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 
 class ArtworkApprovalService
@@ -17,6 +18,7 @@ class ArtworkApprovalService
     public function __construct(
         private AuditLogService $audit,
         private DashboardCacheService $dashboardCache,
+        private NotificationService $notifications,
     ) {}
 
     /**
@@ -80,7 +82,7 @@ class ArtworkApprovalService
     }
 
     /**
-     * TedarikÃ§i "Reddettim" aksiyonu
+     * Tedarikçi "Revizyon Talebi" aksiyonu
      */
     public function reject(ArtworkRevision $revision, User $user, string $notes): ArtworkApproval
     {
@@ -101,14 +103,28 @@ class ArtworkApprovalService
             $revision->artwork->orderLine->update(['artwork_status' => 'revision']);
 
             $this->audit->log('artwork.rejected', $revision, [
-                'supplier_id' => $user->supplier_id,
-                'notes'       => $notes,
+                'supplier_id'  => $user->supplier_id,
+                'supplier_name' => $user->supplier?->name ?? $user->name,
+                'notes'        => $notes,
+                'line_id'      => $revision->artwork->orderLine->id,
+                'product_code' => $revision->artwork->orderLine->product_code,
             ]);
 
             $this->dashboardCache->forgetMetricsAfterCommit();
 
             return $approval;
         });
+
+        $order = $revision->artwork->orderLine->purchaseOrder;
+        $line  = $revision->artwork->orderLine;
+
+        $this->notifications->notifyDepartment(
+            null,
+            'artwork_revision_requested',
+            "Revizyon talebi: {$order->order_no}",
+            "{$user->name} ({$user->supplier?->name}) · {$line->product_code} için revizyon istedi: {$notes}",
+            route('order-lines.show', $line),
+        );
 
         $this->notifyInternalUsers($revision, 'rejected', $notes);
 

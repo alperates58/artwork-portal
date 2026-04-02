@@ -377,7 +377,7 @@
                             x-show="selectedLine === 'all' || {{ $lineId === null ? 'true' : 'false' }} || selectedLine === '{{ $lineId }}'"
                             x-cloak
                         >
-                            <span class="absolute -left-3 flex h-6 w-6 items-center justify-center rounded-full ring-4 ring-white @if($event['color'] === 'violet') bg-violet-100 text-violet-600 @elseif($event['color'] === 'blue') bg-blue-100 text-blue-600 @elseif($event['color'] === 'amber') bg-amber-100 text-amber-600 @elseif($event['color'] === 'emerald') bg-emerald-100 text-emerald-600 @else bg-slate-100 text-slate-500 @endif">
+                            <span class="absolute -left-3 flex h-6 w-6 items-center justify-center rounded-full ring-4 ring-white @if($event['color'] === 'violet') bg-violet-100 text-violet-600 @elseif($event['color'] === 'blue') bg-blue-100 text-blue-600 @elseif($event['color'] === 'amber') bg-amber-100 text-amber-600 @elseif($event['color'] === 'emerald') bg-emerald-100 text-emerald-600 @elseif($event['color'] === 'red') bg-red-100 text-red-600 @else bg-slate-100 text-slate-500 @endif">
                                 @if($event['icon'] === 'plus')
                                     <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                                 @elseif($event['icon'] === 'upload')
@@ -388,6 +388,8 @@
                                     <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
                                 @elseif($event['icon'] === 'mail')
                                     <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8m-2 10H5a2 2 0 01-2-2V8a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2z"/></svg>
+                                @elseif($event['icon'] === 'x')
+                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                                 @endif
                             </span>
 

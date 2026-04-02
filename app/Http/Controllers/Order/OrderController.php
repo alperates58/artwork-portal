@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Order;
 
 use App\Http\Controllers\Controller;
+use App\Models\ArtworkRevision;
 use App\Models\AuditLog;
 use App\Models\OrderNote;
 use App\Models\PurchaseOrder;
@@ -167,6 +168,44 @@ class OrderController extends Controller
                 'body' => $payload['note'] ?? null,
                 'line_id' => $log->model_id,
             ]);
+        }
+
+        // Revizyon talepleri (tedarikçi tarafından)
+        $revisionIds = $order->lines
+            ->flatMap(fn ($line) => $line->artwork?->revisions ?? collect())
+            ->pluck('id');
+
+        if ($revisionIds->isNotEmpty()) {
+            $revisionToLine = collect();
+            foreach ($order->lines as $line) {
+                foreach ($line->artwork?->revisions ?? [] as $revision) {
+                    $revisionToLine[$revision->id] = $line->id;
+                }
+            }
+
+            $rejectionLogs = AuditLog::query()
+                ->select(['id', 'user_id', 'action', 'model_type', 'model_id', 'payload', 'created_at'])
+                ->with('user:id,name')
+                ->where('model_type', ArtworkRevision::class)
+                ->whereIn('model_id', $revisionIds)
+                ->where('action', 'artwork.rejected')
+                ->orderByDesc('created_at')
+                ->get();
+
+            foreach ($rejectionLogs as $log) {
+                $payload = $log->payload ?? [];
+                $lineId  = $payload['line_id'] ?? $revisionToLine[$log->model_id] ?? null;
+
+                $timeline->push([
+                    'at'      => $log->created_at,
+                    'icon'    => 'x',
+                    'color'   => 'red',
+                    'title'   => 'Revizyon talebi oluşturuldu',
+                    'sub'     => ($payload['supplier_name'] ?? $log->user?->name ?? '—') . ' · ' . ($payload['product_code'] ?? '—'),
+                    'body'    => $payload['notes'] ?? null,
+                    'line_id' => $lineId,
+                ]);
+            }
         }
 
         $sorted = $timeline->sortByDesc('at')->values();
