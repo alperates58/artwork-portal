@@ -181,9 +181,13 @@ class OrderLineController extends Controller
         return back()->with('success', 'Sipariş satırı manuel gönderildi olarak işaretlendi.');
     }
 
-    public function markRevisionComplete(PurchaseOrderLine $line): RedirectResponse
+    public function markRevisionComplete(Request $request, PurchaseOrderLine $line): RedirectResponse
     {
         $this->authorize('completeRevision', $line);
+
+        $validated = $request->validate([
+            'summary' => ['nullable', 'string', 'max:2000'],
+        ]);
 
         $line->loadMissing([
             'purchaseOrder:id,order_no,supplier_id',
@@ -193,7 +197,7 @@ class OrderLineController extends Controller
         abort_if(! $line->hasActiveArtwork(), 422, 'Aktif artwork olmayan satır revizyon tamamlandı olarak işaretlenemez.');
         abort_if(! $line->requiresRevision(), 422, 'Bu satır için açık bir revizyon talebi bulunmuyor.');
 
-        DB::transaction(function () use ($line) {
+        DB::transaction(function () use ($line, $validated) {
             $line->update([
                 'artwork_status' => 'uploaded',
             ]);
@@ -203,7 +207,9 @@ class OrderLineController extends Controller
                 'line_no' => $line->line_no,
                 'product_code' => $line->product_code,
                 'revision_no' => $line->activeRevision?->revision_no,
-                'summary' => 'Aktif revizyon tekrar incelenmeye hazır olarak işaretlendi.',
+                'summary' => filled($validated['summary'] ?? null)
+                    ? $validated['summary']
+                    : 'Aktif revizyon tekrar incelenmeye hazır olarak işaretlendi.',
             ]);
 
             $this->dashboardCache->forgetMetricsAfterCommit();

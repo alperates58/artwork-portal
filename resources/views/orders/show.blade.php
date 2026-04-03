@@ -140,47 +140,129 @@
                                 </div>
                             @endif
 
-                            @php $allRejections = $line->allRejectedApprovals; @endphp
+                            @php
+                                $allRejections = $line->allRejectedApprovals;
+                                $isRevisionCompleted = !$line->requiresRevision() && $line->latestRejectedApproval !== null;
+                            @endphp
                             @if($line->requiresRevision() || $allRejections->isNotEmpty())
-                                <div class="mt-4 rounded-2xl border border-red-100 bg-red-50/80 px-4 py-3">
-                                    <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-                                        <div>
-                                            <p class="text-xs font-semibold uppercase tracking-wide text-red-700">Revizyon Talepleri</p>
-                                            <p class="mt-0.5 text-sm text-slate-700">Tedarikçi tarafından iletilen revizyon talepleri</p>
-                                        </div>
-                                        <div class="flex flex-wrap items-center justify-end gap-2">
-                                            <span class="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">{{ $allRejections->count() }} talep</span>
-                                            @if($line->requiresRevision())
-                                                <x-ui.badge variant="danger">Revizyon Gerekli</x-ui.badge>
-                                            @endif
-                                            @can('completeRevision', $line)
-                                                @if($line->requiresRevision() && $line->hasActiveArtwork())
-                                                    <form method="POST" action="{{ route('order-lines.revision-complete.store', $line) }}" onsubmit="return confirm('Mevcut aktif revizyon tedarikçi için tekrar hazır olarak işaretlenecek. Devam edilsin mi?');">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-secondary border-emerald-200 px-3 py-1.5 text-xs text-emerald-700 hover:bg-emerald-50">
-                                                            Tamamlandı
+                                <div x-data="{ showCompleteForm: false }" class="mt-4">
+                                    @if($line->requiresRevision())
+                                        {{-- Active: revision required --}}
+                                        <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+                                            <div class="flex flex-wrap items-start justify-between gap-3">
+                                                <div class="flex items-center gap-2.5">
+                                                    <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-red-100">
+                                                        <svg class="h-3.5 w-3.5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z"/>
+                                                        </svg>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-sm font-semibold text-red-800">Revizyon Gerekli</p>
+                                                        <p class="text-xs text-red-600/80">{{ $allRejections->count() }} revizyon talebi · Tedarikçi düzeltme bekliyor</p>
+                                                    </div>
+                                                </div>
+                                                @can('completeRevision', $line)
+                                                    @if($line->hasActiveArtwork())
+                                                        <button type="button" @click="showCompleteForm = !showCompleteForm"
+                                                            class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm transition-colors hover:bg-emerald-50"
+                                                            :class="showCompleteForm ? 'bg-emerald-50' : ''">
+                                                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                                                            </svg>
+                                                            Grafik Tamamlandı
                                                         </button>
-                                                    </form>
-                                                @endif
-                                            @endcan
-                                        </div>
-                                    </div>
-                                    @forelse($allRejections as $rejection)
-                                        <div class="mb-2 rounded-xl border border-red-100 bg-white/80 px-3 py-2.5 @if(!$loop->last) opacity-60 @endif">
-                                            <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                                                <span class="text-[11px] font-semibold text-slate-700">
-                                                    {{ $rejection->user?->name ?? 'Tedarikçi kullanıcısı' }}
-                                                    @if($rejection->supplier?->name)
-                                                        <span class="font-normal text-slate-500">· {{ $rejection->supplier->name }}</span>
                                                     @endif
-                                                </span>
-                                                <span class="text-[10px] text-slate-400">{{ $rejection->actioned_at?->format('d.m.Y H:i') }}</span>
+                                                @endcan
                                             </div>
-                                            <p class="text-sm text-slate-700">{{ filled($rejection->notes) ? $rejection->notes : '—' }}</p>
+
+                                            {{-- Inline complete form --}}
+                                            <div x-show="showCompleteForm" x-cloak class="mt-3 border-t border-red-100 pt-3">
+                                                <form method="POST" action="{{ route('order-lines.revision-complete.store', $line) }}">
+                                                    @csrf
+                                                    <p class="mb-1.5 text-xs font-medium text-slate-700">Grafik düzenleme notu <span class="font-normal text-slate-400">(isteğe bağlı)</span></p>
+                                                    <textarea name="summary" rows="2" class="input resize-none text-sm"
+                                                        placeholder="Yapılan değişiklikleri kısaca açıklayın..."></textarea>
+                                                    <div class="mt-2 flex items-center gap-2">
+                                                        <button type="submit" class="btn btn-primary px-4 py-1.5 text-xs">Tamamlandı Olarak İşaretle</button>
+                                                        <button type="button" @click="showCompleteForm = false" class="btn btn-secondary py-1.5 text-xs">Vazgeç</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+
+                                            {{-- Rejection notes --}}
+                                            <div class="mt-3 space-y-2">
+                                                @foreach($allRejections as $rejection)
+                                                    <div class="rounded-xl border {{ $loop->first ? 'border-red-200 bg-white' : 'border-red-100 bg-white/60 opacity-50' }} px-3 py-2.5">
+                                                        <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                                                            <span class="text-[11px] font-semibold text-slate-700">
+                                                                {{ $rejection->user?->name ?? 'Tedarikçi kullanıcısı' }}
+                                                                @if($rejection->supplier?->name)
+                                                                    <span class="font-normal text-slate-500">· {{ $rejection->supplier->name }}</span>
+                                                                @endif
+                                                            </span>
+                                                            <span class="text-[10px] text-slate-400">{{ $rejection->actioned_at?->format('d.m.Y H:i') }}</span>
+                                                        </div>
+                                                        <p class="text-sm text-slate-700">{{ filled($rejection->notes) ? $rejection->notes : '—' }}</p>
+                                                    </div>
+                                                @endforeach
+                                            </div>
                                         </div>
-                                    @empty
-                                        <p class="text-sm text-slate-500 italic">Henüz revizyon talebi oluşturulmamış.</p>
-                                    @endforelse
+                                    @elseif($isRevisionCompleted)
+                                        {{-- Completed: same revision marked done --}}
+                                        <div class="rounded-2xl border border-emerald-100 bg-emerald-50/60 px-4 py-3">
+                                            <div class="flex items-center gap-2.5 mb-3">
+                                                <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                                                    <svg class="h-3.5 w-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-semibold text-emerald-800">Revizyon Tamamlandı</p>
+                                                    <p class="text-xs text-emerald-600/80">Grafik tedarikçiye tekrar sunulmak üzere hazırlandı</p>
+                                                </div>
+                                            </div>
+                                            <div class="space-y-2">
+                                                @foreach($allRejections as $rejection)
+                                                    <div class="rounded-xl border border-emerald-100 bg-white/70 px-3 py-2.5 {{ !$loop->first ? 'opacity-50' : '' }}">
+                                                        <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                                                            <span class="text-[11px] font-semibold text-slate-600">
+                                                                {{ $rejection->user?->name ?? 'Tedarikçi kullanıcısı' }}
+                                                                @if($rejection->supplier?->name)
+                                                                    <span class="font-normal text-slate-500">· {{ $rejection->supplier->name }}</span>
+                                                                @endif
+                                                            </span>
+                                                            <span class="text-[10px] text-slate-400">{{ $rejection->actioned_at?->format('d.m.Y H:i') }}</span>
+                                                        </div>
+                                                        <p class="text-sm text-slate-500">{{ filled($rejection->notes) ? $rejection->notes : '—' }}</p>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @else
+                                        {{-- History only: after new revision was uploaded --}}
+                                        <div class="rounded-2xl border border-slate-200 bg-slate-50/60 px-4 py-3">
+                                            <div class="flex items-center gap-2 mb-3">
+                                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Önceki Revizyon Talepleri</p>
+                                                <span class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-600">{{ $allRejections->count() }}</span>
+                                            </div>
+                                            <div class="space-y-2">
+                                                @foreach($allRejections as $rejection)
+                                                    <div class="rounded-xl border border-slate-100 bg-white/60 px-3 py-2.5 opacity-60">
+                                                        <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                                                            <span class="text-[11px] font-semibold text-slate-600">
+                                                                {{ $rejection->user?->name ?? 'Tedarikçi kullanıcısı' }}
+                                                                @if($rejection->supplier?->name)
+                                                                    <span class="font-normal text-slate-500">· {{ $rejection->supplier->name }}</span>
+                                                                @endif
+                                                            </span>
+                                                            <span class="text-[10px] text-slate-400">{{ $rejection->actioned_at?->format('d.m.Y H:i') }}</span>
+                                                        </div>
+                                                        <p class="text-sm text-slate-600">{{ filled($rejection->notes) ? $rejection->notes : '—' }}</p>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
                             @endif
                         </div>
