@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SyncAllActiveSuppliersJob;
+use App\Jobs\SyncStockCardsJob;
 use App\Jobs\SyncSupplierOrdersJob;
 use App\Models\Supplier;
 use App\Services\AuditLogService;
@@ -23,6 +24,20 @@ class ErpSyncController extends Controller
         ]);
 
         return back()->with('success', 'Mikro sipariş senkronizasyonu tüm aktif tedarikçiler için kuyruğa alındı.');
+    }
+
+    public function syncStockCards(): RedirectResponse
+    {
+        abort_unless(auth()->user()->isAdmin(), 403);
+
+        SyncStockCardsJob::dispatch();
+
+        $this->audit->log('erp.sync', null, [
+            'triggered_by' => 'manual',
+            'mode'         => 'stock_cards',
+        ]);
+
+        return back()->with('success', 'Stok kartı senkronizasyonu kuyruğa alındı.');
     }
 
     public function syncSupplier(Supplier $supplier): RedirectResponse

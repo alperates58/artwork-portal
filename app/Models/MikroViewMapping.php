@@ -9,6 +9,7 @@ class MikroViewMapping extends Model
 {
     protected $fillable = [
         'name',
+        'entity_type',
         'view_name',
         'endpoint_path',
         'payload_mode',

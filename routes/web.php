@@ -206,6 +206,9 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/admin/erp/sync', [\App\Http\Controllers\Admin\ErpSyncController::class, 'sync'])
         ->middleware('role:admin')
         ->name('admin.erp.sync');
+    Route::post('/admin/erp/sync-stock-cards', [\App\Http\Controllers\Admin\ErpSyncController::class, 'syncStockCards'])
+        ->middleware('role:admin')
+        ->name('admin.erp.sync-stock-cards');
     Route::post('/admin/tedarikciler/{supplier}/mikro-sync', [\App\Http\Controllers\Admin\ErpSyncController::class, 'syncSupplier'])
         ->middleware('role:admin')
         ->name('admin.suppliers.sync');
