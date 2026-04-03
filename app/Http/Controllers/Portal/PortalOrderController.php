@@ -57,6 +57,8 @@ class PortalOrderController extends Controller
             'lines.artwork.activeRevision.galleryItem',
             'lines.artwork.activeRevision.latestRejectedApproval.user:id,name',
             'lines.artwork.activeRevision.latestRejectedApproval.supplier:id,name',
+            'lines.artwork.activeRevision.rejectedApprovals.user:id,name',
+            'lines.artwork.activeRevision.rejectedApprovals.supplier:id,name',
         ]);
 
         $this->artworkUploadService->logViews(

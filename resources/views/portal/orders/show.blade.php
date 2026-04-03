@@ -36,7 +36,8 @@
         <div class="divide-y divide-slate-100">
             @foreach($order->lines as $line)
                 @php
-                    $latestRejectedApproval = $line->latestRejectedApproval;
+                    $activeRejections = $line->artwork?->activeRevision?->rejectedApprovals ?? collect();
+                    $isRevisionCompleted = ($line->artwork_status?->value === 'uploaded') && $line->latestRejectedApproval !== null;
                 @endphp
                 <div class="px-5 py-5">
                     <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -55,33 +56,70 @@
                                 @endif
                             </p>
 
-                            @if($line->requiresRevision())
-                                <div class="mt-4 rounded-2xl border border-red-100 bg-red-50/80 px-4 py-3">
-                                    <div class="flex flex-wrap items-center justify-between gap-3">
-                                        <div>
-                                            <p class="text-xs font-semibold uppercase tracking-wide text-red-700">Revizyon talebi</p>
-                                            <p class="mt-1 text-sm text-slate-700">Bu dosya için yeni revizyon talebi oluşturuldu.</p>
+                            @if($line->requiresRevision() || $activeRejections->isNotEmpty())
+                                @if($line->requiresRevision())
+                                    {{-- Active: revision required --}}
+                                    <div class="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+                                        <div class="flex items-center gap-2.5 mb-3">
+                                            <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-red-100">
+                                                <svg class="h-3.5 w-3.5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z"/>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-semibold text-red-800">Revizyon Talepleriniz</p>
+                                                <p class="text-xs text-red-600/80">{{ $activeRejections->count() }} talep iletildi · Grafik ekibi inceliyor</p>
+                                            </div>
                                         </div>
-                                        <x-ui.badge variant="danger">Revizyon Gerekli</x-ui.badge>
-                                    </div>
-                                    <div class="mt-3 grid gap-3 md:grid-cols-2">
-                                        <div>
-                                            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Talep eden</p>
-                                            <p class="mt-1 text-sm text-slate-700">{{ $latestRejectedApproval?->user?->name ?? $latestRejectedApproval?->supplier?->name ?? 'Tedarikçi kullanıcısı' }}</p>
-                                            @if($latestRejectedApproval?->supplier?->name && $latestRejectedApproval?->user?->name)
-                                                <p class="text-xs text-slate-500">{{ $latestRejectedApproval->supplier->name }}</p>
-                                            @endif
+                                        <div class="space-y-2">
+                                            @foreach($activeRejections as $rejection)
+                                                <div class="rounded-xl border {{ $loop->first ? 'border-red-200 bg-white' : 'border-red-100 bg-white/60 opacity-50' }} px-3 py-2.5">
+                                                    <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                                                        <span class="text-[11px] font-semibold text-slate-700">
+                                                            {{ $rejection->user?->name ?? 'Tedarikçi kullanıcısı' }}
+                                                            @if($rejection->supplier?->name)
+                                                                <span class="font-normal text-slate-500">· {{ $rejection->supplier->name }}</span>
+                                                            @endif
+                                                        </span>
+                                                        <span class="text-[10px] text-slate-400">{{ $rejection->actioned_at?->format('d.m.Y H:i') }}</span>
+                                                    </div>
+                                                    <p class="text-sm text-slate-700">{{ filled($rejection->notes) ? $rejection->notes : '—' }}</p>
+                                                </div>
+                                            @endforeach
                                         </div>
-                                        <div>
-                                            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Talep tarihi</p>
-                                            <p class="mt-1 text-sm text-slate-700">{{ $latestRejectedApproval?->actioned_at?->format('d.m.Y H:i') ?? 'Kayıt tarihi bulunamadı' }}</p>
+                                    </div>
+                                @elseif($isRevisionCompleted)
+                                    {{-- Completed: graphic addressed the requests --}}
+                                    <div class="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50/60 px-4 py-3">
+                                        <div class="flex items-center gap-2.5 mb-3">
+                                            <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                                                <svg class="h-3.5 w-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-semibold text-emerald-800">Talepleriniz İncelendi</p>
+                                                <p class="text-xs text-emerald-600/80">Grafik ekibi revizyonunuzu tamamladı, dosyayı inceleyebilirsiniz</p>
+                                            </div>
+                                        </div>
+                                        <div class="space-y-2">
+                                            @foreach($activeRejections as $rejection)
+                                                <div class="rounded-xl border border-emerald-100 bg-white/70 px-3 py-2.5 {{ !$loop->first ? 'opacity-50' : '' }}">
+                                                    <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                                                        <span class="text-[11px] font-semibold text-slate-600">
+                                                            {{ $rejection->user?->name ?? 'Tedarikçi kullanıcısı' }}
+                                                            @if($rejection->supplier?->name)
+                                                                <span class="font-normal text-slate-500">· {{ $rejection->supplier->name }}</span>
+                                                            @endif
+                                                        </span>
+                                                        <span class="text-[10px] text-slate-400">{{ $rejection->actioned_at?->format('d.m.Y H:i') }}</span>
+                                                    </div>
+                                                    <p class="text-sm text-slate-500">{{ filled($rejection->notes) ? $rejection->notes : '—' }}</p>
+                                                </div>
+                                            @endforeach
                                         </div>
                                     </div>
-                                    <div class="mt-3 rounded-xl border border-red-100 bg-white/80 px-3 py-2">
-                                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Tedarikçi notu</p>
-                                        <p class="mt-1 text-sm text-slate-700">{{ filled($latestRejectedApproval?->notes) ? $latestRejectedApproval->notes : 'Bu revizyon talebi için ek not bırakılmadı.' }}</p>
-                                    </div>
-                                </div>
+                                @endif
                             @endif
                         </div>
 
