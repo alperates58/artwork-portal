@@ -8,6 +8,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
 use App\Services\SpacesStorageService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -34,7 +35,10 @@ class ArtworkApiController extends Controller
         $user = $request->user();
 
         $orders = PurchaseOrder::query()
-            ->when($user->isSupplier(), fn ($q) => $q->where('supplier_id', $user->supplier_id))
+            ->when(
+                $user->isSupplier(),
+                fn (Builder $query) => $query->whereIn('supplier_id', $user->accessibleSupplierIds()->all())
+            )
             ->with(['supplier:id,name,code', 'lines:id,purchase_order_id,line_no,product_code,artwork_status'])
             ->orderByDesc('order_date')
             ->paginate(50);
@@ -53,9 +57,16 @@ class ArtworkApiController extends Controller
      * GET /api/v1/orders/{orderNo}
      * Sipariş detayı — aktif artwork bilgisi dahil
      */
-    public function orderDetail(string $orderNo): JsonResponse
+    public function orderDetail(Request $request, string $orderNo): JsonResponse
     {
-        $matchingOrders = PurchaseOrder::where('order_no', $orderNo)
+        $user = $request->user();
+
+        $matchingOrders = PurchaseOrder::query()
+            ->when(
+                $user->isSupplier(),
+                fn (Builder $query) => $query->whereIn('supplier_id', $user->accessibleSupplierIds()->all())
+            )
+            ->where('order_no', $orderNo)
             ->with([
                 'supplier:id,name,code',
                 'lines.artwork.activeRevision',
@@ -68,7 +79,9 @@ class ArtworkApiController extends Controller
             ], 409);
         }
 
-        $order = $matchingOrders->firstOrFail();
+        $order = $matchingOrders->first();
+
+        abort_if(! $order, 404);
 
         $this->authorize('view', $order);
 
@@ -103,15 +116,25 @@ class ArtworkApiController extends Controller
      * GET /api/v1/artworks/{revisionId}/download-url
      * Güvenli indirme URL'si al (presigned, 15 dakika geçerli)
      */
-    public function downloadUrl(ArtworkRevision $revision): JsonResponse
+    public function downloadUrl(Request $request, ArtworkRevision $revision): JsonResponse
     {
+        abort_unless($revision->artwork?->orderLine?->purchaseOrder, 404);
+
         $this->authorize('view', $revision->artwork);
 
-        if (request()->user()->isSupplier() && ! $revision->is_active) {
+        $user = $request->user();
+        $supplierId = $revision->artwork->orderLine->purchaseOrder->supplier_id;
+
+        if ($user->isSupplier() && ! $revision->is_active) {
             return response()->json(['error' => 'Sadece aktif revizyon indirilebilir.'], 403);
         }
 
-        $url = $this->spaces->presignedUrl($revision->spaces_path, 0, null, $revision->original_filename);
+        if (! $user->canDownloadForSupplier($supplierId)) {
+            return response()->json(['error' => 'Bu dosyayı indirme yetkiniz bulunmamaktadır.'], 403);
+        }
+
+        $storageDisk = $revision->galleryItem?->file_disk;
+        $url = $this->spaces->presignedUrl($revision->spaces_path, 0, $storageDisk, $revision->original_filename);
 
         return response()->json([
             'download_url' => $url,

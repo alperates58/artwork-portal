@@ -38,6 +38,20 @@ class SetupWizardTest extends TestCase
         $response->assertSessionHas('setup.spaces.enabled', false);
     }
 
+    public function test_database_step_rejects_unsafe_identifier_and_host_input(): void
+    {
+        $response = $this->from(route('setup.step', 2))->post(route('setup.save.database'), [
+            'db_host' => 'mysql;unix_socket=/tmp/mysql.sock',
+            'db_port' => 3306,
+            'db_database' => 'portal`drop',
+            'db_username' => "portal'user",
+            'db_password' => 'secret',
+        ]);
+
+        $response->assertRedirect(route('setup.step', 2));
+        $response->assertSessionHasErrors(['db_host', 'db_database', 'db_username']);
+    }
+
     public function test_setup_installation_check_reads_config_value(): void
     {
         config()->set('app.installed', true);

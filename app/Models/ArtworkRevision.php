@@ -12,7 +12,7 @@ class ArtworkRevision extends Model
 {
     use HasFactory;
 
-    private const BROWSER_PREVIEW_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+    private const BROWSER_PREVIEW_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
 
     protected $fillable = [
         'artwork_id',
@@ -160,7 +160,7 @@ class ArtworkRevision extends Model
         $mimeType = strtolower((string) $this->mime_type);
 
         return in_array($extension, self::BROWSER_PREVIEW_EXTENSIONS, true)
-            || in_array($mimeType, ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml'], true);
+            || in_array($mimeType, ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'], true);
     }
 
     /**

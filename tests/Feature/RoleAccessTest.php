@@ -40,6 +40,19 @@ class RoleAccessTest extends TestCase
              ->assertOk();
     }
 
+    public function test_supplier_cannot_access_internal_user_directory_endpoint(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $user = User::factory()->create([
+            'role' => UserRole::SUPPLIER,
+            'supplier_id' => $supplier->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('api.internal-users'))
+            ->assertForbidden();
+    }
+
     public function test_graphic_user_cannot_access_admin_panel(): void
     {
         $user = User::factory()->create(['role' => UserRole::GRAPHIC]);

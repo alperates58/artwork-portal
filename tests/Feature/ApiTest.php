@@ -3,8 +3,12 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Models\Artwork;
+use App\Models\ArtworkRevision;
 use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
+use App\Models\SupplierUser;
 use App\Models\User;
 use App\Services\SpacesStorageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -45,6 +49,37 @@ class ApiTest extends TestCase
 
         $response = $this->getJson('/api/v1/orders')->assertOk();
         $response->assertJsonCount(3, 'data');
+    }
+
+    public function test_supplier_api_uses_all_accessible_supplier_mappings(): void
+    {
+        $primarySupplier = Supplier::factory()->create();
+        $secondarySupplier = Supplier::factory()->create();
+        $otherSupplier = Supplier::factory()->create();
+
+        $user = User::factory()->create([
+            'role' => UserRole::SUPPLIER,
+            'supplier_id' => $primarySupplier->id,
+        ]);
+
+        SupplierUser::query()->updateOrCreate([
+            'supplier_id' => $secondarySupplier->id,
+            'user_id' => $user->id,
+        ], [
+            'is_primary' => false,
+            'can_download' => true,
+            'can_approve' => false,
+        ]);
+
+        PurchaseOrder::factory()->create(['supplier_id' => $primarySupplier->id]);
+        PurchaseOrder::factory(2)->create(['supplier_id' => $secondarySupplier->id]);
+        PurchaseOrder::factory(3)->create(['supplier_id' => $otherSupplier->id]);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/orders')
+            ->assertOk()
+            ->assertJsonCount(3, 'data');
     }
 
     public function test_internal_user_can_list_all_orders_via_api(): void
@@ -103,6 +138,60 @@ class ApiTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_supplier_order_detail_hides_orders_from_other_suppliers(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $otherSupplier = Supplier::factory()->create();
+        $user = User::factory()->create([
+            'role' => UserRole::SUPPLIER,
+            'supplier_id' => $supplier->id,
+        ]);
+
+        PurchaseOrder::factory()->create([
+            'supplier_id' => $otherSupplier->id,
+            'order_no' => 'PO-HIDDEN-001',
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/orders/PO-HIDDEN-001')->assertNotFound();
+    }
+
+    public function test_supplier_without_download_permission_cannot_get_api_download_url(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $user = User::factory()->create([
+            'role' => UserRole::SUPPLIER,
+            'supplier_id' => $supplier->id,
+        ]);
+
+        SupplierUser::query()->updateOrCreate([
+            'supplier_id' => $supplier->id,
+            'user_id' => $user->id,
+        ], [
+            'is_primary' => true,
+            'can_download' => false,
+            'can_approve' => false,
+        ]);
+
+        $order = PurchaseOrder::factory()->create(['supplier_id' => $supplier->id]);
+        $line = PurchaseOrderLine::factory()->create(['purchase_order_id' => $order->id]);
+        $artwork = Artwork::factory()->create(['order_line_id' => $line->id]);
+        $revision = ArtworkRevision::factory()->create([
+            'artwork_id' => $artwork->id,
+            'is_active' => true,
+            'original_filename' => 'etiket.pdf',
+            'spaces_path' => 'artworks/test/etiket.pdf',
+        ]);
+
+        $artwork->update(['active_revision_id' => $revision->id]);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson("/api/v1/artworks/{$revision->id}/download-url")
+            ->assertForbidden();
+    }
+
     public function test_api_token_generation(): void
     {
         $user = User::factory()->create([
@@ -110,7 +199,8 @@ class ApiTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->postJson('/api/v1/auth/token', [
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.11'])
+            ->postJson('/api/v1/auth/token', [
             'email'       => $user->email,
             'password'    => 'password',
             'device_name' => 'test-device',
@@ -122,10 +212,38 @@ class ApiTest extends TestCase
     {
         $user = User::factory()->create(['is_active' => false]);
 
-        $this->postJson('/api/v1/auth/token', [
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.12'])
+            ->postJson('/api/v1/auth/token', [
             'email'       => $user->email,
             'password'    => 'password',
             'device_name' => 'test-device',
         ])->assertForbidden();
+    }
+
+    public function test_api_token_generation_is_throttled(): void
+    {
+        User::factory()->create([
+            'role' => UserRole::ADMIN,
+            'is_active' => true,
+            'email' => 'rate-limit@example.com',
+        ]);
+
+        $lastResponse = null;
+
+        for ($attempt = 1; $attempt <= 6; $attempt++) {
+            $lastResponse = $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.13'])
+                ->postJson('/api/v1/auth/token', [
+                    'email' => 'rate-limit@example.com',
+                    'password' => 'wrong-password',
+                    'device_name' => 'test-device',
+                ]);
+
+            if ($lastResponse->status() === 429) {
+                break;
+            }
+        }
+
+        $this->assertNotNull($lastResponse);
+        $lastResponse->assertTooManyRequests();
     }
 }

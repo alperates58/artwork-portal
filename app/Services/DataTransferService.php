@@ -247,8 +247,28 @@ class DataTransferService
     {
         $content = file_get_contents($file->getRealPath());
 
-        libxml_use_internal_errors(true);
-        $xml = simplexml_load_string($content);
+        if ($content === false || trim($content) === '') {
+            return [
+                'ok' => false,
+                'message' => 'XML dosyası okunamadı.',
+            ];
+        }
+
+        if (preg_match('/<!DOCTYPE|<!ENTITY/i', $content) === 1) {
+            return [
+                'ok' => false,
+                'message' => 'DTD veya ENTITY içeren XML dosyaları güvenlik nedeniyle kabul edilmez.',
+            ];
+        }
+
+        $previousUseInternalErrors = libxml_use_internal_errors(true);
+        $xml = simplexml_load_string(
+            $content,
+            SimpleXMLElement::class,
+            LIBXML_NONET | LIBXML_COMPACT | LIBXML_NOBLANKS | LIBXML_NOCDATA
+        );
+        libxml_clear_errors();
+        libxml_use_internal_errors($previousUseInternalErrors);
 
         if (! $xml instanceof SimpleXMLElement) {
             return [

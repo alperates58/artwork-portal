@@ -107,6 +107,31 @@ XML;
         $this->assertEquals(2, PurchaseOrder::count());
     }
 
+    public function test_import_rejects_xml_with_doctype_or_entity_declarations(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE portal_export [
+    <!ENTITY secret SYSTEM "file:///etc/passwd">
+]>
+<portal_export exported_at="2026-03-29T15:00:00+03:00" version="3" include_media="0">
+    <selection_hash>demo</selection_hash>
+</portal_export>
+XML;
+
+        $file = UploadedFile::fake()->createWithContent('dangerous.xml', $xml);
+
+        $response = $this->actingAs($admin)->post(route('admin.data-transfer.import'), [
+            'xml_file' => $file,
+        ]);
+
+        $response->assertSessionHasErrors('xml_file');
+        $this->assertDatabaseCount('suppliers', 0);
+        $this->assertDatabaseCount('purchase_orders', 0);
+    }
+
     public function test_import_download_logs_uses_fallback_ip_address_when_source_payload_has_none(): void
     {
         $admin = User::factory()->admin()->create();

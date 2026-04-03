@@ -40,7 +40,7 @@ class DataTransferController extends Controller
             report($exception);
 
             return back()->withErrors([
-                'fields' => $exception->getMessage() ?: 'Dışa aktarım paketi oluşturulurken bir hata oluştu.',
+                'fields' => 'Dışa aktarım paketi oluşturulurken bir hata oluştu. Sunucu günlüklerini kontrol edin.',
             ]);
         }
 
@@ -72,7 +72,7 @@ class DataTransferController extends Controller
             report($exception);
 
             return back()->withErrors([
-                'xml_file' => 'İçe aktarma hatası: ' . ($exception->getMessage() ?: 'Bilinmeyen hata'),
+                'xml_file' => 'İçe aktarma dosyası işlenemedi. XML yapısını ve sunucu günlüklerini kontrol edin.',
             ]);
         }
 

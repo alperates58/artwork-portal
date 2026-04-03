@@ -43,13 +43,14 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/search', [SearchController::class, 'search'])->name('search');
     Route::get('/bildirimler', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/bildirimler/okundu', [NotificationController::class, 'markRead'])->name('notifications.read');
-    Route::get('/api/internal-users', fn () => response()->json(
-        \App\Models\User::where('is_active', true)
-            ->whereNotIn('role', ['supplier'])
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])
-    ))->name('api.internal-users');
+    Route::middleware('role:admin,purchasing,graphic')
+        ->get('/api/internal-users', fn () => response()->json(
+            \App\Models\User::where('is_active', true)
+                ->whereNotIn('role', ['supplier'])
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])
+        ))->name('api.internal-users');
 
     Route::get('/profil', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profil', [ProfileController::class, 'update'])->name('profile.update');

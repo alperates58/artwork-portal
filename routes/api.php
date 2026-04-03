@@ -54,4 +54,4 @@ Route::post('/v1/auth/token', function (\Illuminate\Http\Request $request) {
             'role' => $user->role->value,
         ],
     ]);
-})->name('api.v1.auth.token');
+})->middleware('throttle:5,1')->name('api.v1.auth.token');

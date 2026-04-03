@@ -237,6 +237,12 @@ admin.data-transfer.index / .export / .import / .destroy-imported
 # Admin — ERP
 admin.erp.sync
 
+# API v1
+api.v1.orders.index / .show
+api.v1.artworks.download-url
+api.v1.orders.push
+api.v1.auth.token
+
 # Misc
 search
 notifications.index / .read
@@ -277,6 +283,11 @@ $orders = PurchaseOrder::whereIn('supplier_id', $supplierIds)->get();
 // Download permission:
 $user->canDownloadForSupplier($supplierId); // checks supplier_users.can_download
 ```
+
+Additional security notes:
+- This rule applies to API v1 endpoints too; supplier-scoped API queries must use `accessibleSupplierIds()`
+- API download URL generation must also check `canDownloadForSupplier($supplierId)`
+- `/api/internal-users` is an internal-only helper endpoint; supplier role must never access it
 
 ---
 
@@ -420,6 +431,8 @@ app(AuditLogService::class)->log($action, $model, $payload);
 11. Supported derived preview formats are currently `ai`, `eps`, `pdf`, `psd`
 12. Preview generation must stay queue-based (`GenerateArtworkPreviewJob`) and must not block the HTTP upload request
 13. Old records without preview must continue working; UI must fall back gracefully to “preview unavailable”
+14. SVG originals are allowed as upload/download assets, but MUST NOT be served inline from the app origin as browser preview content
+15. Browser-inline original previews are limited to raster image formats such as `jpg`, `jpeg`, `png`, `gif`, `webp`, `bmp`
 
 ---
 
@@ -443,6 +456,7 @@ app(AuditLogService::class)->log($action, $model, $payload);
 - Job: `app/Jobs/GenerateArtworkPreviewJob.php`
 - Queue-only flow: upload/reuse → save revision/gallery → dispatch preview job → generate PNG → save preview metadata
 - Preview failure is non-fatal: original artwork remains valid and downloadable
+- If a safe browser preview does not exist, the UI/controller should fail closed with “preview unavailable” rather than serving the original SVG inline
 - Preview-related audit actions include:
   - `artwork.preview.started`
   - `artwork.preview.success`
@@ -462,6 +476,12 @@ User requests download → DownloadController checks:
 ```
 
 **NEVER** expose direct file paths or Spaces URLs without presigned generation.
+
+### API Token & Import Security
+- `POST /api/v1/auth/token` is rate-limited (`throttle:5,1`) and must remain throttled
+- Sanctum-protected API endpoints must follow the same supplier access rules as web routes
+- XML import must reject any payload containing `DOCTYPE` or `ENTITY`
+- XML parsing must stay non-networked (`LIBXML_NONET`) and must not allow external entity expansion
 
 ---
 
@@ -767,6 +787,10 @@ When adding new features:
 13. **Write ASCII for Turkish text** — always use ğüşıöç/ĞÜŞİÖÇ in all UI strings
 14. **Create parallel config systems** — use `system_settings` + `PortalSettings` service
 15. **Use `SELECT *` on large tables** — always `->select([...])` with specific columns
+16. **Serve original SVG files inline as preview** — SVG can be stored/downloaded, but preview must use a safe raster preview or fail closed
+17. **Accept XML imports with DTD/ENTITY blocks** — reject them before parsing
+18. **Return raw infrastructure exception text from setup/import endpoints** — log server-side and show a safe Turkish error message instead
+19. **Bypass API token throttling** — `api.v1.auth.token` must stay rate-limited
 
 ### ALWAYS do these:
 1. Read relevant existing code before modifying
@@ -779,6 +803,9 @@ When adding new features:
 8. Keep Blade views in Turkish
 9. Use `PortalSettings::get()` for runtime settings
 10. Follow existing code patterns in the file you're editing
+11. Keep supplier-scoped API queries aligned with `supplier_users` pivot access
+12. Escape `.env` values and validate DB identifiers in setup flows before writing config files
+13. Prefer generic user-facing error text for setup/import failures and send full details to logs
 
 ---
 
@@ -810,8 +837,10 @@ Before writing any code, answer:
 | Turkish URL slugs | Full Turkish product; URLs are user-visible |
 | `releases/manifest.json` | Enables in-app update system without external API dependency |
 | `system_settings` for mail config | Allows runtime reconfiguration without `.env` access |
+| Supplier API scope follows `supplier_users` | API and web must enforce the same multi-supplier access model |
+| XML import is fail-closed on DTD/ENTITY | Prevents XXE-style parsing issues during admin data transfer |
 
 ---
 
-*Last updated: 2026-03-29*
+*Last updated: 2026-04-04*
 *Version: 1.9.x*

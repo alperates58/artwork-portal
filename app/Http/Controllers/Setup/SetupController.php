@@ -74,18 +74,22 @@ class SetupController extends Controller
     public function saveDatabase(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'db_host'     => ['required', 'string'],
+            'db_host'     => ['required', 'string', 'max:255', 'regex:/^[A-Za-z0-9._-]+$/'],
             'db_port'     => ['required', 'integer', 'between:1,65535'],
-            'db_database' => ['required', 'string', 'max:64'],
-            'db_username' => ['required', 'string', 'max:64'],
+            'db_database' => ['required', 'string', 'max:64', 'regex:/^[A-Za-z0-9_$-]+$/'],
+            'db_username' => ['required', 'string', 'max:64', 'regex:/^[A-Za-z0-9_.-]+$/'],
             'db_password' => ['nullable', 'string'],
             'create_db'   => ['nullable', 'boolean'],
-            'db_root_username' => ['nullable', 'string', 'max:64'],
+            'db_root_username' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9_.-]+$/'],
             'db_root_password' => ['nullable', 'string'],
         ], [
             'db_host.required'     => 'Veritabanı host zorunludur.',
+            'db_host.regex'        => 'Veritabanı host alanı yalnızca harf, rakam, nokta, alt çizgi ve tire içerebilir.',
             'db_database.required' => 'Veritabanı adı zorunludur.',
+            'db_database.regex'    => 'Veritabanı adı yalnızca harf, rakam, alt çizgi, tire ve dolar işareti içerebilir.',
             'db_username.required' => 'Kullanıcı adı zorunludur.',
+            'db_username.regex'    => 'Kullanıcı adı yalnızca harf, rakam, nokta, alt çizgi ve tire içerebilir.',
+            'db_root_username.regex' => 'Root kullanıcı adı yalnızca harf, rakam, nokta, alt çizgi ve tire içerebilir.',
         ]);
 
         $createDb = (bool) ($validated['create_db'] ?? false);
@@ -109,22 +113,26 @@ class SetupController extends Controller
                 );
 
                 $dbName = $validated['db_database'];
-                $rootPdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                $quotedDatabase = $this->quoteMysqlIdentifier($dbName);
+                $rootPdo->exec("CREATE DATABASE IF NOT EXISTS {$quotedDatabase} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
                 $appUser = $validated['db_username'];
                 if ($appUser !== $validated['db_root_username']) {
                     $pwd = (string) ($validated['db_password'] ?? '');
+                    $escapedUser = $this->escapeMysqlUserName($appUser);
                     // CREATE USER IF NOT EXISTS (MySQL 8+)
-                    $rootPdo->exec("CREATE USER IF NOT EXISTS '{$appUser}'@'%' IDENTIFIED BY " . $rootPdo->quote($pwd));
-                    $rootPdo->exec("GRANT ALL PRIVILEGES ON `{$dbName}`.* TO '{$appUser}'@'%'");
+                    $rootPdo->exec("CREATE USER IF NOT EXISTS '{$escapedUser}'@'%' IDENTIFIED BY " . $rootPdo->quote($pwd));
+                    $rootPdo->exec("GRANT ALL PRIVILEGES ON {$quotedDatabase}.* TO '{$escapedUser}'@'%'");
                     $rootPdo->exec('FLUSH PRIVILEGES');
                 }
 
                 unset($rootPdo);
             } catch (\Throwable $e) {
+                report($e);
+
                 return back()
                     ->withInput()
-                    ->withErrors(['db_root_username' => 'Veritabanı oluşturma işlemi başarısız: ' . $e->getMessage()]);
+                    ->withErrors(['db_root_username' => 'Veritabanı oluşturma işlemi başarısız oldu. Girdiğiniz bilgileri kontrol edip tekrar deneyin.']);
             }
         }
 
@@ -141,9 +149,11 @@ class SetupController extends Controller
             );
             unset($pdo);
         } catch (\PDOException $e) {
+            report($e);
+
             return back()
                 ->withInput()
-                ->withErrors(['db_host' => 'Veritabanı bağlantısı kurulamadı: ' . $e->getMessage()]);
+                ->withErrors(['db_host' => 'Veritabanı bağlantısı kurulamadı. Host, port ve kimlik bilgilerini kontrol edin.']);
         }
 
         // Root bilgilerini session'a yazmayalım
@@ -201,9 +211,11 @@ class SetupController extends Controller
                 'MaxKeys' => 1,
             ]);
         } catch (\Exception $e) {
+            report($e);
+
             return back()
                 ->withInput()
-                ->withErrors(['spaces_key' => 'Spaces bağlantısı kurulamadı: ' . $e->getMessage()]);
+                ->withErrors(['spaces_key' => 'Spaces bağlantısı kurulamadı. Erişim bilgilerini ve bucket tanımını kontrol edin.']);
         }
 
         session([
@@ -247,10 +259,12 @@ class SetupController extends Controller
                 Artisan::call('migrate', ['--force' => true]);
                 $this->createAdminUser($validated);
             } catch (\Exception $e) {
+                report($e);
+
                 return redirect()
                     ->route('setup.step', 4)
                     ->withInput()
-                    ->with('error', 'Migration hatası: ' . $e->getMessage());
+                    ->with('error', 'Kurulum adımları tamamlanamadı. Sunucu günlüklerini kontrol edin.');
             }
         }
 
@@ -302,23 +316,23 @@ class SetupController extends Controller
         $appKey = 'base64:' . base64_encode(random_bytes(32));
 
         $content = <<<ENV
-APP_NAME="{$site['app_name']}"
+APP_NAME={$this->escapeEnvValue($site['app_name'])}
 APP_ENV=production
-APP_KEY={$appKey}
+APP_KEY={$this->escapeEnvValue($appKey)}
 APP_DEBUG=false
-APP_URL={$site['app_url']}
-APP_TIMEZONE={$site['app_timezone']}
+APP_URL={$this->escapeEnvValue($site['app_url'])}
+APP_TIMEZONE={$this->escapeEnvValue($site['app_timezone'])}
 APP_LOCALE=tr
 
 LOG_CHANNEL=daily
 LOG_LEVEL=error
 
 DB_CONNECTION=mysql
-DB_HOST={$db['db_host']}
+DB_HOST={$this->escapeEnvValue($db['db_host'])}
 DB_PORT={$db['db_port']}
-DB_DATABASE={$db['db_database']}
-DB_USERNAME={$db['db_username']}
-DB_PASSWORD={$db['db_password']}
+DB_DATABASE={$this->escapeEnvValue($db['db_database'])}
+DB_USERNAME={$this->escapeEnvValue($db['db_username'])}
+DB_PASSWORD={$this->escapeEnvValue((string) ($db['db_password'] ?? ''))}
 
 CACHE_STORE=redis
 CACHE_DRIVER=redis
@@ -331,19 +345,19 @@ REDIS_CLIENT=predis
 REDIS_PASSWORD=redissecret
 REDIS_PORT=6379
 
-FILESYSTEM_DISK={$filesystemDisk}
-DO_SPACES_KEY={$spacesKey}
-DO_SPACES_SECRET={$spacesSecret}
-DO_SPACES_ENDPOINT={$spacesEndpoint}
-DO_SPACES_REGION={$spacesRegion}
-DO_SPACES_BUCKET={$spacesBucket}
-DO_SPACES_URL={$spacesUrl}
+FILESYSTEM_DISK={$this->escapeEnvValue($filesystemDisk)}
+DO_SPACES_KEY={$this->escapeEnvValue($spacesKey)}
+DO_SPACES_SECRET={$this->escapeEnvValue($spacesSecret)}
+DO_SPACES_ENDPOINT={$this->escapeEnvValue($spacesEndpoint)}
+DO_SPACES_REGION={$this->escapeEnvValue($spacesRegion)}
+DO_SPACES_BUCKET={$this->escapeEnvValue($spacesBucket)}
+DO_SPACES_URL={$this->escapeEnvValue($spacesUrl)}
 
 ARTWORK_DOWNLOAD_TTL=15
 
 MAIL_MAILER=log
-MAIL_FROM_ADDRESS="portal@example.com"
-MAIL_FROM_NAME="\${APP_NAME}"
+MAIL_FROM_ADDRESS={$this->escapeEnvValue('portal@example.com')}
+MAIL_FROM_NAME={$this->escapeEnvValue($site['app_name'])}
 ENV;
 
         file_put_contents(base_path('.env'), $content);
@@ -386,5 +400,22 @@ APP_INSTALLED=true
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    }
+
+    private function quoteMysqlIdentifier(string $value): string
+    {
+        return '`' . str_replace('`', '``', $value) . '`';
+    }
+
+    private function escapeMysqlUserName(string $value): string
+    {
+        return str_replace("'", "''", $value);
+    }
+
+    private function escapeEnvValue(?string $value): string
+    {
+        $normalized = str_replace(["\r\n", "\r", "\n"], '\n', (string) ($value ?? ''));
+
+        return '"' . addcslashes($normalized, "\\\"$") . '"';
     }
 }
