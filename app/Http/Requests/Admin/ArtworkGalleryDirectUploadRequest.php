@@ -30,7 +30,7 @@ class ArtworkGalleryDirectUploadRequest extends FormRequest
                 'max:1228800',
             ],
             'stock_code' => ['required', 'string', 'max:100', 'exists:stock_cards,stock_code'],
-            'revision_no' => ['required', 'integer', 'min:1', 'max:99'],
+            'revision_no' => ['required', 'integer', 'min:0', 'max:99'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ];
     }
@@ -64,7 +64,7 @@ class ArtworkGalleryDirectUploadRequest extends FormRequest
             'stock_code.exists' => 'Girilen stok kodu için tanımlı stok kartı bulunamadı.',
             'revision_no.required' => 'Revizyon numarası zorunludur.',
             'revision_no.integer' => 'Revizyon numarası sayısal olmalıdır.',
-            'revision_no.min' => 'Revizyon numarası en az 1 olmalıdır.',
+            'revision_no.min' => 'Revizyon numarası en az 0 olmalıdır.',
             'revision_no.max' => 'Revizyon numarası en fazla 99 olabilir.',
         ];
     }

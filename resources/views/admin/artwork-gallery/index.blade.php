@@ -511,7 +511,7 @@
                             <p class="flex items-center gap-1 text-xs">
                                 <span class="font-mono font-semibold text-brand-700">{{ $item->stock_code }}</span>
                                 <span class="text-slate-400">·</span>
-                                <span class="font-medium text-slate-600">Rev.{{ $item->revision_no ?: '—' }}</span>
+                                <span class="font-medium text-slate-600">Rev.{{ $item->revision_no ?? '—' }}</span>
                             </p>
                         @endif
 
@@ -633,7 +633,7 @@ function galleryPage() {
     if (!dialog) return;
 
     let lookupTimer = null;
-    let suggestedRevisionNo = Math.max(1, Number(revisionInput?.value || 1));
+    let suggestedRevisionNo = Math.max(0, Number(revisionInput?.value ?? 0));
 
     function setLookup(msg, tone) {
         lookupState.textContent = msg;
@@ -658,7 +658,7 @@ function galleryPage() {
         if (!code) {
             stockName.value = '';
             catName.value = '';
-            suggestedRevisionNo = 1;
+            suggestedRevisionNo = 0;
             syncRevisionHelp();
             setLookup('', '');
             return;
@@ -671,7 +671,7 @@ function galleryPage() {
             if (!res.ok) {
                 const p = await res.json().catch(() => ({}));
                 stockName.value = ''; catName.value = '';
-                suggestedRevisionNo = Math.max(1, Number(revisionInput?.value || 1));
+                suggestedRevisionNo = Math.max(0, Number(revisionInput?.value ?? 0));
                 setLookup(p.message ?? 'Stok kartı bulunamadı.', 'err');
                 return;
             }
@@ -679,7 +679,7 @@ function galleryPage() {
             stockInput.value = p.stock_code;
             stockName.value = p.stock_name ?? '';
             catName.value = p.category_name ?? '';
-            suggestedRevisionNo = Math.max(1, Number(p.next_upload_revision_no || 1));
+            suggestedRevisionNo = Math.max(0, Number(p.next_upload_revision_no ?? 0));
             syncRevisionHelp();
             setLookup('Stok kartı doğrulandı.', 'ok');
         } catch {
@@ -805,7 +805,7 @@ function galleryPage() {
                     </div>
                     <div>
                         <label class="label" for="gdu-revision-no">Revizyon No</label>
-                        <input type="number" id="gdu-revision-no" name="revision_no" value="{{ old('revision_no', 1) }}" min="1" max="99" class="input" required>
+                        <input type="number" id="gdu-revision-no" name="revision_no" value="{{ old('revision_no', 0) }}" min="0" max="99" class="input" required>
                         <p id="gdu-revision-help" class="mt-1 text-xs text-slate-400">Bu stok kodu için en düşük yeni revizyon Rev.01 olmalıdır.</p>
                         @error('revision_no')
                             <p class="mt-1 text-xs text-red-600">{{ $message }}</p>

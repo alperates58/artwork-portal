@@ -17,7 +17,7 @@
 
     $initialSourceType = old('source_type', 'upload');
     $initialGalleryItemId = old('gallery_item_id', '');
-    $currentMaxRevision = (int) ($line->artwork?->revisions->max('revision_no') ?? 0);
+    $currentMaxRevision = $line->artwork?->revisions->max('revision_no');
     $nextRevisionNoValue = $nextRevisionNo;
     $resolvedStockName = old('stock_name', DisplayText::normalize($resolvedStockCard?->stock_name));
     $resolvedCategoryName = old('category_name', DisplayText::normalize($resolvedStockCard?->category?->display_name));
@@ -37,7 +37,7 @@
                 </div>
                 <div class="mt-4 flex flex-wrap items-center gap-2 text-xs">
                     <span class="rounded-full bg-slate-100 px-3 py-1 font-mono text-slate-600">Ürün: {{ $line->product_code }}</span>
-                    <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600">Mevcut revizyon: Rev.{{ $currentMaxRevision ?: '—' }}</span>
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600">Mevcut revizyon: Rev.{{ $currentMaxRevision ?? '—' }}</span>
                     <span class="rounded-full bg-brand-50 px-3 py-1 font-semibold text-brand-700">Önerilen: Rev.{{ $nextRevisionNo }}</span>
                 </div>
             </div>
@@ -337,7 +337,7 @@ function setLookupState(message, tone = 'muted') {
 }
 
 function applySuggestedUploadRevision(nextRevision) {
-    const suggestedRevision = Math.max(nextRevisionNo, Number(nextRevision || 1));
+    const suggestedRevision = Math.max(nextRevisionNo, Number(nextRevision ?? nextRevisionNo));
     currentSuggestedUploadRevision = suggestedRevision;
 
     if (revisionHint) {

@@ -68,7 +68,7 @@
                         <div>
                             <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Stok kodu / Revizyon</dt>
                             <dd class="mt-1 break-all font-mono text-sm font-semibold text-slate-900 sm:text-[15px]">
-                                {{ $artworkGallery->stock_code ?: '—' }} · Rev.{{ $artworkGallery->revision_no ?: '—' }}
+                                {{ $artworkGallery->stock_code ?: '—' }} · Rev.{{ $artworkGallery->revision_no ?? '—' }}
                             </dd>
                         </div>
 

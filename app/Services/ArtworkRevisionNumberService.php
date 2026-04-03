@@ -9,7 +9,9 @@ class ArtworkRevisionNumberService
 {
     public function nextUploadRevisionNo(?PurchaseOrderLine $line = null, ?string $stockCode = null): int
     {
-        $lineMaxRevision = (int) ($line?->artwork?->revisions()->max('revision_no') ?? 0);
+        $lineMax = $line?->artwork?->revisions()->max('revision_no');
+        $lineMaxRevision = $lineMax !== null ? (int) $lineMax : -1;
+
         $galleryMaxRevision = $this->maxGalleryRevisionNo($stockCode);
 
         return max($lineMaxRevision, $galleryMaxRevision) + 1;
@@ -20,12 +22,14 @@ class ArtworkRevisionNumberService
         $normalizedStockCode = $this->normalizeStockCode($stockCode);
 
         if (! $normalizedStockCode) {
-            return 0;
+            return -1;
         }
 
-        return (int) (ArtworkGallery::query()
+        $max = ArtworkGallery::query()
             ->where('stock_code', $normalizedStockCode)
-            ->max('revision_no') ?? 0);
+            ->max('revision_no');
+
+        return $max !== null ? (int) $max : -1;
     }
 
     public function normalizeStockCode(?string $stockCode): ?string

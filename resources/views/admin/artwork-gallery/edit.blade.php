@@ -39,7 +39,7 @@
                     <div class="flex flex-wrap items-center gap-2">
                         <h2 class="text-lg font-semibold text-slate-900">{{ $artworkGallery->display_name }}</h2>
                         <span class="badge badge-gray font-mono">{{ $artworkGallery->stock_code ?: 'STOK YOK' }}</span>
-                        <span class="badge badge-gray">Rev.{{ $artworkGallery->revision_no ?: '—' }}</span>
+                        <span class="badge badge-gray">Rev.{{ $artworkGallery->revision_no ?? '—' }}</span>
                         <span class="badge badge-gray">{{ $artworkGallery->file_type_display }}</span>
                         <span class="badge badge-gray">{{ $artworkGallery->stockCard?->category?->display_name ?? ($artworkGallery->category?->display_name ?? 'Kategorisiz') }}</span>
                         @include('artworks.partials.passive-gallery-badge', ['galleryItem' => $artworkGallery])
@@ -107,7 +107,7 @@
                 </div>
                 <div>
                     <dt class="text-slate-400">Revizyon</dt>
-                    <dd class="text-slate-900">Rev.{{ $artworkGallery->revision_no ?: '—' }}</dd>
+                    <dd class="text-slate-900">Rev.{{ $artworkGallery->revision_no ?? '—' }}</dd>
                 </div>
                 <div>
                     <dt class="text-slate-400">Durum</dt>
