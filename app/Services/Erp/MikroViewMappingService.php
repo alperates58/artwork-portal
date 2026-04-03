@@ -108,7 +108,7 @@ class MikroViewMappingService
         $definition = $this->normalizeDefinition($payload, validateMappings: true);
 
         return DB::transaction(function () use ($definition, $actor): MikroViewMapping {
-            MikroViewMapping::query()->update(['is_active' => false]);
+            MikroViewMapping::query()->where('entity_type', 'orders')->update(['is_active' => false]);
 
             $mapping = MikroViewMapping::query()->updateOrCreate(
                 ['id' => $definition['id'] ?? null],

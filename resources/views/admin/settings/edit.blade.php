@@ -689,6 +689,101 @@
                                 <button type="submit" class="btn btn-primary">View Mapping Kaydet</button>
                             </div>
                         </form>
+
+                        {{-- Stok Kartı View Mapping --}}
+                        <form method="POST" action="{{ route('admin.settings.update', ['tab' => 'mikro']) }}" class="mt-6 space-y-5">
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="settings_section" value="stock_card_view_mapping">
+                            <input type="hidden" name="tab" value="mikro">
+                            <input type="hidden" name="stock_card_view_mapping[id]" value="{{ $stockCardViewMapping['id'] ?? '' }}">
+
+                            <div class="rounded-3xl border border-slate-200 p-6">
+                                <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-slate-900">Stok Kartı View Eşleme</h3>
+                                        <p class="mt-1 text-sm text-slate-500">Mikro'daki stok kartı view'inin kolonlarını portal alanlarıyla eşleyin. Mevcut stok kodu varsa adı ve kategorisi her zaman güncellenir.</p>
+                                    </div>
+                                    <div class="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500 shrink-0">
+                                        <p class="font-semibold text-slate-700">Beklenen view kolonları</p>
+                                        <p class="mt-1">Stok Kodu, Stok Adı, Kategori</p>
+                                        <p class="mt-1 text-slate-400">Her satır tek bir stok kartıdır.</p>
+                                    </div>
+                                </div>
+
+                                <div class="mt-6 grid gap-4 md:grid-cols-2">
+                                    <div>
+                                        <label class="label">Mapping Adı</label>
+                                        <input class="input" type="text" name="stock_card_view_mapping[name]"
+                                               value="{{ old('stock_card_view_mapping.name', $stockCardViewMapping['name'] ?? '') }}">
+                                    </div>
+                                    <div>
+                                        <label class="label">View Adı <span class="text-red-500">*</span></label>
+                                        <input class="input font-mono" type="text" name="stock_card_view_mapping[view_name]"
+                                               value="{{ old('stock_card_view_mapping.view_name', $stockCardViewMapping['view_name'] ?? '') }}"
+                                               placeholder="vw_portal_stok_kartlari">
+                                    </div>
+                                    <div>
+                                        <label class="label">Endpoint Yolu <span class="text-red-500">*</span></label>
+                                        <input class="input font-mono" type="text" name="stock_card_view_mapping[endpoint_path]"
+                                               value="{{ old('stock_card_view_mapping.endpoint_path', $stockCardViewMapping['endpoint_path'] ?? '') }}"
+                                               placeholder="/api/stock-cards">
+                                    </div>
+                                    <div>
+                                        <label class="label">Not</label>
+                                        <input class="input" type="text" name="stock_card_view_mapping[notes]"
+                                               value="{{ old('stock_card_view_mapping.notes', $stockCardViewMapping['notes'] ?? '') }}"
+                                               placeholder="v1, 2026 Q2 vb.">
+                                    </div>
+                                </div>
+
+                                <div class="mt-6 rounded-2xl border border-slate-200 p-4">
+                                    <h4 class="text-sm font-semibold text-slate-900">Kolon Eşleme</h4>
+                                    <p class="mt-1 text-xs text-slate-500">Her portal alanı için Mikro view'indeki kaynak kolon adını girin (büyük/küçük harf duyarlıdır).</p>
+                                    <div class="mt-4 grid gap-4 md:grid-cols-3">
+                                        <div>
+                                            <label class="label">
+                                                Stok Kodu Kolonu <span class="text-red-500">*</span>
+                                            </label>
+                                            <input class="input font-mono" type="text"
+                                                   name="stock_card_view_mapping[mapping][stock_code]"
+                                                   value="{{ old('stock_card_view_mapping.mapping.stock_code', $stockCardViewMapping['mapping']['stock_code'] ?? '') }}"
+                                                   placeholder="Stok Kodu">
+                                        </div>
+                                        <div>
+                                            <label class="label">
+                                                Stok Adı Kolonu <span class="text-red-500">*</span>
+                                            </label>
+                                            <input class="input font-mono" type="text"
+                                                   name="stock_card_view_mapping[mapping][stock_name]"
+                                                   value="{{ old('stock_card_view_mapping.mapping.stock_name', $stockCardViewMapping['mapping']['stock_name'] ?? '') }}"
+                                                   placeholder="Stok Adı">
+                                        </div>
+                                        <div>
+                                            <label class="label">
+                                                Kategori Kolonu <span class="text-red-500">*</span>
+                                            </label>
+                                            <input class="input font-mono" type="text"
+                                                   name="stock_card_view_mapping[mapping][category]"
+                                                   value="{{ old('stock_card_view_mapping.mapping.category', $stockCardViewMapping['mapping']['category'] ?? '') }}"
+                                                   placeholder="Kategori">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end gap-3">
+                                <button type="submit" class="btn btn-primary">Stok Kartı Mapping Kaydet</button>
+                            </div>
+                        </form>
+
+                        <form method="POST" action="{{ route('admin.erp.sync-stock-cards') }}" class="mt-3 flex justify-start">
+                            @csrf
+                            <button type="submit" class="btn btn-secondary"
+                                    onclick="return confirm('Stok kartı senkronizasyonu kuyruğa alınacak. Devam edilsin mi?')">
+                                Stok Kartlarını Şimdi Senkronize Et
+                            </button>
+                        </form>
                     </div>
 
                     <div class="{{ $activeTab === 'mail' ? '' : 'hidden' }}">

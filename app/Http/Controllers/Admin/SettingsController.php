@@ -10,6 +10,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Services\Erp\MikroStockCardViewMappingService;
 use App\Services\Erp\MikroViewMappingService;
 use App\Services\GithubUpdateChecker;
 use App\Services\MailNotificationDispatcher;
@@ -72,6 +73,7 @@ class SettingsController extends Controller
         private MailServerConnectionTester $mailConnectionTester,
         private PortalDeployService $deployService,
         private MikroViewMappingService $mikroViewMappings,
+        private MikroStockCardViewMappingService $stockCardViewMappings,
     ) {}
 
     public function edit(Request $request): View
@@ -84,7 +86,8 @@ class SettingsController extends Controller
                 'spaces_ready' => $this->settings->hasCompleteSpacesConfiguration(),
             ],
             'mikro' => $this->settings->mikroFormConfig(),
-            'mikroViewMapping' => $this->mikroViewMappings->formConfig(),
+            'mikroViewMapping'       => $this->mikroViewMappings->formConfig(),
+            'stockCardViewMapping'   => $this->stockCardViewMappings->formConfig(),
             'mailServer' => $this->settings->mailServerFormConfig(),
             'mailNotifications' => $this->settings->mailNotificationFormConfig(),
             'githubUpdate' => $this->settings->githubUpdatesFormConfig(),
@@ -120,6 +123,10 @@ class SettingsController extends Controller
 
         if (array_key_exists('mikro_view_mapping', $validated)) {
             $this->mikroViewMappings->save($validated['mikro_view_mapping'], $request->user());
+        }
+
+        if (array_key_exists('stock_card_view_mapping', $validated)) {
+            $this->stockCardViewMappings->save($validated['stock_card_view_mapping'], $request->user());
         }
 
         if (array_key_exists('mail_server', $validated)) {
@@ -375,6 +382,19 @@ class SettingsController extends Controller
                 'mikro_view_mapping.notes' => ['nullable', 'string', 'max:1000'],
                 'mikro_view_mapping.mapping.order' => ['required', 'array'],
                 'mikro_view_mapping.mapping.line' => ['required', 'array'],
+            ];
+        }
+
+        if ($section === 'stock_card_view_mapping' || $request->has('stock_card_view_mapping')) {
+            $rules += [
+                'stock_card_view_mapping.id'                    => ['nullable', 'integer'],
+                'stock_card_view_mapping.name'                  => ['required', 'string', 'max:120'],
+                'stock_card_view_mapping.view_name'             => ['required', 'string', 'max:120'],
+                'stock_card_view_mapping.endpoint_path'         => ['required', 'string', 'max:255'],
+                'stock_card_view_mapping.notes'                 => ['nullable', 'string', 'max:1000'],
+                'stock_card_view_mapping.mapping.stock_code'    => ['required', 'string', 'max:120'],
+                'stock_card_view_mapping.mapping.stock_name'    => ['required', 'string', 'max:120'],
+                'stock_card_view_mapping.mapping.category'      => ['required', 'string', 'max:120'],
             ];
         }
 
