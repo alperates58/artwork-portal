@@ -166,7 +166,7 @@ class ArtworkUploadService
     {
         return DB::transaction(function () use ($file, $meta, $uploader) {
             $stockCard = $this->resolveStockCard($meta['stock_code'] ?? null);
-            $revisionNo = (int) ($meta['revision_no'] ?? 0);
+            $revisionNo = (int) ($meta['revision_no'] ?? 1);
             $ext = strtolower($file->getClientOriginalExtension());
 
             $standardizedFilename = ArtworkFileName::original(
