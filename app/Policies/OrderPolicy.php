@@ -11,7 +11,11 @@ class OrderPolicy
 {
     public function viewAny(User $user): bool
     {
-        return true;
+        if ($user->isSupplier()) {
+            return false;
+        }
+
+        return $user->hasPermission('orders', 'view');
     }
 
     public function view(User $user, PurchaseOrder|PurchaseOrderLine $subject): bool
@@ -24,7 +28,7 @@ class OrderPolicy
             return $user->accessibleSupplierIds()->contains($supplierId);
         }
 
-        return true;
+        return $user->hasPermission('orders', 'view');
     }
 
     public function create(User $user): bool

@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Models\SystemSetting;
+use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -164,5 +166,32 @@ class RoleAccessTest extends TestCase
         $this->actingAs($user)
              ->get(route('portal.orders.show', $order))
              ->assertForbidden();
+    }
+
+    public function test_internal_user_without_orders_view_permission_cannot_access_order_pages(): void
+    {
+        $supplier = Supplier::factory()->create();
+        $order = PurchaseOrder::factory()->create(['supplier_id' => $supplier->id]);
+        $line = PurchaseOrderLine::factory()->create(['purchase_order_id' => $order->id]);
+        $user = User::factory()->create([
+            'role' => UserRole::GRAPHIC,
+            'permissions' => [
+                'orders' => [
+                    'view' => false,
+                ],
+            ],
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('orders.index'))
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->get(route('orders.show', $order))
+            ->assertForbidden();
+
+        $this->actingAs($user)
+            ->get(route('order-lines.show', $line))
+            ->assertForbidden();
     }
 }

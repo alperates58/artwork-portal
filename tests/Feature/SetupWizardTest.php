@@ -3,10 +3,14 @@
 namespace Tests\Feature;
 
 use App\Http\Middleware\RedirectIfSetupComplete;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class SetupWizardTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -55,6 +59,13 @@ class SetupWizardTest extends TestCase
     public function test_setup_installation_check_reads_config_value(): void
     {
         config()->set('app.installed', true);
+
+        $this->assertTrue(RedirectIfSetupComplete::isInstalled());
+    }
+
+    public function test_setup_installation_check_fails_closed_when_users_exist(): void
+    {
+        User::factory()->create();
 
         $this->assertTrue(RedirectIfSetupComplete::isInstalled());
     }

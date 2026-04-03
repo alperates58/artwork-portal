@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
  * Token oluşturma: POST /api/v1/auth/token (web login sonrası)
  */
 
-Route::prefix('v1')->name('api.v1.')->middleware(['auth:sanctum'])->group(function () {
+Route::prefix('v1')->name('api.v1.')->middleware(['auth:sanctum', 'active.api'])->group(function () {
 
     // ── Siparişler ──────────────────────────────────────────────
     Route::get('/orders',            [ArtworkApiController::class, 'orders'])->name('orders.index');

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CheckRole;
+use App\Http\Middleware\EnsureApiUserIsActive;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\LogSlowRequests;
 use App\Http\Middleware\RedirectIfSetupComplete;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role'       => CheckRole::class,
             'active'     => EnsureUserIsActive::class,
+            'active.api' => EnsureApiUserIsActive::class,
             'setup.lock' => RedirectIfSetupComplete::class,
         ]);
     })

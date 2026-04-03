@@ -15,7 +15,7 @@ class ArtworkPolicy
             return $user->canAccessOrder($artwork->orderLine->purchaseOrder);
         }
 
-        return true;
+        return $user->hasPermission('orders', 'view');
     }
 
     public function uploadArtwork(User $user, PurchaseOrderLine $line): bool

@@ -21,14 +21,11 @@ class SearchController extends Controller
         $user = $request->user();
         $results = [];
 
-        $roleValue = $user->role->value ?? '';
-
-        // Orders — accessible to admin, purchasing, graphic
-        if (in_array($roleValue, ['admin', 'purchasing', 'graphic'])) {
+        if ($user->hasPermission('orders', 'view')) {
             $orders = PurchaseOrder::with('supplier:id,name')
                 ->where(function ($query) use ($q) {
                     $query->where('order_no', 'like', "%{$q}%")
-                          ->orWhereHas('supplier', fn ($sq) => $sq->where('name', 'like', "%{$q}%"));
+                        ->orWhereHas('supplier', fn ($supplierQuery) => $supplierQuery->where('name', 'like', "%{$q}%"));
                 })
                 ->orderByDesc('created_at')
                 ->limit(5)
@@ -36,17 +33,16 @@ class SearchController extends Controller
 
             foreach ($orders as $order) {
                 $results[] = [
-                    'type'     => 'order',
-                    'label'    => $order->order_no,
-                    'sub'      => $order->supplier?->name ?? '—',
-                    'badge'    => $order->status_label,
-                    'url'      => route('orders.show', $order),
+                    'type' => 'order',
+                    'label' => $order->order_no,
+                    'sub' => $order->supplier?->name ?? '—',
+                    'badge' => $order->status_label,
+                    'url' => route('orders.show', $order),
                 ];
             }
         }
 
-        // Suppliers — admin & purchasing
-        if (in_array($roleValue, ['admin', 'purchasing'])) {
+        if ($user->hasPermission('suppliers', 'view')) {
             $suppliers = Supplier::where('name', 'like', "%{$q}%")
                 ->orWhere('code', 'like', "%{$q}%")
                 ->limit(4)
@@ -54,17 +50,16 @@ class SearchController extends Controller
 
             foreach ($suppliers as $supplier) {
                 $results[] = [
-                    'type'  => 'supplier',
+                    'type' => 'supplier',
                     'label' => $supplier->name,
-                    'sub'   => $supplier->code ?? '',
+                    'sub' => $supplier->code ?? '',
                     'badge' => $supplier->is_active ? 'Aktif' : 'Pasif',
-                    'url'   => route('admin.suppliers.show', $supplier),
+                    'url' => route('admin.suppliers.show', $supplier),
                 ];
             }
         }
 
-        // Artwork Gallery — admin, purchasing, graphic
-        if (in_array($roleValue, ['admin', 'purchasing', 'graphic'])) {
+        if ($user->hasPermission('gallery', 'view')) {
             $artworks = ArtworkGallery::where('name', 'like', "%{$q}%")
                 ->orWhere('stock_code', 'like', "%{$q}%")
                 ->limit(4)
@@ -72,11 +67,11 @@ class SearchController extends Controller
 
             foreach ($artworks as $artwork) {
                 $results[] = [
-                    'type'  => 'artwork',
+                    'type' => 'artwork',
                     'label' => $artwork->name,
-                    'sub'   => $artwork->stock_code ?? '',
+                    'sub' => $artwork->stock_code ?? '',
                     'badge' => strtoupper($artwork->file_type ?? ''),
-                    'url'   => route('admin.artwork-gallery.index') . '?q=' . urlencode($artwork->name),
+                    'url' => route('admin.artwork-gallery.index') . '?q=' . urlencode($artwork->name),
                 ];
             }
         }

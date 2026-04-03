@@ -22,6 +22,8 @@ class OrderLineController extends Controller
 
     public function show(PurchaseOrderLine $line): View
     {
+        $this->authorize('view', $line);
+
         $line->load([
             'purchaseOrder.supplier',
             'manualArtworkCompletedBy:id,name',

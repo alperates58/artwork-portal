@@ -59,4 +59,40 @@ class ArtworkPreviewSecurityTest extends TestCase
             ->get(route('artworks.gallery.preview', $galleryItem))
             ->assertNotFound();
     }
+
+    public function test_internal_user_without_gallery_view_permission_cannot_preview_gallery_items(): void
+    {
+        $user = User::factory()->create([
+            'role' => UserRole::GRAPHIC,
+            'permissions' => [
+                'gallery' => [
+                    'view' => false,
+                ],
+            ],
+        ]);
+
+        $galleryItem = ArtworkGallery::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('artworks.gallery.preview', $galleryItem))
+            ->assertForbidden();
+    }
+
+    public function test_internal_user_without_gallery_view_permission_cannot_download_gallery_items(): void
+    {
+        $user = User::factory()->create([
+            'role' => UserRole::GRAPHIC,
+            'permissions' => [
+                'gallery' => [
+                    'view' => false,
+                ],
+            ],
+        ]);
+
+        $galleryItem = ArtworkGallery::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('artworks.gallery.download', $galleryItem))
+            ->assertForbidden();
+    }
 }

@@ -22,7 +22,13 @@ class ArtworkGalleryDownloadController extends Controller
 
     public function __invoke(ArtworkGallery $artworkGallery): RedirectResponse|BinaryFileResponse|StreamedResponse
     {
-        abort_unless(auth()->user()?->isInternal(), 403, 'Bu dosyayı indirme yetkiniz bulunmamaktadır.');
+        $user = auth()->user();
+
+        abort_unless(
+            $user?->isAdmin() || $user?->hasPermission('gallery', 'view'),
+            403,
+            'Bu dosyayı indirme yetkiniz bulunmamaktadır.'
+        );
 
         $path = $artworkGallery->file_path;
         $disk = $artworkGallery->file_disk ?: $this->settings->filesystemDisk();

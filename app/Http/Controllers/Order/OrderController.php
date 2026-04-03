@@ -30,6 +30,8 @@ class OrderController extends Controller
 
     public function index(Request $request): View
     {
+        $this->authorize('viewAny', PurchaseOrder::class);
+
         $orders = PurchaseOrder::query()
             ->with([
                 'supplier:id,name',
@@ -55,6 +57,8 @@ class OrderController extends Controller
 
     public function show(PurchaseOrder $order): View
     {
+        $this->authorize('view', $order);
+
         $order->load([
             'supplier',
             'createdBy',

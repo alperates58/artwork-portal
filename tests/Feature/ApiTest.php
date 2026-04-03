@@ -220,6 +220,37 @@ class ApiTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_deactivating_user_revokes_existing_api_tokens(): void
+    {
+        $user = User::factory()->create([
+            'role' => UserRole::ADMIN,
+            'is_active' => true,
+        ]);
+
+        $user->createToken('desktop-client');
+
+        $this->assertDatabaseCount('personal_access_tokens', 1);
+
+        $user->update(['is_active' => false]);
+
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
+    public function test_inactive_user_with_existing_token_cannot_access_api(): void
+    {
+        $user = User::factory()->create([
+            'role' => UserRole::ADMIN,
+            'is_active' => false,
+        ]);
+
+        $token = $user->createToken('legacy-client')->plainTextToken;
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/v1/orders')
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Hesabınız pasif durumda. Yönetici ile iletişime geçin.');
+    }
+
     public function test_api_token_generation_is_throttled(): void
     {
         User::factory()->create([

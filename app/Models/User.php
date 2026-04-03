@@ -21,6 +21,18 @@ class User extends Authenticatable
     {
         static::saved(function (self $user) {
             $user->syncPrimarySupplierMapping();
+
+            if (! Schema::hasTable('personal_access_tokens')) {
+                return;
+            }
+
+            if (! $user->wasChanged(['is_active', 'password'])) {
+                return;
+            }
+
+            if (! $user->is_active || $user->wasChanged('password')) {
+                $user->tokens()->delete();
+            }
         });
     }
 
