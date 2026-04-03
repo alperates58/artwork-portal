@@ -5,8 +5,9 @@
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-white to-brand-50 font-sans antialiased min-h-screen flex items-center justify-center p-4">
 @php
-    $logoPath = public_path(config('portal.logo_path'));
-    $logoUrl = file_exists($logoPath) ? asset(config('portal.logo_path')) : null;
+    $logoAsset = 'brand/logo2.png';
+    $logoPath = public_path($logoAsset);
+    $logoUrl = file_exists($logoPath) ? asset($logoAsset) : null;
 @endphp
 
 <div class="w-full max-w-sm">
