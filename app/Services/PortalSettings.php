@@ -20,6 +20,7 @@ class PortalSettings
     private const MAIL_SERVER_SECRET_KEYS = [
         'mail.username',
         'mail.password',
+        'mail.oauth_client_secret',
     ];
 
     private const GITHUB_UPDATE_SECRET_KEYS = [
@@ -27,6 +28,24 @@ class PortalSettings
     ];
 
     private const MAIL_NOTIFICATION_DEFAULT_SUBJECT = 'Yeni siparis geldi: {order_no}';
+    private const MAIL_NOTIFICATION_DEFAULT_ARTWORK_SUBJECT = 'Yeni artwork yüklendi: {order_no} / {product_code}';
+
+    private const MAIL_NOTIFICATION_EVENT_DEFINITIONS = [
+        'new_order' => [
+            'label' => 'Yeni sipariş geldiğinde',
+            'description' => 'Mikro entegrasyonundan ilk kez içeri alınan siparişlerde çalışır.',
+            'default_enabled' => true,
+            'subject_default' => self::MAIL_NOTIFICATION_DEFAULT_SUBJECT,
+            'tokens' => ['{order_no}', '{supplier}', '{order_date}', '{line_count}'],
+        ],
+        'artwork_uploaded' => [
+            'label' => 'Artwork yüklendiğinde',
+            'description' => 'Artwork yükleme veya galeriden reuse işlemi tamamlandığında çalışır.',
+            'default_enabled' => false,
+            'subject_default' => self::MAIL_NOTIFICATION_DEFAULT_ARTWORK_SUBJECT,
+            'tokens' => ['{order_no}', '{supplier}', '{product_code}', '{revision_no}', '{uploaded_by}'],
+        ],
+    ];
 
     private const DEFAULT_FILE_FORMATS = [
         ['ext' => 'PDF',  'label' => 'Adobe PDF',        'group' => 'pdf'],
@@ -178,15 +197,23 @@ class PortalSettings
 
     public function mailNotificationConfig(): array
     {
+        $eventDefinitions = $this->mailNotificationEventDefinitions();
+        $newOrderEvent = $this->mailNotificationEventConfig('new_order', $eventDefinitions['new_order']);
+        $artworkUploadedEvent = $this->mailNotificationEventConfig('artwork_uploaded', $eventDefinitions['artwork_uploaded']);
+
         return [
             'enabled' => filter_var($this->get('mail_notifications.enabled', false), FILTER_VALIDATE_BOOL),
-            'graphics_to' => (string) $this->get('mail_notifications.graphics_to', ''),
-            'graphics_cc' => (string) $this->get('mail_notifications.graphics_cc', ''),
-            'graphics_bcc' => (string) $this->get('mail_notifications.graphics_bcc', ''),
-            'new_order_subject' => (string) $this->get('mail_notifications.new_order_subject', self::MAIL_NOTIFICATION_DEFAULT_SUBJECT),
+            'graphics_to' => $newOrderEvent['to'],
+            'graphics_cc' => $newOrderEvent['cc'],
+            'graphics_bcc' => $newOrderEvent['bcc'],
+            'new_order_subject' => $newOrderEvent['subject'],
             'override_from_name' => $this->get('mail_notifications.override_from_name'),
             'override_from_address' => $this->get('mail_notifications.override_from_address'),
             'test_recipient' => $this->get('mail_notifications.test_recipient'),
+            'events' => [
+                'new_order' => $newOrderEvent,
+                'artwork_uploaded' => $artworkUploadedEvent,
+            ],
         ];
     }
 
@@ -195,21 +222,34 @@ class PortalSettings
         return $this->mailNotificationConfig();
     }
 
+    public function mailNotificationEventDefinitions(): array
+    {
+        return self::MAIL_NOTIFICATION_EVENT_DEFINITIONS;
+    }
+
     public function mailServerConfig(): array
     {
+        $provider = $this->normalizeMailProvider($this->get('mail.provider', 'smtp'));
+        $defaults = $this->defaultMailServerDefaults($provider);
+
         return [
-            'host' => $this->get('mail.host', config('mail.mailers.smtp.host')),
-            'port' => (int) $this->get('mail.port', config('mail.mailers.smtp.port')),
+            'provider' => $provider,
+            'host' => $this->get('mail.host', $defaults['host']),
+            'port' => (int) $this->get('mail.port', $defaults['port']),
             'username' => $this->get('mail.username', config('mail.mailers.smtp.username')),
             'password' => $this->get('mail.password', config('mail.mailers.smtp.password')),
             'encryption' => $this->normalizeMailEncryption(
                 $this->get(
                     'mail.encryption',
-                    config('mail.mailers.smtp.encryption', config('mail.mailers.smtp.scheme'))
+                    $defaults['encryption']
                 )
             ),
             'from_address' => $this->get('mail.from_address', config('mail.from.address')),
             'from_name' => $this->get('mail.from_name', config('mail.from.name')),
+            'oauth_tenant_id' => $this->get('mail.oauth_tenant_id'),
+            'oauth_client_id' => $this->get('mail.oauth_client_id'),
+            'oauth_client_secret' => $this->get('mail.oauth_client_secret'),
+            'oauth_sender' => $this->get('mail.oauth_sender', $this->get('mail.from_address', config('mail.from.address'))),
         ];
     }
 
@@ -218,6 +258,7 @@ class PortalSettings
         $config = $this->mailServerConfig();
 
         return [
+            'provider' => $config['provider'],
             'host' => $config['host'],
             'port' => $config['port'],
             'username' => '',
@@ -225,9 +266,38 @@ class PortalSettings
             'encryption' => $config['encryption'],
             'from_address' => $config['from_address'],
             'from_name' => $config['from_name'],
+            'oauth_tenant_id' => $config['oauth_tenant_id'],
+            'oauth_client_id' => $config['oauth_client_id'],
+            'oauth_client_secret' => '',
+            'oauth_sender' => $config['oauth_sender'],
             'has_username' => filled($config['username']),
             'has_password' => filled($config['password']),
+            'has_oauth_client_secret' => filled($config['oauth_client_secret']),
         ];
+    }
+
+    public function defaultMailDriver(): string
+    {
+        return $this->usesOffice365OAuthMailer() ? 'office365_oauth' : 'smtp';
+    }
+
+    public function usesOffice365OAuthMailer(): bool
+    {
+        return ($this->mailServerConfig()['provider'] ?? 'smtp') === 'office365_oauth';
+    }
+
+    public function hasUsableMailConfiguration(): bool
+    {
+        $config = $this->mailServerConfig();
+
+        if (! filled($config['from_address'] ?? null) || ! filled($config['from_name'] ?? null)) {
+            return false;
+        }
+
+        return match ($config['provider'] ?? 'smtp') {
+            'office365_oauth' => $this->hasOffice365OAuthConfiguration($config),
+            default => filled($config['host'] ?? null) && (int) ($config['port'] ?? 0) > 0,
+        };
     }
 
     public function githubUpdatesConfig(): array
@@ -287,11 +357,17 @@ class PortalSettings
 
     public function syncMailServerSettings(array $settings): void
     {
+        $provider = $this->normalizeMailProvider($settings['provider'] ?? null);
+
+        $this->set('mail', 'mail.provider', $provider);
         $this->set('mail', 'mail.host', $settings['host'] ?? null);
         $this->set('mail', 'mail.port', isset($settings['port']) ? (string) $settings['port'] : null);
         $this->set('mail', 'mail.encryption', $this->normalizeMailEncryption($settings['encryption'] ?? null));
         $this->set('mail', 'mail.from_address', $settings['from_address'] ?? null);
         $this->set('mail', 'mail.from_name', $settings['from_name'] ?? null);
+        $this->set('mail', 'mail.oauth_tenant_id', $settings['oauth_tenant_id'] ?? null);
+        $this->set('mail', 'mail.oauth_client_id', $settings['oauth_client_id'] ?? null);
+        $this->set('mail', 'mail.oauth_sender', $settings['oauth_sender'] ?? null);
 
         foreach (self::MAIL_SERVER_SECRET_KEYS as $key) {
             $field = str($key)->after('mail.')->toString();
@@ -367,17 +443,38 @@ class PortalSettings
     public function syncMailNotificationSettings(array $settings): void
     {
         $this->set('mail_notifications', 'mail_notifications.enabled', $this->booleanSettingValue($settings['enabled'] ?? false));
-        $this->set('mail_notifications', 'mail_notifications.graphics_to', $settings['graphics_to'] ?? null);
-        $this->set('mail_notifications', 'mail_notifications.graphics_cc', $settings['graphics_cc'] ?? null);
-        $this->set('mail_notifications', 'mail_notifications.graphics_bcc', $settings['graphics_bcc'] ?? null);
-        $this->set(
-            'mail_notifications',
-            'mail_notifications.new_order_subject',
-            $settings['new_order_subject'] ?? self::MAIL_NOTIFICATION_DEFAULT_SUBJECT
-        );
         $this->set('mail_notifications', 'mail_notifications.override_from_name', $settings['override_from_name'] ?? null);
         $this->set('mail_notifications', 'mail_notifications.override_from_address', $settings['override_from_address'] ?? null);
         $this->set('mail_notifications', 'mail_notifications.test_recipient', $settings['test_recipient'] ?? null);
+
+        $eventDefinitions = $this->mailNotificationEventDefinitions();
+        $submittedEvents = $settings['events'] ?? [];
+
+        $newOrderEvent = [
+            'enabled' => $submittedEvents['new_order']['enabled'] ?? true,
+            'department_ids' => $submittedEvents['new_order']['department_ids'] ?? [],
+            'to' => $settings['graphics_to'] ?? data_get($submittedEvents, 'new_order.to'),
+            'cc' => $settings['graphics_cc'] ?? data_get($submittedEvents, 'new_order.cc'),
+            'bcc' => $settings['graphics_bcc'] ?? data_get($submittedEvents, 'new_order.bcc'),
+            'subject' => $settings['new_order_subject'] ?? data_get($submittedEvents, 'new_order.subject'),
+        ];
+
+        $this->syncMailNotificationEventSettings('new_order', $newOrderEvent, $eventDefinitions['new_order']);
+
+        $this->set('mail_notifications', 'mail_notifications.graphics_to', $newOrderEvent['to'] ?? null);
+        $this->set('mail_notifications', 'mail_notifications.graphics_cc', $newOrderEvent['cc'] ?? null);
+        $this->set('mail_notifications', 'mail_notifications.graphics_bcc', $newOrderEvent['bcc'] ?? null);
+        $this->set(
+            'mail_notifications',
+            'mail_notifications.new_order_subject',
+            $newOrderEvent['subject'] ?? $eventDefinitions['new_order']['subject_default']
+        );
+
+        $this->syncMailNotificationEventSettings(
+            'artwork_uploaded',
+            $submittedEvents['artwork_uploaded'] ?? [],
+            $eventDefinitions['artwork_uploaded']
+        );
     }
 
     private const DEFAULT_FILE_GROUPS = [
@@ -508,6 +605,45 @@ class PortalSettings
         };
     }
 
+    private function normalizeMailProvider(mixed $value): string
+    {
+        $normalized = strtolower(trim((string) $value));
+
+        return match ($normalized) {
+            'office365_smtp', 'office365-oauth', 'office365_oauth' => str_contains($normalized, 'oauth')
+                ? 'office365_oauth'
+                : 'office365_smtp',
+            default => 'smtp',
+        };
+    }
+
+    private function defaultMailServerDefaults(string $provider): array
+    {
+        return match ($provider) {
+            'office365_smtp', 'office365_oauth' => [
+                'host' => 'smtp.office365.com',
+                'port' => 587,
+                'encryption' => 'tls',
+            ],
+            default => [
+                'host' => config('mail.mailers.smtp.host'),
+                'port' => config('mail.mailers.smtp.port'),
+                'encryption' => config('mail.mailers.smtp.encryption', config('mail.mailers.smtp.scheme')),
+            ],
+        };
+    }
+
+    private function hasOffice365OAuthConfiguration(array $config): bool
+    {
+        foreach (['host', 'port', 'oauth_tenant_id', 'oauth_client_id', 'oauth_client_secret', 'oauth_sender'] as $field) {
+            if (! filled($config[$field] ?? null)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private function normalizeGithubRepository(mixed $value): ?string
     {
         $repository = trim((string) $value);
@@ -521,5 +657,91 @@ class PortalSettings
         $repository = trim($repository, '/');
 
         return $repository !== '' ? $repository : null;
+    }
+
+    private function mailNotificationEventConfig(string $eventKey, array $definition): array
+    {
+        $legacyMap = $eventKey === 'new_order'
+            ? [
+                'to' => 'mail_notifications.graphics_to',
+                'cc' => 'mail_notifications.graphics_cc',
+                'bcc' => 'mail_notifications.graphics_bcc',
+                'subject' => 'mail_notifications.new_order_subject',
+            ]
+            : [];
+
+        return [
+            'enabled' => filter_var(
+                $this->get(
+                    "mail_notifications.{$eventKey}_enabled",
+                    $definition['default_enabled'] ?? false
+                ),
+                FILTER_VALIDATE_BOOL
+            ),
+            'department_ids' => $this->normalizeDepartmentIds(
+                $this->get("mail_notifications.{$eventKey}_department_ids", '[]')
+            ),
+            'to' => (string) $this->get(
+                "mail_notifications.{$eventKey}_to",
+                isset($legacyMap['to']) ? $this->get($legacyMap['to'], '') : ''
+            ),
+            'cc' => (string) $this->get(
+                "mail_notifications.{$eventKey}_cc",
+                isset($legacyMap['cc']) ? $this->get($legacyMap['cc'], '') : ''
+            ),
+            'bcc' => (string) $this->get(
+                "mail_notifications.{$eventKey}_bcc",
+                isset($legacyMap['bcc']) ? $this->get($legacyMap['bcc'], '') : ''
+            ),
+            'subject' => (string) $this->get(
+                "mail_notifications.{$eventKey}_subject",
+                isset($legacyMap['subject'])
+                    ? $this->get($legacyMap['subject'], $definition['subject_default'] ?? '')
+                    : ($definition['subject_default'] ?? '')
+            ),
+        ];
+    }
+
+    private function syncMailNotificationEventSettings(string $eventKey, array $settings, array $definition): void
+    {
+        $this->set(
+            'mail_notifications',
+            "mail_notifications.{$eventKey}_enabled",
+            $this->booleanSettingValue($settings['enabled'] ?? ($definition['default_enabled'] ?? false))
+        );
+        $this->set(
+            'mail_notifications',
+            "mail_notifications.{$eventKey}_department_ids",
+            json_encode(
+                $this->normalizeDepartmentIds($settings['department_ids'] ?? []),
+                JSON_UNESCAPED_UNICODE
+            )
+        );
+        $this->set('mail_notifications', "mail_notifications.{$eventKey}_to", $settings['to'] ?? null);
+        $this->set('mail_notifications', "mail_notifications.{$eventKey}_cc", $settings['cc'] ?? null);
+        $this->set('mail_notifications', "mail_notifications.{$eventKey}_bcc", $settings['bcc'] ?? null);
+        $this->set(
+            'mail_notifications',
+            "mail_notifications.{$eventKey}_subject",
+            $settings['subject'] ?? ($definition['subject_default'] ?? null)
+        );
+    }
+
+    private function normalizeDepartmentIds(mixed $value): array
+    {
+        $decoded = is_array($value)
+            ? $value
+            : json_decode((string) $value, true);
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        return collect($decoded)
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
     }
 }

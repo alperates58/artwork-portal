@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\ArtworkRevision;
 use App\Models\PurchaseOrder;
+use App\Models\User;
 
 class MailNotificationService
 {
@@ -15,34 +17,83 @@ class MailNotificationService
 
     public function newOrderRecipients(): array
     {
-        $config = $this->settings->mailNotificationConfig();
-
-        return [
-            'to' => $this->parseRecipientList($config['graphics_to'] ?? null),
-            'cc' => $this->parseRecipientList($config['graphics_cc'] ?? null),
-            'bcc' => $this->parseRecipientList($config['graphics_bcc'] ?? null),
-        ];
+        return $this->eventRecipients('new_order');
     }
 
     public function hasNewOrderRecipients(): bool
     {
-        return $this->newOrderRecipients()['to'] !== [];
+        return $this->hasEventRecipients('new_order');
+    }
+
+    public function artworkUploadedRecipients(): array
+    {
+        return $this->eventRecipients('artwork_uploaded');
+    }
+
+    public function hasArtworkUploadedRecipients(): bool
+    {
+        return $this->hasEventRecipients('artwork_uploaded');
     }
 
     public function newOrderSubject(PurchaseOrder $order): string
     {
-        $template = (string) ($this->settings->mailNotificationConfig()['new_order_subject'] ?? '');
-
-        if (blank($template)) {
-            $template = 'Yeni siparis geldi: {order_no}';
-        }
-
-        return strtr($template, [
+        return $this->renderEventSubject('new_order', [
             '{order_no}' => (string) $order->order_no,
             '{supplier}' => (string) ($order->supplier?->name ?? ''),
             '{order_date}' => optional($order->order_date)->format('d.m.Y') ?? '',
             '{line_count}' => (string) ($order->lines_count ?? $order->lines()->count()),
         ]);
+    }
+
+    public function artworkUploadedSubject(ArtworkRevision $revision): string
+    {
+        $order = $revision->artwork->orderLine->purchaseOrder;
+        $line = $revision->artwork->orderLine;
+
+        return $this->renderEventSubject('artwork_uploaded', [
+            '{order_no}' => (string) ($order?->order_no ?? ''),
+            '{supplier}' => (string) ($order?->supplier?->name ?? ''),
+            '{product_code}' => (string) ($line?->product_code ?? ''),
+            '{revision_no}' => (string) $revision->revision_no,
+            '{uploaded_by}' => (string) ($revision->uploadedBy?->name ?? ''),
+        ]);
+    }
+
+    public function eventIsEnabled(string $event): bool
+    {
+        if (! $this->isEnabled()) {
+            return false;
+        }
+
+        return (bool) data_get($this->settings->mailNotificationConfig(), "events.{$event}.enabled", false);
+    }
+
+    public function eventRecipients(string $event): array
+    {
+        $config = data_get($this->settings->mailNotificationConfig(), "events.{$event}", []);
+        $departmentIds = collect($config['department_ids'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        $departmentRecipients = $this->departmentRecipients($departmentIds);
+
+        return [
+            'to' => collect($departmentRecipients)
+                ->merge($this->parseRecipientList($config['to'] ?? null))
+                ->unique()
+                ->values()
+                ->all(),
+            'cc' => $this->parseRecipientList($config['cc'] ?? null),
+            'bcc' => $this->parseRecipientList($config['bcc'] ?? null),
+        ];
+    }
+
+    public function hasEventRecipients(string $event): bool
+    {
+        return $this->eventRecipients($event)['to'] !== [];
     }
 
     public function fromOverride(): ?array
@@ -83,6 +134,40 @@ class MailNotificationService
         return collect($items)
             ->map(fn ($email) => trim((string) $email))
             ->filter(fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function renderEventSubject(string $event, array $replacements): string
+    {
+        $definitions = $this->settings->mailNotificationEventDefinitions();
+        $template = (string) data_get(
+            $this->settings->mailNotificationConfig(),
+            "events.{$event}.subject",
+            $definitions[$event]['subject_default'] ?? ''
+        );
+
+        if (blank($template)) {
+            $template = (string) ($definitions[$event]['subject_default'] ?? '');
+        }
+
+        return strtr($template, $replacements);
+    }
+
+    private function departmentRecipients(array $departmentIds): array
+    {
+        if ($departmentIds === []) {
+            return [];
+        }
+
+        return User::query()
+            ->where('is_active', true)
+            ->whereIn('role', ['admin', 'purchasing', 'graphic'])
+            ->whereIn('department_id', $departmentIds)
+            ->pluck('email')
+            ->filter(fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL))
+            ->map(fn ($email) => (string) $email)
             ->unique()
             ->values()
             ->all();

@@ -50,6 +50,18 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
+        'office365_oauth' => [
+            'transport' => 'office365-oauth',
+            'host' => 'smtp.office365.com',
+            'port' => 587,
+            'timeout' => 30,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'tenant_id' => null,
+            'client_id' => null,
+            'client_secret' => null,
+            'sender' => null,
+        ],
+
         'ses' => [
             'transport' => 'ses',
         ],

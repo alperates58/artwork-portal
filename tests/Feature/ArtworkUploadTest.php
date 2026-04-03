@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Enums\UserRole;
 use App\Jobs\GenerateArtworkPreviewJob;
+use App\Jobs\SendArtworkUploadedNotificationJob;
 use App\Models\Artwork;
 use App\Models\ArtworkGallery;
 use App\Models\ArtworkRevision;
+use App\Models\Department;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\StockCard;
@@ -105,6 +107,7 @@ class ArtworkUploadTest extends TestCase
 
         $this->mock(SpacesStorageService::class, function ($mock) {
             $mock->shouldReceive('buildPath')->andReturn('artworks/supplier/1/orders/PO-001/lines/1/rev/3/original/uuid.pdf');
+            $mock->shouldReceive('normalizeArtworkStoragePermissions')->once()->with('spaces');
         });
 
         $this->mock(MultipartUploadService::class, function ($mock) {
@@ -133,14 +136,14 @@ class ArtworkUploadTest extends TestCase
         $this->assertDatabaseHas('artwork_revisions', [
             'revision_no' => 3,
             'is_active' => true,
-            'original_filename' => 'test-artwork.pdf',
+            'original_filename' => 'stk-1001-rev-3.pdf',
         ]);
         $this->assertDatabaseHas('purchase_order_lines', [
             'id' => $this->line->id,
             'artwork_status' => 'uploaded',
         ]);
         $this->assertDatabaseHas('artwork_gallery', [
-            'name' => 'test-artwork.pdf',
+            'name' => 'stk-1001-rev-3.pdf',
             'stock_code' => $this->stockCard->stock_code,
             'revision_no' => 3,
             'stock_card_id' => $this->stockCard->id,
@@ -169,6 +172,7 @@ class ArtworkUploadTest extends TestCase
 
         $this->mock(SpacesStorageService::class, function ($mock) {
             $mock->shouldReceive('buildPath')->andReturn('artworks/supplier/1/orders/PO-001/lines/1/rev/4/original/uuid.ai');
+            $mock->shouldReceive('normalizeArtworkStoragePermissions')->once()->with('spaces');
         });
 
         $this->mock(MultipartUploadService::class, function ($mock) {
@@ -208,6 +212,57 @@ class ArtworkUploadTest extends TestCase
         Queue::assertPushed(GenerateArtworkPreviewJob::class, fn (GenerateArtworkPreviewJob $job) => $job->revisionId === $revision->id);
     }
 
+    public function test_upload_queues_internal_artwork_mail_notification_when_event_is_configured(): void
+    {
+        Queue::fake();
+
+        $department = Department::query()->updateOrCreate(['name' => 'Grafik Upload Test'], ['permissions' => []]);
+        $this->graphicUser->update(['department_id' => $department->id]);
+
+        foreach ([
+            'mail_notifications.enabled' => '1',
+            'mail_notifications.artwork_uploaded_enabled' => '1',
+            'mail_notifications.artwork_uploaded_department_ids' => json_encode([$department->id]),
+            'mail_notifications.artwork_uploaded_to' => '',
+            'mail_notifications.artwork_uploaded_cc' => '',
+            'mail_notifications.artwork_uploaded_bcc' => '',
+            'mail_notifications.artwork_uploaded_subject' => 'Yeni artwork yüklendi: {order_no} / {product_code}',
+        ] as $key => $value) {
+            SystemSetting::query()->updateOrCreate(
+                ['key' => $key],
+                ['group' => 'mail_notifications', 'value' => $value, 'is_encrypted' => false]
+            );
+        }
+
+        $this->mock(SpacesStorageService::class, function ($mock) {
+            $mock->shouldReceive('buildPath')->andReturn('artworks/test/notify.pdf');
+            $mock->shouldReceive('normalizeArtworkStoragePermissions')->once()->with('local');
+        });
+
+        $this->mock(MultipartUploadService::class, function ($mock) {
+            $mock->shouldReceive('upload')->andReturn([
+                'spaces_path' => 'artworks/test/notify.pdf',
+                'original_filename' => 'notify.pdf',
+                'stored_filename' => 'notify.pdf',
+                'mime_type' => 'application/pdf',
+                'file_size' => 2048,
+            ]);
+        });
+
+        $file = UploadedFile::fake()->create('notify.pdf', 100, 'application/pdf');
+
+        $this->actingAs($this->graphicUser)
+            ->post(route('artworks.store', $this->line), [
+                'source_type' => 'upload',
+                'artwork_file' => $file,
+                'stock_code' => $this->stockCard->stock_code,
+                'revision_no' => 7,
+            ])
+            ->assertRedirect(route('order-lines.show', $this->line));
+
+        Queue::assertPushed(SendArtworkUploadedNotificationJob::class, 1);
+    }
+
     public function test_gallery_reuse_creates_revision_with_explicit_revision_number(): void
     {
         Queue::fake();
@@ -239,7 +294,7 @@ class ArtworkUploadTest extends TestCase
         $this->assertDatabaseHas('artwork_revisions', [
             'artwork_gallery_id' => $galleryItem->id,
             'spaces_path' => 'artworks/gallery/master-artwork.pdf',
-            'original_filename' => 'master-artwork.pdf',
+            'original_filename' => 'stk-1001-rev-2.pdf',
             'revision_no' => 2,
             'is_active' => true,
         ]);
@@ -317,6 +372,7 @@ class ArtworkUploadTest extends TestCase
 
         $this->mock(SpacesStorageService::class, function ($mock) {
             $mock->shouldReceive('buildPath')->andReturn('artworks/test/rev2.pdf');
+            $mock->shouldReceive('normalizeArtworkStoragePermissions')->once()->with('local');
         });
 
         $this->mock(MultipartUploadService::class, function ($mock) {
@@ -345,7 +401,8 @@ class ArtworkUploadTest extends TestCase
                 'artwork_file' => $file,
                 'stock_code' => $this->stockCard->stock_code,
                 'revision_no' => 2,
-            ]);
+            ])
+            ->assertRedirect(route('order-lines.show', $this->line));
 
         $this->assertDatabaseHas('artwork_revisions', ['id' => $rev1->id, 'is_active' => false]);
         $this->assertDatabaseHas('artwork_revisions', ['revision_no' => 2, 'is_active' => true]);
@@ -501,6 +558,7 @@ class ArtworkUploadTest extends TestCase
     {
         $this->mock(SpacesStorageService::class, function ($mock) {
             $mock->shouldReceive('buildPath')->andReturn('artworks/test/file.pdf');
+            $mock->shouldReceive('normalizeArtworkStoragePermissions')->once()->with('local');
         });
 
         $this->mock(MultipartUploadService::class, function ($mock) {
@@ -521,7 +579,8 @@ class ArtworkUploadTest extends TestCase
                 'artwork_file' => $file,
                 'stock_code' => $this->stockCard->stock_code,
                 'revision_no' => 1,
-            ]);
+            ])
+            ->assertRedirect(route('order-lines.show', $this->line));
 
         $this->assertDatabaseHas('audit_logs', [
             'user_id' => $this->graphicUser->id,

@@ -17,16 +17,12 @@ class AuditLogService
      */
     public function log(string $action, ?Model $model = null, array $payload = []): void
     {
-        AuditLog::create([
-            'user_id'    => Auth::id(),
-            'action'     => $action,
-            'model_type' => $model ? get_class($model) : null,
-            'model_id'   => $model?->getKey(),
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'payload'    => $payload ?: null,
-            'created_at' => now(),
-        ]);
+        $this->write(Auth::id(), $action, $model, $payload);
+    }
+
+    public function logForUser(int $userId, string $action, ?Model $model = null, array $payload = []): void
+    {
+        $this->write($userId, $action, $model, $payload);
     }
 
     /**
@@ -34,13 +30,7 @@ class AuditLogService
      */
     public function logLogin(int $userId): void
     {
-        AuditLog::create([
-            'user_id'    => $userId,
-            'action'     => 'user.login',
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'created_at' => now(),
-        ]);
+        $this->write($userId, 'user.login');
     }
 
     /**
@@ -48,11 +38,19 @@ class AuditLogService
      */
     public function logLogout(int $userId): void
     {
+        $this->write($userId, 'user.logout');
+    }
+
+    private function write(?int $userId, string $action, ?Model $model = null, array $payload = []): void
+    {
         AuditLog::create([
-            'user_id'    => $userId,
-            'action'     => 'user.logout',
+            'user_id' => $userId,
+            'action' => $action,
+            'model_type' => $model ? get_class($model) : null,
+            'model_id' => $model?->getKey(),
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
+            'payload' => $payload ?: null,
             'created_at' => now(),
         ]);
     }

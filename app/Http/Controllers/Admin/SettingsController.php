@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Artwork;
 use App\Models\ArtworkRevision;
+use App\Models\Department;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
@@ -22,6 +23,7 @@ use App\Services\PortalUpdateStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -90,6 +92,8 @@ class SettingsController extends Controller
             'stockCardViewMapping'   => $this->stockCardViewMappings->formConfig(),
             'mailServer' => $this->settings->mailServerFormConfig(),
             'mailNotifications' => $this->settings->mailNotificationFormConfig(),
+            'mailNotificationEvents' => $this->settings->mailNotificationEventDefinitions(),
+            'internalDepartments' => Department::query()->orderBy('name')->get(['id', 'name']),
             'githubUpdate' => $this->settings->githubUpdatesFormConfig(),
             'updateStatus' => $this->updateStatus->snapshot(),
             'generalSystem' => $this->generalSystemConfig(),
@@ -102,6 +106,7 @@ class SettingsController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $activeTab = $this->resolveTab($request);
+        $restartQueue = false;
 
         // Formats sekmesi için özel yetki kontrolü
         if ($activeTab === 'formats') {
@@ -131,10 +136,12 @@ class SettingsController extends Controller
 
         if (array_key_exists('mail_server', $validated)) {
             $this->syncMailServerSettings($validated['mail_server']);
+            $restartQueue = true;
         }
 
         if (array_key_exists('mail_notifications', $validated)) {
             $this->settings->syncMailNotificationSettings($validated['mail_notifications']);
+            $restartQueue = true;
         }
 
         if (array_key_exists('github_updates', $validated)) {
@@ -148,6 +155,14 @@ class SettingsController extends Controller
         if (array_key_exists('portal', $validated)) {
             $this->settings->syncPortalSettings($validated['portal']);
             $this->settings->syncArtworkStorageDisk($validated['portal']['artwork_storage_disk'] ?? null);
+        }
+
+        if ($restartQueue) {
+            try {
+                Artisan::call('queue:restart');
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
         }
 
         return $this->redirectToTab($activeTab)->with('success', 'Sistem ayarlari guncellendi.');
@@ -399,7 +414,11 @@ class SettingsController extends Controller
         }
 
         if ($section === 'mail' || $request->has('mail_server')) {
+            $mailProvider = (string) $request->input('mail_server.provider', 'smtp');
+            $usesOffice365Oauth = $mailProvider === 'office365_oauth';
+
             $rules += [
+                'mail_server.provider' => ['nullable', 'in:smtp,office365_smtp,office365_oauth'],
                 'mail_server.host' => ['required', 'string', 'max:255'],
                 'mail_server.port' => ['required', 'integer', 'min:1', 'max:65535'],
                 'mail_server.username' => ['nullable', 'string', 'max:255'],
@@ -407,6 +426,10 @@ class SettingsController extends Controller
                 'mail_server.encryption' => ['nullable', 'in:none,tls,ssl'],
                 'mail_server.from_address' => ['required', 'email', 'max:255'],
                 'mail_server.from_name' => ['required', 'string', 'max:255'],
+                'mail_server.oauth_tenant_id' => [$usesOffice365Oauth ? 'required' : 'nullable', 'string', 'max:255'],
+                'mail_server.oauth_client_id' => [$usesOffice365Oauth ? 'required' : 'nullable', 'string', 'max:255'],
+                'mail_server.oauth_client_secret' => ['nullable', 'string', 'max:255'],
+                'mail_server.oauth_sender' => [$usesOffice365Oauth ? 'required' : 'nullable', 'email', 'max:255'],
             ];
         }
 
@@ -458,6 +481,33 @@ class SettingsController extends Controller
                     $this->validateEmailList($value, $fail);
                 }],
                 'mail_notifications.new_order_subject' => ['nullable', 'string', 'max:255'],
+                'mail_notifications.events' => ['nullable', 'array'],
+                'mail_notifications.events.new_order.enabled' => ['nullable', 'boolean'],
+                'mail_notifications.events.new_order.department_ids' => ['nullable', 'array'],
+                'mail_notifications.events.new_order.department_ids.*' => ['integer', 'exists:departments,id'],
+                'mail_notifications.events.new_order.to' => ['nullable', 'string', 'max:1000', function ($attribute, $value, $fail) {
+                    $this->validateEmailList($value, $fail);
+                }],
+                'mail_notifications.events.new_order.cc' => ['nullable', 'string', 'max:1000', function ($attribute, $value, $fail) {
+                    $this->validateEmailList($value, $fail);
+                }],
+                'mail_notifications.events.new_order.bcc' => ['nullable', 'string', 'max:1000', function ($attribute, $value, $fail) {
+                    $this->validateEmailList($value, $fail);
+                }],
+                'mail_notifications.events.new_order.subject' => ['nullable', 'string', 'max:255'],
+                'mail_notifications.events.artwork_uploaded.enabled' => ['nullable', 'boolean'],
+                'mail_notifications.events.artwork_uploaded.department_ids' => ['nullable', 'array'],
+                'mail_notifications.events.artwork_uploaded.department_ids.*' => ['integer', 'exists:departments,id'],
+                'mail_notifications.events.artwork_uploaded.to' => ['nullable', 'string', 'max:1000', function ($attribute, $value, $fail) {
+                    $this->validateEmailList($value, $fail);
+                }],
+                'mail_notifications.events.artwork_uploaded.cc' => ['nullable', 'string', 'max:1000', function ($attribute, $value, $fail) {
+                    $this->validateEmailList($value, $fail);
+                }],
+                'mail_notifications.events.artwork_uploaded.bcc' => ['nullable', 'string', 'max:1000', function ($attribute, $value, $fail) {
+                    $this->validateEmailList($value, $fail);
+                }],
+                'mail_notifications.events.artwork_uploaded.subject' => ['nullable', 'string', 'max:255'],
                 'mail_notifications.override_from_name' => ['nullable', 'string', 'max:255'],
                 'mail_notifications.override_from_address' => ['nullable', 'email', 'max:255'],
                 'mail_notifications.test_recipient' => ['nullable', 'email', 'max:255'],
@@ -508,6 +558,21 @@ class SettingsController extends Controller
             });
         }
 
+        if (($validated['mail_server']['provider'] ?? 'smtp') === 'office365_oauth'
+            && blank($validated['mail_server']['oauth_client_secret'] ?? null)
+            && ! filled($this->settings->mailServerConfig()['oauth_client_secret'] ?? null)
+        ) {
+            $validator = Validator::make($request->all(), []);
+            $validator->errors()->add(
+                'mail_server.oauth_client_secret',
+                'Office 365 Modern Auth için client secret alanı zorunludur.'
+            );
+
+            throw tap(new ValidationException($validator), function (ValidationException $exception) use ($activeTab): void {
+                $exception->redirectTo($this->settingsTabUrl($activeTab));
+            });
+        }
+
         return $validated;
     }
 
@@ -548,6 +613,9 @@ class SettingsController extends Controller
     {
         $mailServer['username'] = filled($mailServer['username'] ?? null) ? $mailServer['username'] : '__KEEP__';
         $mailServer['password'] = filled($mailServer['password'] ?? null) ? $mailServer['password'] : '__KEEP__';
+        $mailServer['oauth_client_secret'] = filled($mailServer['oauth_client_secret'] ?? null)
+            ? $mailServer['oauth_client_secret']
+            : '__KEEP__';
         $mailServer['encryption'] = ($mailServer['encryption'] ?? 'none') === 'none'
             ? null
             : $mailServer['encryption'];
@@ -735,6 +803,7 @@ class SettingsController extends Controller
         $sensitiveValues = collect([
             config('mail.mailers.smtp.password'),
             config('mail.mailers.smtp.username'),
+            config('mail.mailers.office365_oauth.client_secret'),
         ])->filter(fn ($value) => filled($value))->all();
 
         if ($sensitiveValues !== []) {

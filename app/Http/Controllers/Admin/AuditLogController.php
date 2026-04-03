@@ -16,7 +16,7 @@ use Illuminate\View\View;
 class AuditLogController extends Controller
 {
     public const CATEGORIES = [
-        'session' => ['user.login', 'user.logout'],
+        'session' => ['user.login', 'user.logout', 'user.2fa.challenge.queued', 'user.2fa.challenge.sent', 'user.2fa.challenge.failed', 'user.2fa.failed', 'user.2fa.verified'],
         'artwork' => ['artwork.upload', 'artwork.view', 'artwork.viewed', 'artwork.download', 'artwork.delete', 'artwork.approved', 'artwork.rejected', 'artwork.revision.activate', 'artwork.preview.started', 'artwork.preview.success', 'artwork.preview.failed'],
         'gallery' => ['artwork.gallery.create', 'artwork.gallery.reuse', 'artwork.gallery.update', 'artwork.gallery.delete', 'artwork.gallery.download', 'artwork.gallery.activate', 'artwork.gallery.deactivate'],
         'stock' => ['stock_card.create', 'stock_card.update', 'stock_card.delete', 'stock_card.import'],
@@ -40,6 +40,11 @@ class AuditLogController extends Controller
     public const ACTION_LABELS = [
         'user.login' => 'Giriş yapıldı',
         'user.logout' => 'Çıkış yapıldı',
+        'user.2fa.challenge.queued' => '2 adımlı doğrulama kodu kuyruğa alındı',
+        'user.2fa.challenge.sent' => '2 adımlı doğrulama kodu gönderildi',
+        'user.2fa.challenge.failed' => '2 adımlı doğrulama kodu gönderilemedi',
+        'user.2fa.failed' => '2 adımlı doğrulama başarısız',
+        'user.2fa.verified' => '2 adımlı doğrulama tamamlandı',
         'artwork.upload' => 'Artwork yüklendi',
         'artwork.view' => 'Artwork görüntülendi',
         'artwork.viewed' => 'Artwork incelendi',
@@ -86,6 +91,11 @@ class AuditLogController extends Controller
     public const ACTION_COLORS = [
         'user.login' => 'slate',
         'user.logout' => 'slate',
+        'user.2fa.challenge.queued' => 'amber',
+        'user.2fa.challenge.sent' => 'blue',
+        'user.2fa.challenge.failed' => 'red',
+        'user.2fa.failed' => 'red',
+        'user.2fa.verified' => 'emerald',
         'artwork.upload' => 'violet',
         'artwork.download' => 'blue',
         'artwork.approved' => 'emerald',
@@ -139,6 +149,7 @@ class AuditLogController extends Controller
         'subject' => 'Konu',
         'to' => 'Alıcı',
         'recipient' => 'Alıcı',
+        'code_expires_at' => 'Kod Geçerliliği',
         'error' => 'Hata',
         'message' => 'Mesaj',
         'result' => 'Sonuç',

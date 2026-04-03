@@ -19,6 +19,7 @@ use App\Http\Controllers\Artwork\ArtworkPreviewController;
 use App\Http\Controllers\Artwork\DownloadController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Order\OrderController;
@@ -31,6 +32,9 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:5,1');
+    Route::get('/iki-adimli-dogrulama', [TwoFactorChallengeController::class, 'show'])->name('login.two-factor.show');
+    Route::post('/iki-adimli-dogrulama', [TwoFactorChallengeController::class, 'verify'])->middleware('throttle:10,1')->name('login.two-factor.verify');
+    Route::post('/iki-adimli-dogrulama/yeniden-gonder', [TwoFactorChallengeController::class, 'resend'])->middleware('throttle:3,1')->name('login.two-factor.resend');
     Route::get('/forgot-password', [PasswordResetController::class, 'showForgot'])->name('password.request');
     Route::post('/forgot-password', [PasswordResetController::class, 'sendReset'])->middleware('throttle:5,1')->name('password.email');
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'showReset'])->name('password.reset');

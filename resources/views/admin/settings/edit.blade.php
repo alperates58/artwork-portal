@@ -60,6 +60,7 @@
     if ($selectedEncryption === null || $selectedEncryption === '') {
         $selectedEncryption = 'none';
     }
+    $selectedMailProvider = old('mail_server.provider', $mailServer['provider'] ?? 'smtp');
     $portalUploadLimitMb = (int) ($portalConfig['max_upload_size_mb'] ?? config('artwork.max_file_size_mb', 1200));
     $portalUploadLimitSystemMaxMb = max(1, (int) config('artwork.max_file_size_mb', 1200));
     $portalUploadLimitSummary = number_format($portalUploadLimitMb, 0, ',', '.') . ' MB';
@@ -788,6 +789,9 @@
 
                     <div class="{{ $activeTab === 'mail' ? '' : 'hidden' }}">
                         <div class="space-y-6">
+                            @php
+                                $mailEventStates = old('mail_notifications.events', $mailNotifications['events'] ?? []);
+                            @endphp
                             <form method="POST" action="{{ route('admin.settings.update', ['tab' => 'mail']) }}" class="space-y-6">
                                 @csrf
                                 @method('PUT')
@@ -797,20 +801,35 @@
                                     <div>
                                         <h3 class="text-lg font-semibold text-slate-900">Mail Sunucusu</h3>
                                         <p class="mt-1 text-xs font-medium uppercase tracking-wide text-slate-400">Mail / Exchange</p>
-                                        <p class="mt-1 text-sm text-slate-500">Yalnız runtime-safe mail sunucusu alanları burada yönetilir. İlgisiz altyapı env değerleri bu passta taşınmaz.</p>
+                                        <p class="mt-1 text-sm text-slate-500">Office 365 için önerilen kurulum Modern Auth akışıdır. Klasik SMTP kullanıcı/şifre alanları korunur; ancak Microsoft tenant politikanıza göre çalışması kısıtlanabilir.</p>
                                     </div>
+
+                                    <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                                        <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                                            <div>
+                                                <label class="label">Mail Sağlayıcısı</label>
+                                                <select name="mail_server[provider]" class="input" data-mail-provider-select>
+                                                    <option value="smtp" {{ $selectedMailProvider === 'smtp' ? 'selected' : '' }}>Özel SMTP</option>
+                                                    <option value="office365_smtp" {{ $selectedMailProvider === 'office365_smtp' ? 'selected' : '' }}>Office 365 SMTP (klasik)</option>
+                                                    <option value="office365_oauth" {{ $selectedMailProvider === 'office365_oauth' ? 'selected' : '' }}>Office 365 Modern Auth (önerilen)</option>
+                                                </select>
+                                            </div>
+                                            <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
+                                                Office 365 Modern Auth seçildiğinde tenant ID, client ID, client secret ve gönderici mailbox alanları gerekir.
+                                                Admin 2FA kodları da bu mail hattı üzerinden gönderilir.
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div class="grid gap-4 md:grid-cols-2">
-                                        <div><label class="label">MAIL_HOST</label><input class="input" type="text" name="mail_server[host]" value="{{ old('mail_server.host', $mailServer['host'] ?? '') }}"></div>
-                                        <div><label class="label">MAIL_PORT</label><input class="input" type="number" min="1" max="65535" name="mail_server[port]" value="{{ old('mail_server.port', $mailServer['port'] ?? 587) }}"></div>
+                                        <div><label class="label">MAIL_HOST</label><input class="input" type="text" name="mail_server[host]" value="{{ old('mail_server.host', $mailServer['host'] ?? '') }}" data-mail-host></div>
+                                        <div><label class="label">MAIL_PORT</label><input class="input" type="number" min="1" max="65535" name="mail_server[port]" value="{{ old('mail_server.port', $mailServer['port'] ?? 587) }}" data-mail-port></div>
                                     </div>
-                                    <div class="grid gap-4 md:grid-cols-2">
-                                        <div><label class="label">MAIL_USERNAME</label><input class="input" type="text" name="mail_server[username]" value="" placeholder="{{ !empty($mailServer['has_username']) ? 'Kayıtlı kullanıcı var, değiştirmek için yeniden girin' : 'Opsiyonel' }}"></div>
-                                        <div><label class="label">MAIL_PASSWORD</label><input class="input" type="password" name="mail_server[password]" value="" placeholder="{{ !empty($mailServer['has_password']) ? 'Kayıtlı şifre var, boş bırakılırsa korunur' : 'Opsiyonel' }}"></div>
-                                    </div>
+
                                     <div class="grid gap-4 md:grid-cols-3">
                                         <div>
                                             <label class="label">MAIL_ENCRYPTION</label>
-                                            <select name="mail_server[encryption]" class="input">
+                                            <select name="mail_server[encryption]" class="input" data-mail-encryption>
                                                 <option value="none" {{ $selectedEncryption === 'none' ? 'selected' : '' }}>Yok</option>
                                                 <option value="tls" {{ $selectedEncryption === 'tls' ? 'selected' : '' }}>TLS</option>
                                                 <option value="ssl" {{ $selectedEncryption === 'ssl' ? 'selected' : '' }}>SSL</option>
@@ -819,6 +838,31 @@
                                         <div><label class="label">MAIL_FROM_ADDRESS</label><input class="input" type="email" name="mail_server[from_address]" value="{{ old('mail_server.from_address', $mailServer['from_address'] ?? '') }}"></div>
                                         <div><label class="label">MAIL_FROM_NAME</label><input class="input" type="text" name="mail_server[from_name]" value="{{ old('mail_server.from_name', $mailServer['from_name'] ?? '') }}"></div>
                                     </div>
+
+                                    <div class="{{ $selectedMailProvider === 'office365_oauth' ? 'space-y-4' : 'hidden space-y-4' }}" data-mail-provider-target="office365_oauth">
+                                        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-900">
+                                            Azure / Entra uygulamanızda SMTP için Modern Auth yetkilerini tanımlayın. Portal, access token alıp `smtp.office365.com:587` üzerinden XOAUTH2 ile bağlanır.
+                                        </div>
+                                        <div class="grid gap-4 md:grid-cols-2">
+                                            <div><label class="label">Tenant ID</label><input class="input" type="text" name="mail_server[oauth_tenant_id]" value="{{ old('mail_server.oauth_tenant_id', $mailServer['oauth_tenant_id'] ?? '') }}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div>
+                                            <div><label class="label">Client ID</label><input class="input" type="text" name="mail_server[oauth_client_id]" value="{{ old('mail_server.oauth_client_id', $mailServer['oauth_client_id'] ?? '') }}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div>
+                                        </div>
+                                        <div class="grid gap-4 md:grid-cols-2">
+                                            <div><label class="label">Client Secret</label><input class="input" type="password" name="mail_server[oauth_client_secret]" value="" placeholder="{{ !empty($mailServer['has_oauth_client_secret']) ? 'Kayıtlı secret var, boş bırakılırsa korunur' : 'Azure client secret' }}"></div>
+                                            <div><label class="label">Gönderici Mailbox</label><input class="input" type="email" name="mail_server[oauth_sender]" value="{{ old('mail_server.oauth_sender', $mailServer['oauth_sender'] ?? '') }}" placeholder="portal@sirketiniz.com"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="{{ $selectedMailProvider !== 'office365_oauth' ? 'space-y-4' : 'hidden space-y-4' }}" data-mail-provider-target="smtp">
+                                        <div class="grid gap-4 md:grid-cols-2">
+                                            <div><label class="label">MAIL_USERNAME</label><input class="input" type="text" name="mail_server[username]" value="" placeholder="{{ !empty($mailServer['has_username']) ? 'Kayıtlı kullanıcı var, değiştirmek için yeniden girin' : 'Opsiyonel' }}"></div>
+                                            <div><label class="label">MAIL_PASSWORD</label><input class="input" type="password" name="mail_server[password]" value="" placeholder="{{ !empty($mailServer['has_password']) ? 'Kayıtlı şifre var, boş bırakılırsa korunur' : 'Opsiyonel' }}"></div>
+                                        </div>
+                                        <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs leading-5 text-slate-600">
+                                            Office 365 SMTP (klasik) seçerseniz host, port ve TLS alanları otomatik doldurulur. Tenant politikanız SMTP AUTH veya temel kimlik doğrulamayı kapatmışsa Modern Auth moduna geçin.
+                                        </div>
+                                    </div>
+
                                     <div class="rounded-2xl border border-slate-200 p-4">
                                         <div class="flex flex-wrap items-center justify-between gap-3">
                                             <div>
@@ -843,13 +887,63 @@
                                         <div class="mt-5 flex items-center gap-2">
                                             <input type="hidden" name="mail_notifications[enabled]" value="0">
                                             <input type="checkbox" name="mail_notifications[enabled]" value="1" class="rounded border-slate-300 text-brand-600" {{ old('mail_notifications.enabled', !empty($mailNotifications['enabled']) ? '1' : '0') === '1' ? 'checked' : '' }}>
-                                            <label class="text-sm text-slate-700">Yeni sipariş mail bildirimleri etkin</label>
+                                            <label class="text-sm text-slate-700">Mail bildirimleri etkin</label>
+                                        </div>
+                                        @php
+                                            $newOrderState = $mailEventStates['new_order'] ?? [];
+                                            $newOrderDepartmentIds = collect($newOrderState['department_ids'] ?? [])
+                                                ->map(fn ($id) => (int) $id)
+                                                ->filter(fn ($id) => $id > 0)
+                                                ->values()
+                                                ->all();
+                                            $newOrderEnabled = old(
+                                                'mail_notifications.events.new_order.enabled',
+                                                !empty($newOrderState['enabled']) || !empty($mailNotificationEvents['new_order']['default_enabled']) ? '1' : '0'
+                                            ) === '1';
+                                        @endphp
+                                        <div class="mt-5 rounded-2xl border border-slate-200 p-5">
+                                            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                                                <div>
+                                                    <h4 class="text-sm font-semibold text-slate-900">{{ $mailNotificationEvents['new_order']['label'] ?? 'Yeni sipariş geldiğinde' }}</h4>
+                                                    <p class="mt-1 text-xs leading-5 text-slate-500">{{ $mailNotificationEvents['new_order']['description'] ?? 'Mikro entegrasyonundan ilk kez içeri alınan siparişlerde çalışır.' }}</p>
+                                                </div>
+                                                <label class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                                                    <input type="hidden" name="mail_notifications[events][new_order][enabled]" value="0">
+                                                    <input type="checkbox" name="mail_notifications[events][new_order][enabled]" value="1" class="rounded border-slate-300 text-brand-600" {{ $newOrderEnabled ? 'checked' : '' }}>
+                                                    Etkin
+                                                </label>
+                                            </div>
+                                            <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-4"
+                                                 data-department-picker
+                                                 data-input-name="mail_notifications[events][new_order][department_ids]"
+                                                 data-selected='@json($newOrderDepartmentIds)'>
+                                                <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                                                    <div class="min-w-0 flex-1">
+                                                        <label class="label">Departman Alıcıları</label>
+                                                        <select class="input" data-department-select {{ $internalDepartments->isEmpty() ? 'disabled' : '' }}>
+                                                            <option value="">Departman seçin</option>
+                                                            @foreach($internalDepartments as $department)
+                                                                <option value="{{ $department->id }}">{{ $department->name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                    <button type="button" class="btn btn-secondary" data-department-add {{ $internalDepartments->isEmpty() ? 'disabled' : '' }}>+ Ekle</button>
+                                                </div>
+                                                @if($internalDepartments->isEmpty())
+                                                    <p class="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                                                        Tanımlı departman bulunamadı. Önce departmanları oluşturup sonra alıcı eşleşmesini yapabilirsiniz.
+                                                    </p>
+                                                @endif
+                                                <div class="mt-3 flex flex-wrap gap-2" data-selected-departments></div>
+                                                <div class="hidden" data-hidden-inputs></div>
+                                                <p class="mt-3 text-xs text-slate-500">Seçilen departmanlardaki aktif iç kullanıcıların e-posta adresleri otomatik olarak To listesine eklenir.</p>
+                                            </div>
                                         </div>
                                         <div class="mt-5 grid gap-4 md:grid-cols-2">
                                             <div>
-                                                <label class="label">Grafik Departmani Alicilar</label>
+                                                <label class="label">Yeni Sipariş Ek To Listesi</label>
                                                 <textarea name="mail_notifications[graphics_to]" class="input min-h-24">{{ old('mail_notifications.graphics_to', $mailNotifications['graphics_to'] ?? '') }}</textarea>
-                                                <p class="mt-1 text-xs text-slate-500">Virgül veya boşluk ile birden fazla e-posta girilebilir.</p>
+                                                <p class="mt-1 text-xs text-slate-500">Departmanlardan gelen To alıcılarına ek olarak manuel e-posta adresleri tanımlayabilirsiniz.</p>
                                             </div>
                                             <div>
                                                 <label class="label">Yeni Sipariş Konu Şablonu</label>
@@ -860,6 +954,82 @@
                                         <div class="mt-4 grid gap-4 md:grid-cols-2">
                                             <div><label class="label">CC Listesi</label><textarea name="mail_notifications[graphics_cc]" class="input min-h-20">{{ old('mail_notifications.graphics_cc', $mailNotifications['graphics_cc'] ?? '') }}</textarea></div>
                                             <div><label class="label">BCC Listesi</label><textarea name="mail_notifications[graphics_bcc]" class="input min-h-20">{{ old('mail_notifications.graphics_bcc', $mailNotifications['graphics_bcc'] ?? '') }}</textarea></div>
+                                        </div>
+                                        @php
+                                            $artworkUploadedState = $mailEventStates['artwork_uploaded'] ?? [];
+                                            $artworkUploadedDepartmentIds = collect($artworkUploadedState['department_ids'] ?? [])
+                                                ->map(fn ($id) => (int) $id)
+                                                ->filter(fn ($id) => $id > 0)
+                                                ->values()
+                                                ->all();
+                                            $artworkUploadedEnabled = old(
+                                                'mail_notifications.events.artwork_uploaded.enabled',
+                                                !empty($artworkUploadedState['enabled']) ? '1' : (!empty($mailNotificationEvents['artwork_uploaded']['default_enabled']) ? '1' : '0')
+                                            ) === '1';
+                                        @endphp
+                                        <div class="mt-4 rounded-2xl border border-slate-200 p-5">
+                                            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                                                <div>
+                                                    <h4 class="text-sm font-semibold text-slate-900">{{ $mailNotificationEvents['artwork_uploaded']['label'] ?? 'Artwork yüklendiğinde' }}</h4>
+                                                    <p class="mt-1 text-xs leading-5 text-slate-500">{{ $mailNotificationEvents['artwork_uploaded']['description'] ?? 'Artwork yükleme veya galeriden reuse işlemi tamamlandığında çalışır.' }}</p>
+                                                </div>
+                                                <label class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                                                    <input type="hidden" name="mail_notifications[events][artwork_uploaded][enabled]" value="0">
+                                                    <input type="checkbox" name="mail_notifications[events][artwork_uploaded][enabled]" value="1" class="rounded border-slate-300 text-brand-600" {{ $artworkUploadedEnabled ? 'checked' : '' }}>
+                                                    Etkin
+                                                </label>
+                                            </div>
+                                            <div class="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+                                                <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-4"
+                                                     data-department-picker
+                                                     data-input-name="mail_notifications[events][artwork_uploaded][department_ids]"
+                                                     data-selected='@json($artworkUploadedDepartmentIds)'>
+                                                    <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                                                        <div class="min-w-0 flex-1">
+                                                            <label class="label">Departman Alıcıları</label>
+                                                            <select class="input" data-department-select {{ $internalDepartments->isEmpty() ? 'disabled' : '' }}>
+                                                                <option value="">Departman seçin</option>
+                                                                @foreach($internalDepartments as $department)
+                                                                    <option value="{{ $department->id }}">{{ $department->name }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+                                                        <button type="button" class="btn btn-secondary" data-department-add {{ $internalDepartments->isEmpty() ? 'disabled' : '' }}>+ Ekle</button>
+                                                    </div>
+                                                    @if($internalDepartments->isEmpty())
+                                                        <p class="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                                                            Tanımlı departman bulunamadı. Önce departmanları oluşturup sonra alıcı eşleşmesini yapabilirsiniz.
+                                                        </p>
+                                                    @endif
+                                                    <div class="mt-3 flex flex-wrap gap-2" data-selected-departments></div>
+                                                    <div class="hidden" data-hidden-inputs></div>
+                                                    <p class="mt-3 text-xs text-slate-500">Seçilen departmanlardaki aktif iç kullanıcıların e-posta adresleri otomatik olarak To listesine eklenir.</p>
+                                                </div>
+
+                                                <div class="space-y-4">
+                                                    <div>
+                                                        <label class="label">Artwork Yükleme Konu Şablonu</label>
+                                                        <input class="input" type="text" name="mail_notifications[events][artwork_uploaded][subject]" value="{{ old('mail_notifications.events.artwork_uploaded.subject', $artworkUploadedState['subject'] ?? ($mailNotificationEvents['artwork_uploaded']['subject_default'] ?? 'Yeni artwork yüklendi: {order_no} / {product_code}')) }}">
+                                                    </div>
+                                                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs leading-5 text-slate-600">
+                                                        Desteklenen alanlar: {{ implode(', ', $mailNotificationEvents['artwork_uploaded']['tokens'] ?? ['{order_no}', '{supplier}', '{product_code}', '{revision_no}', '{uploaded_by}']) }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="mt-5 grid gap-4 md:grid-cols-3">
+                                                <div>
+                                                    <label class="label">Artwork Ek To Listesi</label>
+                                                    <textarea name="mail_notifications[events][artwork_uploaded][to]" class="input min-h-24">{{ old('mail_notifications.events.artwork_uploaded.to', $artworkUploadedState['to'] ?? '') }}</textarea>
+                                                </div>
+                                                <div>
+                                                    <label class="label">Artwork CC Listesi</label>
+                                                    <textarea name="mail_notifications[events][artwork_uploaded][cc]" class="input min-h-24">{{ old('mail_notifications.events.artwork_uploaded.cc', $artworkUploadedState['cc'] ?? '') }}</textarea>
+                                                </div>
+                                                <div>
+                                                    <label class="label">Artwork BCC Listesi</label>
+                                                    <textarea name="mail_notifications[events][artwork_uploaded][bcc]" class="input min-h-24">{{ old('mail_notifications.events.artwork_uploaded.bcc', $artworkUploadedState['bcc'] ?? '') }}</textarea>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div class="mt-4 grid gap-4 md:grid-cols-3">
                                             <div><label class="label">Override From Name</label><input class="input" type="text" name="mail_notifications[override_from_name]" value="{{ old('mail_notifications.override_from_name', $mailNotifications['override_from_name'] ?? '') }}" placeholder="Boş bırakılırsa fallback kullanılır"></div>
@@ -1045,7 +1215,7 @@
                                             ['key' => 'maintenance_mode', 'label' => 'Bakım Modu', 'desc' => 'Aktif edildiğinde admin dışındaki kullanıcılar bakım sayfasına yönlendirilir.', 'warn' => true],
                                             ['key' => 'allow_manual_artwork', 'label' => 'Manuel Artwork Tamamlama', 'desc' => 'Satın alma ekibinin "Manuel Gönderildi" olarak işaretleyebilmesi.', 'warn' => false],
                                             ['key' => 'data_transfer_allowed', 'label' => 'Veri Aktarımı', 'desc' => 'Local ↔ Sunucu veri aktarım özelliğinin kullanılmasına izin verir.', 'warn' => false],
-                                            ['key' => 'require_2fa_for_admin', 'label' => '2FA Admin Zorunluluğu', 'desc' => 'Admin hesapları için iki faktörlü doğrulama zorunlu olur (geliştirme planında).', 'warn' => false],
+                                            ['key' => 'require_2fa_for_admin', 'label' => '2FA Admin Zorunluluğu', 'desc' => 'Admin hesapları girişte e-posta ile gelen 6 haneli doğrulama kodunu girmek zorunda olur.', 'warn' => false],
                                             ['key' => 'preview_png_required', 'label' => 'PNG Önizleme Zorunluluğu', 'desc' => 'Artwork yüklemelerinde PNG önizleme dosyası zorunlu kılınır.', 'warn' => false],
                                             ['key' => 'supplier_auto_create', 'label' => 'Otomatik Tedarikçi Oluşturma', 'desc' => 'ERP entegrasyonunda eşleşmeyen tedarikçiler otomatik olarak oluşturulur.', 'warn' => true],
                                         ];
@@ -2103,6 +2273,129 @@ docker compose exec app php artisan portal:update</textarea>
         </div>
     </div>
 </dialog>
+
+<script>
+(function () {
+    const providerSelect = document.querySelector('[data-mail-provider-select]');
+    if (!providerSelect) return;
+
+    const hostInput = document.querySelector('[data-mail-host]');
+    const portInput = document.querySelector('[data-mail-port]');
+    const encryptionInput = document.querySelector('[data-mail-encryption]');
+    const targets = document.querySelectorAll('[data-mail-provider-target]');
+
+    function applyProviderState() {
+        const provider = providerSelect.value;
+        const useOauth = provider === 'office365_oauth';
+        const useOffice365Preset = provider === 'office365_smtp' || provider === 'office365_oauth';
+
+        targets.forEach(function (target) {
+            const key = target.getAttribute('data-mail-provider-target');
+            const shouldShow = key === 'office365_oauth' ? useOauth : !useOauth;
+            target.classList.toggle('hidden', !shouldShow);
+        });
+
+        if (useOffice365Preset) {
+            if (hostInput) hostInput.value = 'smtp.office365.com';
+            if (portInput) portInput.value = '587';
+            if (encryptionInput) encryptionInput.value = 'tls';
+        }
+    }
+
+    providerSelect.addEventListener('change', applyProviderState);
+    applyProviderState();
+})();
+</script>
+<script>
+(function () {
+    document.querySelectorAll('[data-department-picker]').forEach(function (picker) {
+        const select = picker.querySelector('[data-department-select]');
+        const addButton = picker.querySelector('[data-department-add]');
+        const list = picker.querySelector('[data-selected-departments]');
+        const hiddenInputs = picker.querySelector('[data-hidden-inputs]');
+        const inputName = picker.getAttribute('data-input-name');
+
+        let selected = [];
+
+        try {
+            selected = JSON.parse(picker.getAttribute('data-selected') || '[]')
+                .map(function (value) { return Number(value); })
+                .filter(function (value) { return Number.isInteger(value) && value > 0; });
+        } catch (error) {
+            selected = [];
+        }
+
+        function labels() {
+            return Array.from(select ? select.options : [])
+                .filter(function (option) { return option.value; })
+                .reduce(function (carry, option) {
+                    carry[Number(option.value)] = option.textContent.trim();
+                    return carry;
+                }, {});
+        }
+
+        function render() {
+            const departmentLabels = labels();
+
+            hiddenInputs.innerHTML = '';
+            list.innerHTML = '';
+
+            if (selected.length === 0) {
+                const emptyState = document.createElement('span');
+                emptyState.className = 'text-xs text-slate-400';
+                emptyState.textContent = 'Departman seçilmedi.';
+                list.appendChild(emptyState);
+                return;
+            }
+
+            selected.forEach(function (departmentId) {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = inputName + '[]';
+                hiddenInput.value = String(departmentId);
+                hiddenInputs.appendChild(hiddenInput);
+
+                const item = document.createElement('span');
+                item.className = 'inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-medium text-white';
+                item.innerHTML =
+                    '<span>' + (departmentLabels[departmentId] || ('Departman #' + departmentId)) + '</span>' +
+                    '<button type="button" class="rounded-full bg-white/15 px-2 py-0.5 text-[11px] hover:bg-white/25" data-remove-department="' + departmentId + '">Kaldır</button>';
+                list.appendChild(item);
+            });
+        }
+
+        addButton?.addEventListener('click', function () {
+            const departmentId = Number(select?.value || 0);
+
+            if (!departmentId || selected.includes(departmentId)) {
+                return;
+            }
+
+            selected.push(departmentId);
+
+            if (select) {
+                select.value = '';
+            }
+
+            render();
+        });
+
+        list?.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-remove-department]');
+
+            if (!button) {
+                return;
+            }
+
+            const departmentId = Number(button.getAttribute('data-remove-department'));
+            selected = selected.filter(function (value) { return value !== departmentId; });
+            render();
+        });
+
+        render();
+    });
+})();
+</script>
 
 {{-- Deploy Dialog --}}
 <dialog id="deploy-dialog" class="update-modal w-full max-w-xl rounded-3xl border border-slate-200 p-0 shadow-2xl">

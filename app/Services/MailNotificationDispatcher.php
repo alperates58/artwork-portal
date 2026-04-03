@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Jobs\SendArtworkUploadedNotificationJob;
 use App\Jobs\SendMailNotificationTestJob;
 use App\Jobs\SendNewOrderNotificationJob;
+use App\Models\ArtworkRevision;
 use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\Log;
 
@@ -16,9 +18,9 @@ class MailNotificationDispatcher
 
     public function queueNewOrderNotification(PurchaseOrder $order, string $source = 'mikro'): void
     {
-        if (! $this->notifications->isEnabled()) {
+        if (! $this->notifications->eventIsEnabled('new_order')) {
             $this->audit->log('mail.notification.skipped', $order, [
-                'reason' => 'disabled',
+                'reason' => $this->notifications->isEnabled() ? 'event_disabled' : 'disabled',
                 'type' => 'new_order',
                 'source' => $source,
             ]);
@@ -52,6 +54,50 @@ class MailNotificationDispatcher
 
             $this->audit->log('mail.notification.queue_failed', $order, [
                 'type' => 'new_order',
+                'source' => $source,
+                'message' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    public function queueArtworkUploadedNotification(ArtworkRevision $revision, string $source = 'artwork_upload'): void
+    {
+        if (! $this->notifications->eventIsEnabled('artwork_uploaded')) {
+            $this->audit->log('mail.notification.skipped', $revision, [
+                'reason' => $this->notifications->isEnabled() ? 'event_disabled' : 'disabled',
+                'type' => 'artwork_uploaded',
+                'source' => $source,
+            ]);
+
+            return;
+        }
+
+        if (! $this->notifications->hasArtworkUploadedRecipients()) {
+            $this->audit->log('mail.notification.skipped', $revision, [
+                'reason' => 'missing_recipient',
+                'type' => 'artwork_uploaded',
+                'source' => $source,
+            ]);
+
+            return;
+        }
+
+        try {
+            SendArtworkUploadedNotificationJob::dispatch($revision->id, $source);
+
+            $this->audit->log('mail.notification.queued', $revision, [
+                'type' => 'artwork_uploaded',
+                'source' => $source,
+            ]);
+        } catch (\Throwable $exception) {
+            Log::error('Failed to queue artwork upload notification', [
+                'revision_id' => $revision->id,
+                'source' => $source,
+                'error' => $exception->getMessage(),
+            ]);
+
+            $this->audit->log('mail.notification.queue_failed', $revision, [
+                'type' => 'artwork_uploaded',
                 'source' => $source,
                 'message' => $exception->getMessage(),
             ]);

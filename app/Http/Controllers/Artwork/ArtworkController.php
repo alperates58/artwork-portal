@@ -12,6 +12,7 @@ use App\Models\StockCard;
 use App\Services\ArtworkRevisionNumberService;
 use App\Services\ArtworkUploadService;
 use App\Services\AuditLogService;
+use App\Services\MailNotificationDispatcher;
 use App\Services\NotificationService;
 use App\Services\PortalSettings;
 use Illuminate\Http\RedirectResponse;
@@ -24,6 +25,7 @@ class ArtworkController extends Controller
         private ArtworkRevisionNumberService $revisionNumbers,
         private AuditLogService $audit,
         private NotificationService $notifications,
+        private MailNotificationDispatcher $mailNotifications,
         private PortalSettings $settings,
     ) {}
 
@@ -131,6 +133,7 @@ class ArtworkController extends Controller
             auth()->user()->name . ' tarafından Rev.' . $revision->revision_no . ' yüklendi.',
             route('order-lines.show', $line),
         );
+        $this->mailNotifications->queueArtworkUploadedNotification($revision);
 
         return redirect()
             ->route('order-lines.show', $line)
