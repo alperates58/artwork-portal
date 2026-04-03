@@ -92,14 +92,13 @@ class ArtworkApprovalService
         $supplierId = $this->resolveSupplierId($revision);
 
         $approval = DB::transaction(function () use ($revision, $user, $notes, $supplierId) {
-            $approval = ArtworkApproval::updateOrCreate([
+            $approval = ArtworkApproval::create([
                 'artwork_revision_id' => $revision->id,
                 'user_id'             => $user->id,
-            ], [
-                'supplier_id' => $supplierId,
-                'status'      => 'rejected',
-                'notes'       => $notes,
-                'actioned_at' => now(),
+                'supplier_id'         => $supplierId,
+                'status'              => 'rejected',
+                'notes'               => $notes,
+                'actioned_at'         => now(),
             ]);
 
             $revision->artwork->orderLine->update(['artwork_status' => 'revision']);

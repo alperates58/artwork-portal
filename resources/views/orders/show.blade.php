@@ -142,7 +142,7 @@
 
                             @php
                                 $allRejections = $line->allRejectedApprovals;
-                                $isRevisionCompleted = !$line->requiresRevision() && $line->latestRejectedApproval !== null;
+                                $isRevisionCompleted = ($line->artwork_status?->value === 'uploaded') && $line->latestRejectedApproval !== null;
                             @endphp
                             @if($line->requiresRevision() || $allRejections->isNotEmpty())
                                 <div x-data="{ showCompleteForm: false }" class="mt-4">
