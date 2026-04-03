@@ -23,6 +23,7 @@ class PurchaseOrder extends Model
         'shipment_payload',
         'erp_source',
         'source_metadata',
+        'erp_closed_at',
         'order_date',
         'due_date',
         'notes',
@@ -37,6 +38,7 @@ class PurchaseOrder extends Model
             'shipment_synced_at' => 'datetime',
             'shipment_payload' => 'array',
             'source_metadata' => 'array',
+            'erp_closed_at' => 'datetime',
         ];
     }
 
@@ -73,6 +75,16 @@ class PurchaseOrder extends Model
         return $query->where('status', 'active');
     }
 
+    public function scopeErpOpen(Builder $query): Builder
+    {
+        return $query->whereNull('erp_closed_at');
+    }
+
+    public function scopeErpClosed(Builder $query): Builder
+    {
+        return $query->whereNotNull('erp_closed_at');
+    }
+
     public function scopeForSupplier($query, int $supplierId)
     {
         return $query->where('supplier_id', $supplierId);
@@ -101,6 +113,11 @@ class PurchaseOrder extends Model
                 'lines as manual_artwork_lines_count' => fn (Builder $lineQuery) => $lineQuery
                     ->whereNotNull('manual_artwork_completed_at'),
             ]);
+    }
+
+    public function getIsErpClosedAttribute(): bool
+    {
+        return $this->erp_closed_at !== null;
     }
 
     public function getStatusLabelAttribute(): string

@@ -24,6 +24,9 @@ class PortalOrderController extends Controller
             'mappedSuppliers:id,name',
         ]);
 
+        // Varsayılan: sadece ERP'de açık siparişler; ?show_closed=1 ile kapalılar da dahil edilir
+        $showClosed = $request->boolean('show_closed');
+
         $orders = PurchaseOrder::query()
             ->whereIn('supplier_id', $user->accessibleSupplierIds()->all())
             ->with([
@@ -32,8 +35,10 @@ class PortalOrderController extends Controller
                 'lines.artwork:id,order_line_id',
                 'lines.artwork.activeRevision:id,artwork_id',
             ])
+            ->when(! $showClosed, fn ($query) => $query->erpOpen())
             ->when($request->status, fn ($query) => $query->where('status', $request->status))
             ->when($request->search, fn ($query) => $query->search($request->search))
+            ->orderByRaw('erp_closed_at IS NOT NULL')
             ->orderByDesc('order_date')
             ->paginate(20)
             ->withQueryString();
@@ -42,7 +47,7 @@ class PortalOrderController extends Controller
             ?? $user->mappedSuppliers->first()?->name
             ?? 'Lider Portal';
 
-        return view('portal.orders.index', compact('orders', 'supplierDisplayName'));
+        return view('portal.orders.index', compact('orders', 'supplierDisplayName', 'showClosed'));
     }
 
     public function show(PurchaseOrder $order): View

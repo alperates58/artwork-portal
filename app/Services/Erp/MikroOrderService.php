@@ -41,6 +41,7 @@ class MikroOrderService
             'orders_updated' => 0,
             'lines_created' => 0,
             'lines_updated' => 0,
+            'orders_closed' => 0,
             'conflicts' => 0,
             'failed' => 0,
             'errors' => [],
@@ -51,12 +52,14 @@ class MikroOrderService
         $accounts = $supplier->mikroAccounts;
         $stats['accounts'] = $accounts->count();
         $seenOrders = [];
+        $hasAccountFailures = false;
 
         foreach ($accounts as $account) {
             try {
                 $orders = $this->fetchOrdersForAccount($account);
                 $accountStats = $this->syncAccountOrders($supplier, $account, $orders, $seenOrders);
             } catch (\Throwable $exception) {
+                $hasAccountFailures = true;
                 $accountStats = [
                     'orders_created' => 0,
                     'orders_updated' => 0,
@@ -82,6 +85,19 @@ class MikroOrderService
                 $accountStats['status'],
                 $accountStats['errors'] ? implode("\n", array_slice($accountStats['errors'], 0, 3)) : null
             );
+        }
+
+        // ERP'de artık bulunmayan aktif siparişleri kapat
+        $canCloseStale = $this->mikro->isEnabled()
+            && $accounts->isNotEmpty()
+            && ! $hasAccountFailures;
+
+        if ($canCloseStale) {
+            $syncedOrderNos = array_map(
+                fn ($key) => explode('|', $key, 2)[1] ?? '',
+                array_keys($seenOrders)
+            );
+            $stats['orders_closed'] = $this->closeStaleOrders($supplier, $syncedOrderNos);
         }
 
         $this->writeSyncLog($supplier, $stats);
@@ -337,6 +353,32 @@ class MikroOrderService
         return Carbon::parse($value)->toDateString();
     }
 
+    private function closeStaleOrders(Supplier $supplier, array $syncedOrderNos): int
+    {
+        $query = PurchaseOrder::query()
+            ->where('supplier_id', $supplier->id)
+            ->where('erp_source', 'mikro')
+            ->where('status', 'active')
+            ->whereNull('erp_closed_at');
+
+        if (! empty($syncedOrderNos)) {
+            $query->whereNotIn('order_no', $syncedOrderNos);
+        }
+
+        $count = $query->count();
+
+        if ($count > 0) {
+            $query->update(['erp_closed_at' => now()]);
+
+            Log::info('Mikro stale orders closed', [
+                'supplier_id' => $supplier->id,
+                'count' => $count,
+            ]);
+        }
+
+        return $count;
+    }
+
     private function markAccountSyncResult(SupplierMikroAccount $account, string $status, ?string $error = null): void
     {
         $account->forceFill([
@@ -362,6 +404,7 @@ class MikroOrderService
                 'accounts' => $stats['accounts'],
                 'orders_created' => $stats['orders_created'],
                 'orders_updated' => $stats['orders_updated'],
+                'orders_closed' => $stats['orders_closed'] ?? 0,
                 'lines_created' => $stats['lines_created'],
                 'lines_updated' => $stats['lines_updated'],
                 'conflicts' => $stats['conflicts'],

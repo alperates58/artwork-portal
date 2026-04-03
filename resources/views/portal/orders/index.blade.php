@@ -30,6 +30,13 @@
         <option value="active"    {{ request('status') === 'active'    ? 'selected' : '' }}>Aktif</option>
         <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Tamamlandı</option>
     </select>
+    <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
+        <input type="checkbox" name="show_closed" value="1"
+               {{ $showClosed ? 'checked' : '' }}
+               onchange="this.form.submit()"
+               class="rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+        Kapalı siparişleri göster
+    </label>
     <x-ui.button variant="secondary" type="submit">Filtrele</x-ui.button>
 </form>
 
@@ -39,15 +46,19 @@
         @php
             $revisionRequestCount = $order->lines->filter(fn ($line) => $line->requiresRevision())->count();
         @endphp
-        <div class="card hover:shadow-sm transition-shadow">
+        <div class="card hover:shadow-sm transition-shadow {{ $order->is_erp_closed ? 'opacity-60' : '' }}">
             <div class="p-5">
                 <div class="flex items-start justify-between gap-4">
                     <div>
                         <div class="flex items-center gap-2 mb-1">
                             <span class="font-mono font-semibold text-slate-900">{{ $order->order_no }}</span>
-                            @php $cls = $order->status === 'active' ? 'badge-success' : 'badge-gray'; @endphp
-                            <x-ui.badge :variant="str_replace('badge-', '', $cls)">{{ $order->status_label }}</x-ui.badge>
-                            @if($revisionRequestCount > 0)
+                            @if($order->is_erp_closed)
+                                <x-ui.badge variant="gray">ERP'de Kapalı</x-ui.badge>
+                            @else
+                                @php $cls = $order->status === 'active' ? 'badge-success' : 'badge-gray'; @endphp
+                                <x-ui.badge :variant="str_replace('badge-', '', $cls)">{{ $order->status_label }}</x-ui.badge>
+                            @endif
+                            @if($revisionRequestCount > 0 && ! $order->is_erp_closed)
                                 <x-ui.badge variant="danger">{{ $revisionRequestCount }} revizyon bekliyor</x-ui.badge>
                             @endif
                         </div>
