@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\ArtworkGallery;
 use App\Services\ArtworkRevisionNumberService;
+use App\Services\PortalSettings;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -23,13 +24,15 @@ class ArtworkUploadRequest extends FormRequest
 
     public function rules(): array
     {
+        $settings = app(PortalSettings::class);
+
         return [
             'source_type' => ['required', 'in:upload,gallery'],
             'artwork_file' => [
                 'required_if:source_type,upload',
                 'nullable',
                 'file',
-                'mimes:pdf,zip,ai,eps,svg,png,jpg,jpeg,tif,tiff,psd,indd',
+                $settings->allowedArtworkValidationRule(),
                 'max:1228800',
             ],
             'gallery_item_id' => ['required_if:source_type,gallery', 'nullable', 'integer', 'exists:artwork_gallery,id'],
@@ -98,11 +101,13 @@ class ArtworkUploadRequest extends FormRequest
 
     public function messages(): array
     {
+        $allowedFormats = app(PortalSettings::class)->allowedArtworkExtensionsLabel();
+
         return [
             'source_type.required' => 'Lütfen bir kaynak tipi seçin.',
             'artwork_file.required_if' => 'Yeni dosya yükleme için bir dosya seçin.',
             'artwork_file.file' => 'Geçersiz dosya.',
-            'artwork_file.mimes' => 'İzin verilen formatlar: PDF, ZIP, AI, EPS, SVG, PNG, JPG, TIF, PSD, INDD.',
+            'artwork_file.mimes' => 'İzin verilen formatlar: ' . $allowedFormats . '.',
             'artwork_file.max' => 'Maksimum dosya boyutu 1.2 GB\'dir.',
             'gallery_item_id.required_if' => 'Galeriden seçim için bir artwork seçin.',
             'stock_code.required' => 'Artwork yüklemek için stok kodu zorunludur.',

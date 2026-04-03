@@ -13,6 +13,7 @@ use App\Services\ArtworkRevisionNumberService;
 use App\Services\ArtworkUploadService;
 use App\Services\AuditLogService;
 use App\Services\NotificationService;
+use App\Services\PortalSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -23,6 +24,7 @@ class ArtworkController extends Controller
         private ArtworkRevisionNumberService $revisionNumbers,
         private AuditLogService $audit,
         private NotificationService $notifications,
+        private PortalSettings $settings,
     ) {}
 
     public function create(PurchaseOrderLine $line): View
@@ -85,8 +87,18 @@ class ArtworkController extends Controller
             ->values();
 
         $galleryCategories = ArtworkCategory::query()->orderBy('name')->get(['id', 'name']);
+        $allowedUploadAccept = $this->settings->allowedArtworkAcceptAttribute();
+        $allowedUploadExtensionsLabel = $this->settings->allowedArtworkExtensionsLabel();
 
-        return view('artworks.create', compact('line', 'resolvedStockCard', 'nextRevisionNo', 'galleryCandidates', 'galleryCategories'));
+        return view('artworks.create', compact(
+            'line',
+            'resolvedStockCard',
+            'nextRevisionNo',
+            'galleryCandidates',
+            'galleryCategories',
+            'allowedUploadAccept',
+            'allowedUploadExtensionsLabel',
+        ));
     }
 
     public function store(ArtworkUploadRequest $request, PurchaseOrderLine $line): RedirectResponse

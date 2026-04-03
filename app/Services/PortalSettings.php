@@ -28,6 +28,20 @@ class PortalSettings
 
     private const MAIL_NOTIFICATION_DEFAULT_SUBJECT = 'Yeni siparis geldi: {order_no}';
 
+    private const DEFAULT_FILE_FORMATS = [
+        ['ext' => 'PDF',  'label' => 'Adobe PDF',        'group' => 'pdf'],
+        ['ext' => 'AI',   'label' => 'Adobe Illustrator', 'group' => 'design'],
+        ['ext' => 'EPS',  'label' => 'EPS Vektör',        'group' => 'design'],
+        ['ext' => 'PSD',  'label' => 'Adobe Photoshop',   'group' => 'design'],
+        ['ext' => 'INDD', 'label' => 'Adobe InDesign',    'group' => 'design'],
+        ['ext' => 'PNG',  'label' => 'PNG Görsel',        'group' => 'image'],
+        ['ext' => 'JPG',  'label' => 'JPEG Görsel',       'group' => 'image'],
+        ['ext' => 'JPEG', 'label' => 'JPEG Görsel',       'group' => 'image'],
+        ['ext' => 'SVG',  'label' => 'SVG Vektör',        'group' => 'image'],
+        ['ext' => 'WEBP', 'label' => 'WebP Görsel',       'group' => 'image'],
+        ['ext' => 'ZIP',  'label' => 'ZIP Arşiv',         'group' => 'other'],
+    ];
+
     public function get(string $key, mixed $default = null): mixed
     {
         return $this->all()[$key] ?? $default;
@@ -372,6 +386,64 @@ class PortalSettings
         ['key' => 'design', 'label' => 'Tasarım'],
         ['key' => 'other',  'label' => 'Diğer'],
     ];
+
+    public function fileFormats(): array
+    {
+        $stored = $this->get('formats.list', null);
+
+        if ($stored) {
+            $decoded = is_string($stored) ? json_decode($stored, true) : $stored;
+
+            if (is_array($decoded)) {
+                $formats = collect($decoded)
+                    ->filter(fn ($row) => filled($row['ext'] ?? null) && filled($row['label'] ?? null))
+                    ->map(fn ($row) => [
+                        'ext' => strtoupper(trim((string) ($row['ext'] ?? ''))),
+                        'label' => trim((string) ($row['label'] ?? '')),
+                        'group' => trim((string) ($row['group'] ?? 'other')) ?: 'other',
+                    ])
+                    ->filter(fn ($row) => $row['ext'] !== '' && $row['label'] !== '')
+                    ->values()
+                    ->all();
+
+                if ($formats !== []) {
+                    return $formats;
+                }
+            }
+        }
+
+        return self::DEFAULT_FILE_FORMATS;
+    }
+
+    public function allowedArtworkExtensions(): array
+    {
+        return collect($this->fileFormats())
+            ->pluck('ext')
+            ->map(fn ($ext) => strtolower(trim((string) $ext)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function allowedArtworkValidationRule(): string
+    {
+        return 'mimes:' . implode(',', $this->allowedArtworkExtensions());
+    }
+
+    public function allowedArtworkAcceptAttribute(): string
+    {
+        return collect($this->allowedArtworkExtensions())
+            ->map(fn ($ext) => '.' . $ext)
+            ->implode(',');
+    }
+
+    public function allowedArtworkExtensionsLabel(): string
+    {
+        return collect($this->allowedArtworkExtensions())
+            ->map(fn ($ext) => strtoupper($ext))
+            ->implode(', ');
+    }
 
     private function booleanSettingValue(mixed $value): string
     {

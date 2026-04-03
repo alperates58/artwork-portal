@@ -79,6 +79,8 @@ class ArtworkGalleryController extends Controller
         $stockCodeFilter = trim((string) request('stock_code', ''));
         $stockQuickMatches = $this->buildStockQuickMatches($stockCodeFilter, $sort, $status);
         $stockHistory = $this->buildStockHistory($stockCodeFilter, $status);
+        $allowedUploadAccept = $this->settings->allowedArtworkAcceptAttribute();
+        $allowedUploadExtensionsLabel = $this->settings->allowedArtworkExtensionsLabel();
         $this->queueMissingGalleryPreviews($galleryItems->getCollection());
 
         return view('admin.artwork-gallery.index', compact(
@@ -92,6 +94,8 @@ class ArtworkGalleryController extends Controller
             'stockCodeFilter',
             'sort',
             'status',
+            'allowedUploadAccept',
+            'allowedUploadExtensionsLabel',
         ));
     }
 

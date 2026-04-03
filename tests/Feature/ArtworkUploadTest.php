@@ -365,6 +365,29 @@ class ArtworkUploadTest extends TestCase
             ->assertSessionHasErrors('artwork_file');
     }
 
+    public function test_upload_rejects_extension_removed_from_settings(): void
+    {
+        SystemSetting::query()->create([
+            'group' => 'formats',
+            'key' => 'formats.list',
+            'value' => json_encode([
+                ['ext' => 'PDF', 'label' => 'Adobe PDF', 'group' => 'pdf'],
+                ['ext' => 'AI', 'label' => 'Adobe Illustrator', 'group' => 'design'],
+            ], JSON_UNESCAPED_UNICODE),
+        ]);
+
+        $file = UploadedFile::fake()->create('arsiv.zip', 100, 'application/zip');
+
+        $this->actingAs($this->graphicUser)
+            ->post(route('artworks.store', $this->line), [
+                'source_type' => 'upload',
+                'artwork_file' => $file,
+                'stock_code' => $this->stockCard->stock_code,
+                'revision_no' => 1,
+            ])
+            ->assertSessionHasErrors('artwork_file');
+    }
+
     public function test_upload_requires_stock_code(): void
     {
         $file = UploadedFile::fake()->create('test.pdf', 50, 'application/pdf');

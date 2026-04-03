@@ -629,8 +629,14 @@ function galleryPage() {
     const revisionHelp  = document.getElementById('gdu-revision-help');
     const lookupState = document.getElementById('gdu-lookup-state');
     const submitBtn   = document.getElementById('gdu-submit');
+    const formatsHint = document.querySelector('#gallery-direct-upload-dialog .mb-2 span.text-xs.text-slate-400');
+    const allowedUploadExtensionsLabel = @json($allowedUploadExtensionsLabel);
 
     if (!dialog) return;
+
+    if (formatsHint) {
+        formatsHint.textContent = `${allowedUploadExtensionsLabel} · Maks. 1.2 GB`;
+    }
 
     let lookupTimer = null;
     let suggestedRevisionNo = Math.max(0, Number(revisionInput?.value ?? 0));
@@ -771,7 +777,7 @@ function galleryPage() {
                         <label class="label mb-0">Dosya</label>
                         <span class="text-xs text-slate-400">PDF, AI, EPS, ZIP, PSD, INDD, PNG, TIF · Maks. 1.2 GB</span>
                     </div>
-                    <input type="file" id="gdu-file" name="artwork_file" class="hidden" accept=".pdf,.ai,.eps,.zip,.svg,.png,.jpg,.jpeg,.tif,.tiff,.psd,.indd">
+                    <input type="file" id="gdu-file" name="artwork_file" class="hidden" accept="{{ $allowedUploadAccept }}">
                     <div id="gdu-drop-zone" class="cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/40 px-5 py-6 text-center transition hover:border-brand-400 hover:bg-brand-50/20">
                         <div id="gdu-drop-empty">
                             <svg class="mx-auto h-9 w-9 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">

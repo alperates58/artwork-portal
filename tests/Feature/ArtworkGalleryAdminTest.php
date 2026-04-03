@@ -14,6 +14,7 @@ use App\Models\ArtworkTag;
 use App\Models\PurchaseOrderLine;
 use App\Models\StockCard;
 use App\Models\Supplier;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\ArtworkPreviewGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -274,6 +275,32 @@ class ArtworkGalleryAdminTest extends TestCase
             GenerateGalleryPreviewJob::class,
             fn (GenerateGalleryPreviewJob $job) => $job->galleryItemId === $galleryItem->id
         );
+    }
+
+    public function test_direct_gallery_upload_rejects_extension_removed_from_settings(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        $stockCard = StockCard::factory()->create([
+            'stock_code' => 'STK-889',
+            'stock_name' => 'Lider Kutu',
+        ]);
+
+        SystemSetting::query()->create([
+            'group' => 'formats',
+            'key' => 'formats.list',
+            'value' => json_encode([
+                ['ext' => 'PDF', 'label' => 'Adobe PDF', 'group' => 'pdf'],
+                ['ext' => 'PNG', 'label' => 'PNG Görsel', 'group' => 'image'],
+            ], JSON_UNESCAPED_UNICODE),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.artwork-gallery.direct-upload'), [
+                'artwork_file' => UploadedFile::fake()->create('vektor.svg', 50, 'image/svg+xml'),
+                'stock_code' => $stockCard->stock_code,
+                'revision_no' => 1,
+            ])
+            ->assertSessionHasErrors('artwork_file');
     }
 
     public function test_gallery_index_queues_missing_preview_for_supported_direct_gallery_items(): void

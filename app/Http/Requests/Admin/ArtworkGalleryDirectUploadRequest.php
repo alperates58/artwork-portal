@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Services\ArtworkRevisionNumberService;
+use App\Services\PortalSettings;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -22,11 +23,13 @@ class ArtworkGalleryDirectUploadRequest extends FormRequest
 
     public function rules(): array
     {
+        $settings = app(PortalSettings::class);
+
         return [
             'artwork_file' => [
                 'required',
                 'file',
-                'mimes:pdf,zip,ai,eps,svg,png,jpg,jpeg,tif,tiff,psd,indd',
+                $settings->allowedArtworkValidationRule(),
                 'max:1228800',
             ],
             'stock_code' => ['required', 'string', 'max:100', 'exists:stock_cards,stock_code'],
@@ -55,10 +58,12 @@ class ArtworkGalleryDirectUploadRequest extends FormRequest
 
     public function messages(): array
     {
+        $allowedFormats = app(PortalSettings::class)->allowedArtworkExtensionsLabel();
+
         return [
             'artwork_file.required' => 'Galeriye yüklemek için bir dosya seçin.',
             'artwork_file.file' => 'Geçersiz dosya.',
-            'artwork_file.mimes' => 'İzin verilen formatlar: PDF, ZIP, AI, EPS, SVG, PNG, JPG, TIF, PSD, INDD.',
+            'artwork_file.mimes' => 'İzin verilen formatlar: ' . $allowedFormats . '.',
             'artwork_file.max' => 'Maksimum dosya boyutu 1.2 GB\'dir.',
             'stock_code.required' => 'Artwork yüklemek için stok kodu zorunludur.',
             'stock_code.exists' => 'Girilen stok kodu için tanımlı stok kartı bulunamadı.',

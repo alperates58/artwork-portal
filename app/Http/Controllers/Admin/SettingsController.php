@@ -581,14 +581,7 @@ class SettingsController extends Controller
 
     private function fileFormatsConfig(): array
     {
-        $stored = $this->settings->get('formats.list', null);
-        if ($stored) {
-            $decoded = is_string($stored) ? json_decode($stored, true) : $stored;
-            if (is_array($decoded) && count($decoded) > 0) {
-                return $decoded;
-            }
-        }
-        return self::DEFAULT_FORMATS;
+        return $this->settings->fileFormats();
     }
 
     private function syncFileFormats(array $data): void
@@ -623,14 +616,7 @@ class SettingsController extends Controller
 
     private function fileGroupsConfig(): array
     {
-        $stored = $this->settings->get('formats.groups', null);
-        if ($stored) {
-            $decoded = is_string($stored) ? json_decode($stored, true) : $stored;
-            if (is_array($decoded) && count($decoded) > 0) {
-                return $decoded;
-            }
-        }
-        return self::DEFAULT_GROUPS;
+        return $this->settings->fileGroups();
     }
 
     private function generalSystemConfig(): array

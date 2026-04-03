@@ -68,7 +68,7 @@
             </div>
 
             <div id="upload-panel" class="space-y-4">
-                <input type="file" id="artwork_file" name="artwork_file" class="hidden" accept=".pdf,.ai,.eps,.zip,.svg,.png,.jpg,.jpeg,.tif,.tiff,.psd,.indd">
+                <input type="file" id="artwork_file" name="artwork_file" class="hidden" accept="{{ $allowedUploadAccept }}">
 
                 <div>
                     <div class="mb-2 flex items-center justify-between gap-3">
@@ -321,6 +321,8 @@ const galleryFilterInput = document.getElementById('galleryFilterInput');
 const galleryCategoryFilter = document.getElementById('galleryCategoryFilter');
 const galleryEmptyState = document.getElementById('galleryEmptyState');
 const galleryCards = Array.from(document.querySelectorAll('[data-gallery-item]'));
+const uploadFormatsHint = document.querySelector('#upload-panel .mb-2 span.text-xs.text-slate-400');
+const allowedUploadExtensionsLabel = @json($allowedUploadExtensionsLabel);
 const nextRevisionNo = {{ $nextRevisionNoValue }};
 
 let stockLookupTimer = null;
@@ -677,6 +679,10 @@ form.addEventListener('submit', function (event) {
 });
 
 window.addEventListener('DOMContentLoaded', () => {
+    if (uploadFormatsHint) {
+        uploadFormatsHint.textContent = `Zorunlu · ${allowedUploadExtensionsLabel}`;
+    }
+
     if (stockInput.value.trim()) resolveStockCard();
     applySuggestedUploadRevision(nextRevisionNo);
     setSourceMode(sourceTypeInput.value || 'upload');
