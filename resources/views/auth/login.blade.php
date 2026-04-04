@@ -241,9 +241,17 @@
                     </div>
 
                     <div class="sm:col-span-2">
-                        <label class="label" for="reg-phone">Telefon</label>
-                        <input type="tel" id="reg-phone" name="phone"
-                               class="input w-full" placeholder="+90 5xx xxx xx xx" maxlength="50">
+                        <label class="label" for="reg-phone-local">Telefon</label>
+                        <input type="hidden" id="reg-phone" name="phone" value="">
+                        <div class="flex overflow-hidden rounded-2xl border border-slate-200 bg-white focus-within:border-brand-300 focus-within:ring-4 focus-within:ring-brand-100/70">
+                            <div class="flex min-w-[92px] items-center justify-center border-r border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-600">
+                                +90
+                            </div>
+                            <input type="tel" id="reg-phone-local"
+                                   class="w-full border-0 bg-transparent px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0"
+                                   inputmode="numeric" autocomplete="tel-national"
+                                   placeholder="507 123 45 67" maxlength="13" aria-label="Telefon numarası">
+                        </div>
                     </div>
 
                     <div class="sm:col-span-2">
@@ -280,6 +288,8 @@
         const submitBtn    = document.getElementById('register-submit');
         const submitText   = document.getElementById('register-submit-text');
         const spinner      = document.getElementById('register-submit-spinner');
+        const phoneInput   = document.getElementById('reg-phone');
+        const phoneLocal   = document.getElementById('reg-phone-local');
 
         function openModal() {
             modal.classList.remove('hidden');
@@ -294,11 +304,57 @@
             successBox.classList.add('hidden');
             form.reset();
             clearErrors();
+            syncPhoneValue();
         }
         function clearErrors() {
             document.querySelectorAll('.err').forEach(el => { el.textContent = ''; el.classList.add('hidden'); });
             globalErr.textContent = '';
             globalErr.classList.add('hidden');
+        }
+        function digitsOnly(value) {
+            return value.replace(/\D/g, '');
+        }
+        function normalizeLocalPhoneDigits(value) {
+            let digits = digitsOnly(value);
+
+            if (digits.length > 10 && digits.startsWith('90')) {
+                digits = digits.slice(2);
+            }
+
+            if (digits.startsWith('0')) {
+                digits = digits.slice(1);
+            }
+
+            return digits.slice(0, 10);
+        }
+        function formatLocalPhone(value) {
+            const digits = normalizeLocalPhoneDigits(value);
+            const parts = [];
+
+            if (digits.slice(0, 3)) {
+                parts.push(digits.slice(0, 3));
+            }
+            if (digits.slice(3, 6)) {
+                parts.push(digits.slice(3, 6));
+            }
+            if (digits.slice(6, 8)) {
+                parts.push(digits.slice(6, 8));
+            }
+            if (digits.slice(8, 10)) {
+                parts.push(digits.slice(8, 10));
+            }
+
+            return parts.join(' ');
+        }
+        function syncPhoneValue() {
+            const digits = normalizeLocalPhoneDigits(phoneLocal.value);
+
+            if (!digits) {
+                phoneInput.value = '';
+                return;
+            }
+
+            phoneInput.value = '+90 ' + formatLocalPhone(digits);
         }
         function showFieldError(field, msg) {
             const el = document.getElementById('err-' + field);
@@ -310,6 +366,11 @@
             spinner.classList.toggle('hidden', !on);
         }
 
+        phoneLocal.addEventListener('input', function () {
+            this.value = formatLocalPhone(this.value);
+            syncPhoneValue();
+        });
+
         document.getElementById('open-register-modal').addEventListener('click', openModal);
         document.getElementById('close-register-modal').addEventListener('click', closeModal);
         document.getElementById('cancel-register-modal').addEventListener('click', closeModal);
@@ -319,6 +380,7 @@
         form.addEventListener('submit', async function (e) {
             e.preventDefault();
             clearErrors();
+            syncPhoneValue();
             setLoading(true);
 
             try {
