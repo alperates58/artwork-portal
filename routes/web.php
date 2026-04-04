@@ -192,6 +192,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/raporlar/bekleyen', [ReportController::class, 'pending'])->name('reports.pending');
             Route::get('/raporlar/kategori', [ReportController::class, 'category'])->name('reports.category');
             Route::get('/raporlar/stok-kodu', [ReportController::class, 'stockCode'])->name('reports.stock-code');
+            Route::get('/raporlar/izlenebilirlik', [ReportController::class, 'traceability'])->name('reports.traceability');
             Route::get('/raporlar/aktivite', [ReportController::class, 'timeline'])->name('reports.timeline');
             Route::get('/raporlar/aktivite/orders-json', [ReportController::class, 'timelineOrdersJson'])->name('reports.timeline.orders-json');
             Route::get('/raporlar/aktivite/lines-json', [ReportController::class, 'timelineLinesJson'])->name('reports.timeline.lines-json');

@@ -57,6 +57,15 @@
         </div>
     </a>
     {{-- Aktivite Akışı --}}
+    <a href="{{ route('admin.reports.traceability') }}" class="card p-4 flex items-start gap-3 hover:border-emerald-200 hover:shadow-sm transition group">
+        <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition">
+            <svg class="w-4.5 h-4.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+            <p class="text-sm font-semibold text-slate-800 group-hover:text-emerald-700 transition">İzlenebilirlik</p>
+            <p class="text-xs text-slate-500 mt-0.5">Stok kodu veya adıyla son basım izi, revizyon akışı ve gün farkları</p>
+        </div>
+    </a>
     <a href="{{ route('admin.reports.timeline') }}" class="card p-4 flex items-start gap-3 hover:border-sky-200 hover:shadow-sm transition group">
         <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-sky-50 flex items-center justify-center group-hover:bg-sky-100 transition">
             <svg class="w-4.5 h-4.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>

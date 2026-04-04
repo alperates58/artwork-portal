@@ -12,6 +12,7 @@ use App\Models\OrderNote;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\Supplier;
+use App\Services\TraceabilityReportService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -316,6 +317,33 @@ class ReportController extends Controller
             ->get();
 
         return view('admin.reports.stock-code', compact('items', 'revisionCounts', 'searchCode'));
+    }
+
+    public function traceability(Request $request, TraceabilityReportService $traceabilityReport): View
+    {
+        $this->checkAccess();
+
+        $suppliers = Supplier::query()->orderBy('name')->get(['id', 'name']);
+        $search = trim((string) $request->input('query', ''));
+        $selectedSupplierId = $request->integer('supplier_id') ?: null;
+
+        $report = $traceabilityReport->search(
+            search: $search,
+            supplierId: $selectedSupplierId,
+        );
+
+        $items = $report['items'];
+        $latestPrinted = $report['latestPrinted'];
+        $summary = $report['summary'];
+
+        return view('admin.reports.traceability', compact(
+            'suppliers',
+            'search',
+            'selectedSupplierId',
+            'items',
+            'latestPrinted',
+            'summary',
+        ));
     }
 
     public function category(): View
