@@ -87,6 +87,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/siparisler/{order}/duzenle', [OrderController::class, 'edit'])->name('orders.edit');
         Route::patch('/siparisler/{order}', [OrderController::class, 'update'])->name('orders.update');
         Route::delete('/siparisler/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
+        Route::get('/siparisler/{order}/pdf', [OrderController::class, 'exportPdf'])->name('orders.pdf');
         Route::post('/siparisler/{order}/notlar', [OrderController::class, 'storeNote'])->name('orders.notes.store');
         Route::patch('/siparisler/{order}/notlar/{note}', [OrderController::class, 'updateNote'])->name('orders.notes.update');
 

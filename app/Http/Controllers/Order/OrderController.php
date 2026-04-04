@@ -14,8 +14,10 @@ use App\Services\AuditLogService;
 use App\Services\DashboardCacheService;
 use App\Services\NotificationService;
 use App\Services\PortalSettings;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -248,6 +250,33 @@ class OrderController extends Controller
         });
 
         return view('orders.show', compact('order', 'timeline'));
+    }
+
+    public function exportPdf(PurchaseOrder $order): Response
+    {
+        $this->authorize('view', $order);
+
+        $order->load([
+            'supplier',
+            'createdBy',
+            'lines.artwork.activeRevision.uploadedBy',
+            'lines.artwork.revisions' => fn ($query) => $query->orderByDesc('revision_no'),
+            'lines.artwork.revisions.uploadedBy:id,name',
+            'lines.artwork.revisions.rejectedApprovals.user:id,name',
+            'lines.artwork.revisions.rejectedApprovals.supplier:id,name',
+            'orderNotes.user:id,name',
+            'orderNotes.replies.user:id,name',
+            'lines.lineNotes.user:id,name',
+        ]);
+
+        $this->audit->log('order.pdf.export', $order, ['order_no' => $order->order_no]);
+
+        $pdf = Pdf::loadView('orders.pdf', compact('order'))
+            ->setPaper('a4', 'portrait');
+
+        $filename = 'siparis-' . str($order->order_no)->slug() . '.pdf';
+
+        return $pdf->download($filename);
     }
 
     public function create(): View

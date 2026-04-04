@@ -4,6 +4,12 @@
 
 @section('header-actions')
     <a href="{{ route('orders.index') }}" class="btn btn-secondary px-4 py-2 text-sm">Listeye Dön</a>
+    <a href="{{ route('orders.pdf', $order) }}" target="_blank" class="btn btn-secondary px-4 py-2 text-sm inline-flex items-center gap-1.5">
+        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        </svg>
+        PDF İndir
+    </a>
     @can('update', $order)
         <a href="{{ route('orders.edit', $order) }}" class="btn btn-secondary px-4 py-2 text-sm">Düzenle</a>
     @endcan
