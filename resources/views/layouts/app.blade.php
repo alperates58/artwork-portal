@@ -259,6 +259,17 @@
                                 @endif
 
                                 @if($canViewUsers)
+                                    @php $pendingRegistrations = \App\Models\SupplierRegistration::pending()->count(); @endphp
+                                    <a href="{{ route('admin.supplier-registrations.index') }}"
+                                       title="Kayıt Talepleri"
+                                       class="sidebar-link {{ request()->routeIs('admin.supplier-registrations.*') ? 'active' : '' }}">
+                                        <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                                        <span class="sb-label flex-1">Kayıt Talepleri</span>
+                                        @if($pendingRegistrations > 0)
+                                            <span class="sb-label ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">{{ $pendingRegistrations }}</span>
+                                        @endif
+                                    </a>
+
                                     <a href="{{ route('admin.users.index') }}"
                                        title="Kullanıcılar"
                                        class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">

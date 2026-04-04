@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\ReportFactoryController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\StockCardController;
 use App\Http\Controllers\Admin\SupplierController;
+use App\Http\Controllers\Admin\SupplierRegistrationAdminController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Artwork\ArtworkGalleryDownloadController;
 use App\Http\Controllers\Artwork\ArtworkGalleryPreviewController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Artwork\ArtworkPreviewController;
 use App\Http\Controllers\Artwork\DownloadController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\Auth\SupplierRegistrationController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
@@ -39,6 +41,11 @@ Route::middleware('guest')->group(function () {
     Route::post('/forgot-password', [PasswordResetController::class, 'sendReset'])->middleware('throttle:5,1')->name('password.email');
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'showReset'])->name('password.reset');
     Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])->name('password.update');
+
+    // Supplier self-registration (rate limited: 3 per 10 minutes per IP)
+    Route::post('/tedarikci-kayit', [SupplierRegistrationController::class, 'store'])
+        ->middleware('throttle:3,10')
+        ->name('supplier-registration.store');
 });
 
 Route::middleware(['auth', 'active'])->group(function () {
@@ -123,6 +130,11 @@ Route::middleware(['auth', 'active'])->group(function () {
         ->prefix('admin')
         ->name('admin.')
         ->group(function () {
+            Route::get('/kayit-talepleri', [SupplierRegistrationAdminController::class, 'index'])->name('supplier-registrations.index');
+            Route::post('/kayit-talepleri/{registration}/onayla', [SupplierRegistrationAdminController::class, 'approve'])->name('supplier-registrations.approve');
+            Route::post('/kayit-talepleri/{registration}/reddet', [SupplierRegistrationAdminController::class, 'reject'])->name('supplier-registrations.reject');
+            Route::post('/kayit-talepleri/{registration}/hosgeldiniz-maili', [SupplierRegistrationAdminController::class, 'sendWelcomeMail'])->name('supplier-registrations.welcome-mail');
+
             Route::get('/kullanicilar', [UserController::class, 'index'])->name('users.index');
             Route::get('/kullanicilar/yeni', [UserController::class, 'create'])->name('users.create');
             Route::post('/kullanicilar', [UserController::class, 'store'])->name('users.store');
