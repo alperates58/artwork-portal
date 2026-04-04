@@ -259,7 +259,10 @@ class OrderController extends Controller
         $order->load([
             'supplier',
             'createdBy',
+            'lines.manualArtworkCompletedBy:id,name',
             'lines.artwork.activeRevision.uploadedBy',
+            'lines.artwork.activeRevision.latestRejectedApproval.user:id,name',
+            'lines.artwork.activeRevision.latestRejectedApproval.supplier:id,name',
             'lines.artwork.revisions' => fn ($query) => $query->orderByDesc('revision_no'),
             'lines.artwork.revisions.uploadedBy:id,name',
             'lines.artwork.revisions.rejectedApprovals.user:id,name',
@@ -267,6 +270,7 @@ class OrderController extends Controller
             'orderNotes.user:id,name',
             'orderNotes.replies.user:id,name',
             'lines.lineNotes.user:id,name',
+            'lines.lineNotes.replies.user:id,name',
         ]);
 
         $this->audit->log('order.pdf.export', $order, ['order_no' => $order->order_no]);
