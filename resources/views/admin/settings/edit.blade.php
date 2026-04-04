@@ -791,6 +791,7 @@
                         <div class="space-y-6">
                             @php
                                 $mailEventStates = old('mail_notifications.events', $mailNotifications['events'] ?? []);
+                                $supplierRegistrationMailStates = old('supplier_registration_mail.events', $supplierRegistrationMail['events'] ?? []);
                             @endphp
                             <form method="POST" action="{{ route('admin.settings.update', ['tab' => 'mail']) }}" class="space-y-6">
                                 @csrf
@@ -1028,6 +1029,83 @@
                                                 <div>
                                                     <label class="label">Artwork BCC Listesi</label>
                                                     <textarea name="mail_notifications[events][artwork_uploaded][bcc]" class="input min-h-24">{{ old('mail_notifications.events.artwork_uploaded.bcc', $artworkUploadedState['bcc'] ?? '') }}</textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @php
+                                            $registrationSubmittedState = $supplierRegistrationMailStates['submitted'] ?? [];
+                                            $registrationSubmittedEnabled = old(
+                                                'supplier_registration_mail.events.submitted.enabled',
+                                                !empty($registrationSubmittedState['enabled']) ? '1' : (!empty($supplierRegistrationMailEvents['submitted']['default_enabled']) ? '1' : '0')
+                                            ) === '1';
+                                            $registrationApprovedState = $supplierRegistrationMailStates['approved'] ?? [];
+                                            $registrationApprovedEnabled = old(
+                                                'supplier_registration_mail.events.approved.enabled',
+                                                !empty($registrationApprovedState['enabled']) ? '1' : (!empty($supplierRegistrationMailEvents['approved']['default_enabled']) ? '1' : '0')
+                                            ) === '1';
+                                        @endphp
+                                        <div class="mt-4 rounded-2xl border border-slate-200 p-5">
+                                            <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                                                <div>
+                                                    <h4 class="text-sm font-semibold text-slate-900">Tedarikçi Kayıt Mailleri</h4>
+                                                    <p class="mt-1 text-xs leading-5 text-slate-500">Başvuru alındığında ve onaylandığında gidecek otomatik mailleri burada şablon olarak tanımlayabilirsiniz.</p>
+                                                </div>
+                                                <div class="rounded-2xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                                                    Değişken örneği: <code>Merhaba @{{kayit_user}}</code>
+                                                </div>
+                                            </div>
+                                            <div class="mt-5 grid gap-4 xl:grid-cols-2">
+                                                <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
+                                                    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                                        <div>
+                                                            <h5 class="text-sm font-semibold text-slate-900">{{ $supplierRegistrationMailEvents['submitted']['label'] ?? 'Kayıt talebi oluşturulduğunda' }}</h5>
+                                                            <p class="mt-1 text-xs leading-5 text-slate-500">{{ $supplierRegistrationMailEvents['submitted']['description'] ?? 'Başvuru sahibine onay beklediğini bildiren mail gönderir.' }}</p>
+                                                        </div>
+                                                        <label class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                                                            <input type="hidden" name="supplier_registration_mail[events][submitted][enabled]" value="0">
+                                                            <input type="checkbox" name="supplier_registration_mail[events][submitted][enabled]" value="1" class="rounded border-slate-300 text-brand-600" {{ $registrationSubmittedEnabled ? 'checked' : '' }}>
+                                                            Otomatik gönder
+                                                        </label>
+                                                    </div>
+                                                    <div class="mt-4 space-y-4">
+                                                        <div>
+                                                            <label class="label">Konu Şablonu</label>
+                                                            <input class="input" type="text" name="supplier_registration_mail[events][submitted][subject]" value="{{ old('supplier_registration_mail.events.submitted.subject', $registrationSubmittedState['subject'] ?? ($supplierRegistrationMailEvents['submitted']['subject_default'] ?? '{portal_adi} - Kayıt talebiniz alındı')) }}">
+                                                        </div>
+                                                        <div>
+                                                            <label class="label">Mail Metni</label>
+                                                            <textarea name="supplier_registration_mail[events][submitted][body]" class="input min-h-48">{{ old('supplier_registration_mail.events.submitted.body', $registrationSubmittedState['body'] ?? ($supplierRegistrationMailEvents['submitted']['body_default'] ?? '')) }}</textarea>
+                                                        </div>
+                                                        <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs leading-5 text-slate-600">
+                                                            Desteklenen değişkenler: {{ implode(', ', $supplierRegistrationMailEvents['submitted']['tokens'] ?? []) }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
+                                                    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                                        <div>
+                                                            <h5 class="text-sm font-semibold text-slate-900">{{ $supplierRegistrationMailEvents['approved']['label'] ?? 'Kayıt onaylandığında' }}</h5>
+                                                            <p class="mt-1 text-xs leading-5 text-slate-500">{{ $supplierRegistrationMailEvents['approved']['description'] ?? 'Başvuru sahibine hoş geldiniz / erişim bilgisi maili gönderir.' }}</p>
+                                                        </div>
+                                                        <label class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                                                            <input type="hidden" name="supplier_registration_mail[events][approved][enabled]" value="0">
+                                                            <input type="checkbox" name="supplier_registration_mail[events][approved][enabled]" value="1" class="rounded border-slate-300 text-brand-600" {{ $registrationApprovedEnabled ? 'checked' : '' }}>
+                                                            Otomatik gönder
+                                                        </label>
+                                                    </div>
+                                                    <div class="mt-4 space-y-4">
+                                                        <div>
+                                                            <label class="label">Konu Şablonu</label>
+                                                            <input class="input" type="text" name="supplier_registration_mail[events][approved][subject]" value="{{ old('supplier_registration_mail.events.approved.subject', $registrationApprovedState['subject'] ?? ($supplierRegistrationMailEvents['approved']['subject_default'] ?? '{portal_adi} - Hoş geldiniz')) }}">
+                                                        </div>
+                                                        <div>
+                                                            <label class="label">Mail Metni</label>
+                                                            <textarea name="supplier_registration_mail[events][approved][body]" class="input min-h-48">{{ old('supplier_registration_mail.events.approved.body', $registrationApprovedState['body'] ?? ($supplierRegistrationMailEvents['approved']['body_default'] ?? '')) }}</textarea>
+                                                        </div>
+                                                        <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs leading-5 text-slate-600">
+                                                            Desteklenen değişkenler: {{ implode(', ', $supplierRegistrationMailEvents['approved']['tokens'] ?? []) }}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

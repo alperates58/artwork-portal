@@ -27,6 +27,9 @@ class PortalSettings
         'github_updates.token',
     ];
 
+    private const SUPPLIER_REGISTRATION_SUBMITTED_DEFAULT_SUBJECT = '{portal_adi} - Kayıt talebiniz alındı';
+    private const SUPPLIER_REGISTRATION_APPROVED_DEFAULT_SUBJECT = '{portal_adi} - Hoş geldiniz';
+
     private const MAIL_NOTIFICATION_DEFAULT_SUBJECT = 'Yeni siparis geldi: {order_no}';
     private const MAIL_NOTIFICATION_DEFAULT_ARTWORK_SUBJECT = 'Yeni artwork yüklendi: {order_no} / {product_code}';
 
@@ -44,6 +47,25 @@ class PortalSettings
             'default_enabled' => false,
             'subject_default' => self::MAIL_NOTIFICATION_DEFAULT_ARTWORK_SUBJECT,
             'tokens' => ['{order_no}', '{supplier}', '{product_code}', '{revision_no}', '{uploaded_by}'],
+        ],
+    ];
+
+    private const SUPPLIER_REGISTRATION_MAIL_DEFINITIONS = [
+        'submitted' => [
+            'label' => 'Kayıt talebi oluşturulduğunda',
+            'description' => 'Tedarikçi kayıt formu gönderildiğinde başvuru sahibine onay beklediği bilgisini yollar.',
+            'default_enabled' => false,
+            'subject_default' => self::SUPPLIER_REGISTRATION_SUBMITTED_DEFAULT_SUBJECT,
+            'body_default' => "Merhaba {{kayit_user}},\n\n{{firma_adi}} için oluşturduğunuz kayıt talebiniz alınmıştır.\nTalebiniz incelendikten sonra size bilgi verilecektir.\n\nKayıt e-posta adresi: {{kayit_email}}\nKayıt tarihi: {{kayit_tarihi}}\n\nBu mesaj {{portal_adi}} tarafından otomatik olarak gönderilmiştir.",
+            'tokens' => ['{{kayit_user}}', '{{firma_adi}}', '{{kayit_email}}', '{{portal_adi}}', '{{login_url}}', '{{kayit_tarihi}}'],
+        ],
+        'approved' => [
+            'label' => 'Kayıt onaylandığında',
+            'description' => 'Yönetici kaydı onaylayıp kullanıcı oluşturduğunda başvuru sahibine hoş geldiniz / erişim bilgilendirmesi yollar.',
+            'default_enabled' => true,
+            'subject_default' => self::SUPPLIER_REGISTRATION_APPROVED_DEFAULT_SUBJECT,
+            'body_default' => "Merhaba {{kayit_user}},\n\n{{firma_adi}} için oluşturduğunuz kayıt talebiniz onaylanmıştır.\nPortala aşağıdaki bağlantıdan giriş yapabilirsiniz:\n{{login_url}}\n\nKullanıcı e-posta adresi: {{kayit_email}}\nOnay tarihi: {{onay_tarihi}}\n\nBu mesaj {{portal_adi}} tarafından otomatik olarak gönderilmiştir.",
+            'tokens' => ['{{kayit_user}}', '{{firma_adi}}', '{{kayit_email}}', '{{portal_adi}}', '{{login_url}}', '{{kayit_tarihi}}', '{{onay_tarihi}}', '{{onaylayan_kullanici}}'],
         ],
     ];
 
@@ -225,6 +247,28 @@ class PortalSettings
     public function mailNotificationEventDefinitions(): array
     {
         return self::MAIL_NOTIFICATION_EVENT_DEFINITIONS;
+    }
+
+    public function supplierRegistrationMailConfig(): array
+    {
+        $definitions = $this->supplierRegistrationMailDefinitions();
+
+        return [
+            'events' => [
+                'submitted' => $this->supplierRegistrationMailEventConfig('submitted', $definitions['submitted']),
+                'approved' => $this->supplierRegistrationMailEventConfig('approved', $definitions['approved']),
+            ],
+        ];
+    }
+
+    public function supplierRegistrationMailFormConfig(): array
+    {
+        return $this->supplierRegistrationMailConfig();
+    }
+
+    public function supplierRegistrationMailDefinitions(): array
+    {
+        return self::SUPPLIER_REGISTRATION_MAIL_DEFINITIONS;
     }
 
     public function mailServerConfig(): array
@@ -477,6 +521,24 @@ class PortalSettings
         );
     }
 
+    public function syncSupplierRegistrationMailSettings(array $settings): void
+    {
+        $definitions = $this->supplierRegistrationMailDefinitions();
+        $events = $settings['events'] ?? [];
+
+        $this->syncSupplierRegistrationMailEventSettings(
+            'submitted',
+            $events['submitted'] ?? [],
+            $definitions['submitted']
+        );
+
+        $this->syncSupplierRegistrationMailEventSettings(
+            'approved',
+            $events['approved'] ?? [],
+            $definitions['approved']
+        );
+    }
+
     private const DEFAULT_FILE_GROUPS = [
         ['key' => 'pdf',    'label' => 'PDF'],
         ['key' => 'image',  'label' => 'Görseller'],
@@ -724,6 +786,46 @@ class PortalSettings
             'mail_notifications',
             "mail_notifications.{$eventKey}_subject",
             $settings['subject'] ?? ($definition['subject_default'] ?? null)
+        );
+    }
+
+    private function supplierRegistrationMailEventConfig(string $eventKey, array $definition): array
+    {
+        return [
+            'enabled' => filter_var(
+                $this->get(
+                    "mail_notifications.supplier_registration_{$eventKey}_enabled",
+                    $definition['default_enabled'] ?? false
+                ),
+                FILTER_VALIDATE_BOOL
+            ),
+            'subject' => (string) $this->get(
+                "mail_notifications.supplier_registration_{$eventKey}_subject",
+                $definition['subject_default'] ?? ''
+            ),
+            'body' => (string) $this->get(
+                "mail_notifications.supplier_registration_{$eventKey}_body",
+                $definition['body_default'] ?? ''
+            ),
+        ];
+    }
+
+    private function syncSupplierRegistrationMailEventSettings(string $eventKey, array $settings, array $definition): void
+    {
+        $this->set(
+            'mail_notifications',
+            "mail_notifications.supplier_registration_{$eventKey}_enabled",
+            $this->booleanSettingValue($settings['enabled'] ?? ($definition['default_enabled'] ?? false))
+        );
+        $this->set(
+            'mail_notifications',
+            "mail_notifications.supplier_registration_{$eventKey}_subject",
+            $settings['subject'] ?? ($definition['subject_default'] ?? null)
+        );
+        $this->set(
+            'mail_notifications',
+            "mail_notifications.supplier_registration_{$eventKey}_body",
+            $settings['body'] ?? ($definition['body_default'] ?? null)
         );
     }
 

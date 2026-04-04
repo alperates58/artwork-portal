@@ -93,6 +93,8 @@ class SettingsController extends Controller
             'mailServer' => $this->settings->mailServerFormConfig(),
             'mailNotifications' => $this->settings->mailNotificationFormConfig(),
             'mailNotificationEvents' => $this->settings->mailNotificationEventDefinitions(),
+            'supplierRegistrationMail' => $this->settings->supplierRegistrationMailFormConfig(),
+            'supplierRegistrationMailEvents' => $this->settings->supplierRegistrationMailDefinitions(),
             'internalDepartments' => Department::query()->orderBy('name')->get(['id', 'name']),
             'githubUpdate' => $this->settings->githubUpdatesFormConfig(),
             'updateStatus' => $this->updateStatus->snapshot(),
@@ -141,6 +143,11 @@ class SettingsController extends Controller
 
         if (array_key_exists('mail_notifications', $validated)) {
             $this->settings->syncMailNotificationSettings($validated['mail_notifications']);
+            $restartQueue = true;
+        }
+
+        if (array_key_exists('supplier_registration_mail', $validated)) {
+            $this->settings->syncSupplierRegistrationMailSettings($validated['supplier_registration_mail']);
             $restartQueue = true;
         }
 
@@ -511,6 +518,18 @@ class SettingsController extends Controller
                 'mail_notifications.override_from_name' => ['nullable', 'string', 'max:255'],
                 'mail_notifications.override_from_address' => ['nullable', 'email', 'max:255'],
                 'mail_notifications.test_recipient' => ['nullable', 'email', 'max:255'],
+            ];
+        }
+
+        if ($section === 'mail' || $request->has('supplier_registration_mail')) {
+            $rules += [
+                'supplier_registration_mail.events' => ['nullable', 'array'],
+                'supplier_registration_mail.events.submitted.enabled' => ['nullable', 'boolean'],
+                'supplier_registration_mail.events.submitted.subject' => ['nullable', 'string', 'max:255'],
+                'supplier_registration_mail.events.submitted.body' => ['nullable', 'string', 'max:10000'],
+                'supplier_registration_mail.events.approved.enabled' => ['nullable', 'boolean'],
+                'supplier_registration_mail.events.approved.subject' => ['nullable', 'string', 'max:255'],
+                'supplier_registration_mail.events.approved.body' => ['nullable', 'string', 'max:10000'],
             ];
         }
 

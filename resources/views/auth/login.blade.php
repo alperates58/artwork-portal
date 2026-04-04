@@ -8,6 +8,8 @@
     $logoAsset = 'brand/logo2.png';
     $logoPath = public_path($logoAsset);
     $logoUrl = file_exists($logoPath) ? asset($logoAsset) : null;
+    $hasSupplierRegistration = \Illuminate\Support\Facades\Route::has('supplier-registration.store');
+    $supplierRegistrationUrl = $hasSupplierRegistration ? route('supplier-registration.store') : null;
 @endphp
 
 <div class="relative isolate min-h-screen overflow-hidden">
@@ -168,187 +170,191 @@
                         </form>
                     </div>
 
-                    <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                        <p class="font-medium text-slate-700">Henüz hesabınız yok mu?</p>
-                        <p class="mt-1">Tedarikçi kaydı oluşturmak için aşağıdaki butona tıklayın. Talebiniz yönetici onayından sonra aktif hale gelecektir.</p>
-                        <button type="button" id="open-register-modal"
-                                class="mt-3 w-full rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100">
-                            Tedarikçi Kaydı Oluştur
-                        </button>
-                    </div>
+                    @if($hasSupplierRegistration)
+                        <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                            <p class="font-medium text-slate-700">Henüz hesabınız yok mu?</p>
+                            <p class="mt-1">Tedarikçi kaydı oluşturmak için aşağıdaki butona tıklayın. Talebiniz yönetici onayından sonra aktif hale gelecektir.</p>
+                            <button type="button" id="open-register-modal"
+                                    class="mt-3 w-full rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100">
+                                Tedarikçi Kaydı Oluştur
+                            </button>
+                        </div>
+                    @endif
                 </div>
             </section>
         </div>
     </div>
 </div>
 
-{{-- Supplier Registration Modal --}}
-<div id="register-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 px-4 py-8">
-    <div class="w-full max-w-lg rounded-[28px] bg-white shadow-2xl overflow-y-auto max-h-[90vh]">
-        <div class="px-6 pt-6 pb-2 flex items-center justify-between border-b border-slate-100">
-            <div>
-                <h2 class="text-xl font-semibold text-slate-900">Tedarikçi Kaydı</h2>
-                <p class="mt-1 text-sm text-slate-500">Talebiniz yönetici onayından sonra aktif olacaktır.</p>
-            </div>
-            <button type="button" id="close-register-modal"
-                    class="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
-
-        <div id="register-success" class="hidden px-6 py-10 text-center">
-            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            </div>
-            <h3 class="mt-4 text-lg font-semibold text-slate-900">Talebiniz Alındı!</h3>
-            <p class="mt-2 text-sm text-slate-500">Kayıt talebiniz incelemeye alındı. En kısa sürede size bilgi verilecektir.</p>
-            <button type="button" id="close-register-success"
-                    class="mt-6 btn btn-primary px-8">Tamam</button>
-        </div>
-
-        <form id="register-form" class="px-6 py-5 space-y-4" novalidate>
-            @csrf
-
-            {{-- Honeypot --}}
-            <input type="text" name="website" id="website" value="" autocomplete="off"
-                   tabindex="-1" aria-hidden="true" style="display:none!important">
-
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div class="sm:col-span-2">
-                    <label class="label" for="reg-company-name">Firma Adı <span class="text-red-500">*</span></label>
-                    <input type="text" id="reg-company-name" name="company_name"
-                           class="input w-full" placeholder="Firma Adı A.Ş." required maxlength="200">
-                    <p class="err hidden" id="err-company-name"></p>
+@if($hasSupplierRegistration)
+    {{-- Supplier Registration Modal --}}
+    <div id="register-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 px-4 py-8">
+        <div class="w-full max-w-lg rounded-[28px] bg-white shadow-2xl overflow-y-auto max-h-[90vh]">
+            <div class="px-6 pt-6 pb-2 flex items-center justify-between border-b border-slate-100">
+                <div>
+                    <h2 class="text-xl font-semibold text-slate-900">Tedarikçi Kaydı</h2>
+                    <p class="mt-1 text-sm text-slate-500">Talebiniz yönetici onayından sonra aktif olacaktır.</p>
                 </div>
-
-                <div class="sm:col-span-2">
-                    <label class="label" for="reg-company-email">Firma E-posta <span class="text-red-500">*</span></label>
-                    <input type="email" id="reg-company-email" name="company_email"
-                           class="input w-full" placeholder="info@firma.com" required maxlength="200">
-                    <p class="err hidden" id="err-company-email"></p>
-                </div>
-
-                <div class="sm:col-span-2">
-                    <label class="label" for="reg-contact-name">Adı Soyadı (Yetkili) <span class="text-red-500">*</span></label>
-                    <input type="text" id="reg-contact-name" name="contact_name"
-                           class="input w-full" placeholder="Ad Soyad" required maxlength="200">
-                    <p class="err hidden" id="err-contact-name"></p>
-                </div>
-
-                <div class="sm:col-span-2">
-                    <label class="label" for="reg-phone">Telefon</label>
-                    <input type="tel" id="reg-phone" name="phone"
-                           class="input w-full" placeholder="+90 5xx xxx xx xx" maxlength="50">
-                </div>
-
-                <div class="sm:col-span-2">
-                    <label class="label" for="reg-notes">Notlar <span class="text-slate-400 font-normal">(opsiyonel)</span></label>
-                    <textarea id="reg-notes" name="notes" rows="2"
-                              class="input w-full resize-none"
-                              placeholder="Ek açıklama veya bilgi..." maxlength="1000"></textarea>
-                </div>
-            </div>
-
-            <div id="register-global-error" class="hidden rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
-
-            <div class="flex gap-3 pt-1 border-t border-slate-100 pb-1">
-                <button type="submit" id="register-submit"
-                        class="btn btn-primary flex-1 py-3">
-                    <span id="register-submit-text">Kayıt Talebi Gönder</span>
-                    <svg id="register-submit-spinner" class="hidden h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                    </svg>
+                <button type="button" id="close-register-modal"
+                        class="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
-                <button type="button" id="cancel-register-modal" class="btn btn-secondary">İptal</button>
             </div>
-        </form>
+
+            <div id="register-success" class="hidden px-6 py-10 text-center">
+                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                    <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <h3 class="mt-4 text-lg font-semibold text-slate-900">Talebiniz Alındı!</h3>
+                <p class="mt-2 text-sm text-slate-500">Kayıt talebiniz incelemeye alındı. En kısa sürede size bilgi verilecektir.</p>
+                <button type="button" id="close-register-success"
+                        class="mt-6 btn btn-primary px-8">Tamam</button>
+            </div>
+
+            <form id="register-form" class="px-6 py-5 space-y-4" novalidate>
+                @csrf
+
+                {{-- Honeypot --}}
+                <input type="text" name="website" id="website" value="" autocomplete="off"
+                       tabindex="-1" aria-hidden="true" style="display:none!important">
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div class="sm:col-span-2">
+                        <label class="label" for="reg-company-name">Firma Adı <span class="text-red-500">*</span></label>
+                        <input type="text" id="reg-company-name" name="company_name"
+                               class="input w-full" placeholder="Firma Adı A.Ş." required maxlength="200">
+                        <p class="err hidden" id="err-company-name"></p>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="label" for="reg-company-email">Firma E-posta <span class="text-red-500">*</span></label>
+                        <input type="email" id="reg-company-email" name="company_email"
+                               class="input w-full" placeholder="info@firma.com" required maxlength="200">
+                        <p class="err hidden" id="err-company-email"></p>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="label" for="reg-contact-name">Adı Soyadı (Yetkili) <span class="text-red-500">*</span></label>
+                        <input type="text" id="reg-contact-name" name="contact_name"
+                               class="input w-full" placeholder="Ad Soyad" required maxlength="200">
+                        <p class="err hidden" id="err-contact-name"></p>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="label" for="reg-phone">Telefon</label>
+                        <input type="tel" id="reg-phone" name="phone"
+                               class="input w-full" placeholder="+90 5xx xxx xx xx" maxlength="50">
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="label" for="reg-notes">Notlar <span class="text-slate-400 font-normal">(opsiyonel)</span></label>
+                        <textarea id="reg-notes" name="notes" rows="2"
+                                  class="input w-full resize-none"
+                                  placeholder="Ek açıklama veya bilgi..." maxlength="1000"></textarea>
+                    </div>
+                </div>
+
+                <div id="register-global-error" class="hidden rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"></div>
+
+                <div class="flex gap-3 pt-1 border-t border-slate-100 pb-1">
+                    <button type="submit" id="register-submit"
+                            class="btn btn-primary flex-1 py-3">
+                        <span id="register-submit-text">Kayıt Talebi Gönder</span>
+                        <svg id="register-submit-spinner" class="hidden h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                    </button>
+                    <button type="button" id="cancel-register-modal" class="btn btn-secondary">İptal</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
 
-<script>
-(function () {
-    const modal        = document.getElementById('register-modal');
-    const form         = document.getElementById('register-form');
-    const successBox   = document.getElementById('register-success');
-    const globalErr    = document.getElementById('register-global-error');
-    const submitBtn    = document.getElementById('register-submit');
-    const submitText   = document.getElementById('register-submit-text');
-    const spinner      = document.getElementById('register-submit-spinner');
+    <script>
+    (function () {
+        const modal        = document.getElementById('register-modal');
+        const form         = document.getElementById('register-form');
+        const successBox   = document.getElementById('register-success');
+        const globalErr    = document.getElementById('register-global-error');
+        const submitBtn    = document.getElementById('register-submit');
+        const submitText   = document.getElementById('register-submit-text');
+        const spinner      = document.getElementById('register-submit-spinner');
 
-    function openModal() {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        document.body.style.overflow = 'hidden';
-    }
-    function closeModal() {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        document.body.style.overflow = '';
-        form.classList.remove('hidden');
-        successBox.classList.add('hidden');
-        form.reset();
-        clearErrors();
-    }
-    function clearErrors() {
-        document.querySelectorAll('.err').forEach(el => { el.textContent = ''; el.classList.add('hidden'); });
-        globalErr.textContent = '';
-        globalErr.classList.add('hidden');
-    }
-    function showFieldError(field, msg) {
-        const el = document.getElementById('err-' + field);
-        if (el) { el.textContent = msg; el.classList.remove('hidden'); }
-    }
-    function setLoading(on) {
-        submitBtn.disabled = on;
-        submitText.classList.toggle('hidden', on);
-        spinner.classList.toggle('hidden', !on);
-    }
-
-    document.getElementById('open-register-modal').addEventListener('click', openModal);
-    document.getElementById('close-register-modal').addEventListener('click', closeModal);
-    document.getElementById('cancel-register-modal').addEventListener('click', closeModal);
-    document.getElementById('close-register-success').addEventListener('click', closeModal);
-    modal.addEventListener('click', function (e) { if (e.target === this) closeModal(); });
-
-    form.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        clearErrors();
-        setLoading(true);
-
-        try {
-            const data = new FormData(form);
-            const res  = await fetch('{{ route("supplier-registration.store") }}', {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': data.get('_token'), 'Accept': 'application/json' },
-                body: data,
-            });
-            const json = await res.json();
-
-            if (res.ok) {
-                form.classList.add('hidden');
-                successBox.classList.remove('hidden');
-            } else if (res.status === 422 && json.errors) {
-                Object.entries(json.errors).forEach(([field, msgs]) => {
-                    const key = field.replace(/_/g, '-');
-                    showFieldError(key, msgs[0]);
-                });
-            } else if (res.status === 429) {
-                globalErr.textContent = 'Çok fazla deneme yaptınız. Lütfen birkaç dakika bekleyip tekrar deneyin.';
-                globalErr.classList.remove('hidden');
-            } else {
-                globalErr.textContent = json.message || 'Bir hata oluştu. Lütfen tekrar deneyin.';
-                globalErr.classList.remove('hidden');
-            }
-        } catch (_) {
-            globalErr.textContent = 'Bağlantı hatası. Lütfen internet bağlantınızı kontrol edin.';
-            globalErr.classList.remove('hidden');
-        } finally {
-            setLoading(false);
+        function openModal() {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
         }
-    });
-})();
-</script>
+        function closeModal() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+            form.classList.remove('hidden');
+            successBox.classList.add('hidden');
+            form.reset();
+            clearErrors();
+        }
+        function clearErrors() {
+            document.querySelectorAll('.err').forEach(el => { el.textContent = ''; el.classList.add('hidden'); });
+            globalErr.textContent = '';
+            globalErr.classList.add('hidden');
+        }
+        function showFieldError(field, msg) {
+            const el = document.getElementById('err-' + field);
+            if (el) { el.textContent = msg; el.classList.remove('hidden'); }
+        }
+        function setLoading(on) {
+            submitBtn.disabled = on;
+            submitText.classList.toggle('hidden', on);
+            spinner.classList.toggle('hidden', !on);
+        }
+
+        document.getElementById('open-register-modal').addEventListener('click', openModal);
+        document.getElementById('close-register-modal').addEventListener('click', closeModal);
+        document.getElementById('cancel-register-modal').addEventListener('click', closeModal);
+        document.getElementById('close-register-success').addEventListener('click', closeModal);
+        modal.addEventListener('click', function (e) { if (e.target === this) closeModal(); });
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            clearErrors();
+            setLoading(true);
+
+            try {
+                const data = new FormData(form);
+                const res  = await fetch(@json($supplierRegistrationUrl), {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': data.get('_token'), 'Accept': 'application/json' },
+                    body: data,
+                });
+                const json = await res.json();
+
+                if (res.ok) {
+                    form.classList.add('hidden');
+                    successBox.classList.remove('hidden');
+                } else if (res.status === 422 && json.errors) {
+                    Object.entries(json.errors).forEach(([field, msgs]) => {
+                        const key = field.replace(/_/g, '-');
+                        showFieldError(key, msgs[0]);
+                    });
+                } else if (res.status === 429) {
+                    globalErr.textContent = 'Çok fazla deneme yaptınız. Lütfen birkaç dakika bekleyip tekrar deneyin.';
+                    globalErr.classList.remove('hidden');
+                } else {
+                    globalErr.textContent = json.message || 'Bir hata oluştu. Lütfen tekrar deneyin.';
+                    globalErr.classList.remove('hidden');
+                }
+            } catch (_) {
+                globalErr.textContent = 'Bağlantı hatası. Lütfen internet bağlantınızı kontrol edin.';
+                globalErr.classList.remove('hidden');
+            } finally {
+                setLoading(false);
+            }
+        });
+    })();
+    </script>
+@endif
 
 </body>
 </html>

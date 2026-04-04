@@ -79,7 +79,7 @@
                     @csrf
                     <button type="submit" class="btn btn-secondary btn-sm w-full">
                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                        Hoşgeldiniz Maili Gönder
+                        Onay Maili Gönder
                     </button>
                 </form>
             @endif
@@ -153,7 +153,7 @@
                                 @csrf
                                 <button type="submit" class="font-medium text-slate-500 hover:text-brand-700 hover:underline flex items-center gap-1 justify-end">
                                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                                    Hoşgeldiniz Maili
+                                    Onay Maili
                                 </button>
                             </form>
                         @endif
@@ -205,7 +205,7 @@
             </div>
 
             <div class="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
-                Onaylama işlemi yapıldıktan sonra <strong>Hoşgeldiniz Maili Gönder</strong> butonu ile kullanıcıya bildirim gönderebilirsiniz.
+                Onaylama işlemi yapıldıktan sonra <strong>Onay Maili Gönder</strong> butonu ile kullanıcıya bildirim gönderebilirsiniz.
             </div>
 
             <div class="flex gap-3 pt-1">

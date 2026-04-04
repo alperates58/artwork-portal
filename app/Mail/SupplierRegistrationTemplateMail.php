@@ -2,8 +2,6 @@
 
 namespace App\Mail;
 
-use App\Models\SupplierRegistration;
-use App\Models\User;
 use App\Services\MailNotificationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -12,13 +10,13 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class SupplierWelcomeMail extends Mailable
+class SupplierRegistrationTemplateMail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public function __construct(
-        public readonly User $user,
-        public readonly SupplierRegistration $registration,
+        public readonly string $subjectLine,
+        public readonly string $bodyHtml,
     ) {}
 
     public function envelope(): Envelope
@@ -27,19 +25,17 @@ class SupplierWelcomeMail extends Mailable
 
         return new Envelope(
             from: $from ? new Address($from['address'], $from['name']) : null,
-            subject: config('portal.brand_name') . ' - Hoşgeldiniz!',
+            subject: $this->subjectLine,
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'emails.supplier-registration.welcome',
+            view: 'emails.supplier-registration.template',
             with: [
-                'user'         => $this->user,
-                'registration' => $this->registration,
-                'loginUrl'     => route('login'),
-                'brandName'    => config('portal.brand_name'),
+                'bodyHtml' => $this->bodyHtml,
+                'brandName' => config('portal.brand_name'),
             ]
         );
     }
