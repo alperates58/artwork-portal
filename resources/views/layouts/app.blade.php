@@ -166,7 +166,7 @@
     $hasPageAside       = View::hasSection('page-aside');
     $pageAsideStorageKey = trim((string) $__env->yieldContent('page-aside-storage-key', request()->route()?->getName() ?: 'default'));
     $pageSubtitle        = trim((string) $__env->yieldContent('page-subtitle', config('portal.brand_tagline')));
-    $settingsActive      = request()->routeIs('admin.settings.*') || request()->routeIs('admin.permissions.*') || request()->routeIs('admin.departments.*') || request()->routeIs('admin.data-transfer.*') || request()->routeIs('admin.reports.traceability');
+    $settingsActive      = request()->routeIs('admin.settings.*') || request()->routeIs('admin.permissions.*') || request()->routeIs('admin.departments.*') || request()->routeIs('admin.data-transfer.*');
     $settingsOpen        = $settingsActive;
 @endphp
 
@@ -355,15 +355,6 @@
                                                         <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full
                                                             {{ request()->routeIs('admin.data-transfer.*') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
                                                         Veri Aktarımı
-                                                    </a>
-                                                    <a href="{{ route('admin.reports.traceability') }}"
-                                                       class="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition
-                                                              {{ request()->routeIs('admin.reports.traceability')
-                                                                  ? 'bg-brand-50 text-brand-700'
-                                                                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800' }}">
-                                                        <span class="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full
-                                                            {{ request()->routeIs('admin.reports.traceability') ? 'bg-brand-500' : 'bg-slate-300' }}"></span>
-                                                        İzlenebilirlik Raporu
                                                     </a>
                                                 </div>
                                             </div>

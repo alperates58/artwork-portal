@@ -45,6 +45,23 @@ class SettingsController extends Controller
         'general',
     ];
 
+    private const DEFAULT_MAIL_VIEW = 'mail_server';
+
+    private const ALLOWED_MAIL_VIEWS = [
+        'mail_server',
+        'mail_notifications',
+        'supplier_registration_mail',
+        'mail_tools',
+    ];
+
+    private const DEFAULT_MIKRO_VIEW = 'mikro';
+
+    private const ALLOWED_MIKRO_VIEWS = [
+        'mikro',
+        'mikro_view_mapping',
+        'stock_card_view_mapping',
+    ];
+
     private const DEFAULT_GROUPS = [
         ['key' => 'pdf',    'label' => 'PDF'],
         ['key' => 'image',  'label' => 'Görseller'],
@@ -82,6 +99,8 @@ class SettingsController extends Controller
     {
         return view('admin.settings.edit', [
             'activeTab' => $this->resolveTab($request),
+            'activeMailView' => $this->resolveMailView($request),
+            'activeMikroView' => $this->resolveMikroView($request),
             'spaces' => $this->settings->spacesConfig(),
             'artworkStorage' => [
                 'disk' => $this->settings->filesystemDisk(),
@@ -172,7 +191,11 @@ class SettingsController extends Controller
             }
         }
 
-        return $this->redirectToTab($activeTab)->with('success', 'Sistem ayarlari guncellendi.');
+        return $this->redirectToTab(
+            $activeTab,
+            $this->resolveMailView($request),
+            $this->resolveMikroView($request)
+        )->with('success', 'Sistem ayarlari guncellendi.');
     }
 
     public function testMailConnection(Request $request): RedirectResponse
@@ -182,9 +205,17 @@ class SettingsController extends Controller
         try {
             $this->mailConnectionTester->test($this->settings->mailServerConfig());
 
-            return $this->redirectToTab($activeTab)->with('success', 'Mail sunucusu baglantisi basariyla dogrulandi.');
+            return $this->redirectToTab(
+                $activeTab,
+                $this->resolveMailView($request),
+                $this->resolveMikroView($request)
+            )->with('success', 'Mail sunucusu baglantisi basariyla dogrulandi.');
         } catch (\Throwable $exception) {
-            return $this->redirectToTab($activeTab)->with(
+            return $this->redirectToTab(
+                $activeTab,
+                $this->resolveMailView($request),
+                $this->resolveMikroView($request)
+            )->with(
                 'warning',
                 'Mail sunucusu baglanti testi basarisiz oldu: ' . $this->safeMailErrorMessage($exception)
             );
@@ -203,7 +234,11 @@ class SettingsController extends Controller
             $request->user()?->id
         );
 
-        return $this->redirectToTab($activeTab)->with(
+        return $this->redirectToTab(
+            $activeTab,
+            $this->resolveMailView($request),
+            $this->resolveMikroView($request)
+        )->with(
             $queued ? 'success' : 'warning',
             $queued
                 ? 'Test mail bildirimi kuyruga alindi.'
@@ -559,8 +594,12 @@ class SettingsController extends Controller
                     $validator->errors()->add($field, 'Spaces kullanımı için bu alan zorunludur.');
                 }
 
-                throw tap(new ValidationException($validator), function (ValidationException $exception) use ($activeTab): void {
-                    $exception->redirectTo($this->settingsTabUrl($activeTab));
+                throw tap(new ValidationException($validator), function (ValidationException $exception) use ($activeTab, $request): void {
+                    $exception->redirectTo($this->settingsTabUrl(
+                        $activeTab,
+                        $this->resolveMailView($request),
+                        $this->resolveMikroView($request)
+                    ));
                 });
             }
         }
@@ -572,8 +611,12 @@ class SettingsController extends Controller
                 'Spaces seçeneğini kullanmadan önce Storage / Spaces sekmesindeki bağlantı alanlarını tamamlayın.'
             );
 
-            throw tap(new ValidationException($validator), function (ValidationException $exception) use ($activeTab): void {
-                $exception->redirectTo($this->settingsTabUrl($activeTab));
+            throw tap(new ValidationException($validator), function (ValidationException $exception) use ($activeTab, $request): void {
+                $exception->redirectTo($this->settingsTabUrl(
+                    $activeTab,
+                    $this->resolveMailView($request),
+                    $this->resolveMikroView($request)
+                ));
             });
         }
 
@@ -587,8 +630,12 @@ class SettingsController extends Controller
                 'Office 365 Modern Auth için client secret alanı zorunludur.'
             );
 
-            throw tap(new ValidationException($validator), function (ValidationException $exception) use ($activeTab): void {
-                $exception->redirectTo($this->settingsTabUrl($activeTab));
+            throw tap(new ValidationException($validator), function (ValidationException $exception) use ($activeTab, $request): void {
+                $exception->redirectTo($this->settingsTabUrl(
+                    $activeTab,
+                    $this->resolveMailView($request),
+                    $this->resolveMikroView($request)
+                ));
             });
         }
 
@@ -600,8 +647,12 @@ class SettingsController extends Controller
         $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
-            throw tap(new ValidationException($validator), function (ValidationException $exception) use ($activeTab): void {
-                $exception->redirectTo($this->settingsTabUrl($activeTab));
+            throw tap(new ValidationException($validator), function (ValidationException $exception) use ($activeTab, $request): void {
+                $exception->redirectTo($this->settingsTabUrl(
+                    $activeTab,
+                    $this->resolveMailView($request),
+                    $this->resolveMikroView($request)
+                ));
             });
         }
 
@@ -656,14 +707,38 @@ class SettingsController extends Controller
         return in_array($tab, self::ALLOWED_TABS, true) ? $tab : self::DEFAULT_TAB;
     }
 
-    private function redirectToTab(string $tab): RedirectResponse
+    private function resolveMailView(Request $request): string
     {
-        return redirect()->to($this->settingsTabUrl($tab));
+        $mailView = $request->query('mail_view', $request->input('mail_view', self::DEFAULT_MAIL_VIEW));
+
+        return in_array($mailView, self::ALLOWED_MAIL_VIEWS, true) ? $mailView : self::DEFAULT_MAIL_VIEW;
     }
 
-    private function settingsTabUrl(string $tab): string
+    private function resolveMikroView(Request $request): string
     {
-        return route('admin.settings.edit', ['tab' => $tab]);
+        $mikroView = $request->query('mikro_view', $request->input('mikro_view', self::DEFAULT_MIKRO_VIEW));
+
+        return in_array($mikroView, self::ALLOWED_MIKRO_VIEWS, true) ? $mikroView : self::DEFAULT_MIKRO_VIEW;
+    }
+
+    private function redirectToTab(string $tab, ?string $mailView = null, ?string $mikroView = null): RedirectResponse
+    {
+        return redirect()->to($this->settingsTabUrl($tab, $mailView, $mikroView));
+    }
+
+    private function settingsTabUrl(string $tab, ?string $mailView = null, ?string $mikroView = null): string
+    {
+        $parameters = ['tab' => $tab];
+
+        if ($tab === 'mail' && filled($mailView)) {
+            $parameters['mail_view'] = $mailView;
+        }
+
+        if ($tab === 'mikro' && filled($mikroView)) {
+            $parameters['mikro_view'] = $mikroView;
+        }
+
+        return route('admin.settings.edit', $parameters);
     }
 
     private function fileFormatsConfig(): array

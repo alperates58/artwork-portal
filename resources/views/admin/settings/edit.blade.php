@@ -496,11 +496,22 @@
                     </div>
 
                     <div class="{{ $activeTab === 'mikro' ? '' : 'hidden' }}">
+                        <div class="space-y-6">
+                            <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                                <div class="flex flex-wrap gap-2" data-mikro-view-nav>
+                                    <button type="button" data-mikro-view-button="mikro" class="settings-mini-link {{ $activeMikroView === 'mikro' ? 'active' : '' }}">Mikro entegrasyonu</button>
+                                    <button type="button" data-mikro-view-button="mikro_view_mapping" class="settings-mini-link {{ $activeMikroView === 'mikro_view_mapping' ? 'active' : '' }}">Sipariş eşleme</button>
+                                    <button type="button" data-mikro-view-button="stock_card_view_mapping" class="settings-mini-link {{ $activeMikroView === 'stock_card_view_mapping' ? 'active' : '' }}">Stok kartı eşleme</button>
+                                </div>
+                            </section>
+
+                            <div data-mikro-view-panel="mikro" class="space-y-5 {{ $activeMikroView === 'mikro' ? '' : 'hidden' }}">
                         <form method="POST" action="{{ route('admin.settings.update', ['tab' => 'mikro']) }}" class="space-y-5">
                             @csrf
                             @method('PUT')
                             <input type="hidden" name="settings_section" value="mikro">
                             <input type="hidden" name="tab" value="mikro">
+                            <input type="hidden" name="mikro_view" value="{{ $activeMikroView }}" data-mikro-view-input>
                             <div class="rounded-3xl border border-slate-200 p-6">
                                 <div>
                                     <h3 class="text-lg font-semibold text-slate-900">Mikro API</h3>
@@ -539,16 +550,20 @@
                             <div class="flex justify-end"><button type="submit" class="btn btn-primary">Mikro Ayarlarını Kaydet</button></div>
                         </form>
 
+                            </div>
+
                         @php
                             $mikroFieldDefinitions = $mikroViewMapping['field_definitions'];
                             $savedSamplePayload = $mikroViewMapping['sample_payload'];
                         @endphp
 
-                        <form method="POST" action="{{ route('admin.settings.update', ['tab' => 'mikro']) }}" class="mt-6 space-y-5" id="mikro-view-mapping-form">
+                            <div data-mikro-view-panel="mikro_view_mapping" class="space-y-5 {{ $activeMikroView === 'mikro_view_mapping' ? '' : 'hidden' }}">
+                        <form method="POST" action="{{ route('admin.settings.update', ['tab' => 'mikro']) }}" class="space-y-5" id="mikro-view-mapping-form">
                             @csrf
                             @method('PUT')
                             <input type="hidden" name="settings_section" value="mikro_view_mapping">
                             <input type="hidden" name="tab" value="mikro">
+                            <input type="hidden" name="mikro_view" value="{{ $activeMikroView }}" data-mikro-view-input>
                             <input type="hidden" name="mikro_view_mapping[id]" value="{{ $mikroViewMapping['id'] ?? '' }}">
 
                             <div class="rounded-3xl border border-slate-200 p-6">
@@ -691,12 +706,16 @@
                             </div>
                         </form>
 
+                            </div>
+
                         {{-- Stok Kartı View Mapping --}}
-                        <form method="POST" action="{{ route('admin.settings.update', ['tab' => 'mikro']) }}" class="mt-6 space-y-5">
+                            <div data-mikro-view-panel="stock_card_view_mapping" class="space-y-5 {{ $activeMikroView === 'stock_card_view_mapping' ? '' : 'hidden' }}">
+                        <form method="POST" action="{{ route('admin.settings.update', ['tab' => 'mikro']) }}" class="space-y-5">
                             @csrf
                             @method('PUT')
                             <input type="hidden" name="settings_section" value="stock_card_view_mapping">
                             <input type="hidden" name="tab" value="mikro">
+                            <input type="hidden" name="mikro_view" value="{{ $activeMikroView }}" data-mikro-view-input>
                             <input type="hidden" name="stock_card_view_mapping[id]" value="{{ $stockCardViewMapping['id'] ?? '' }}">
 
                             <div class="rounded-3xl border border-slate-200 p-6">
@@ -780,11 +799,14 @@
 
                         <form method="POST" action="{{ route('admin.erp.sync-stock-cards') }}" class="mt-3 flex justify-start">
                             @csrf
+                            <input type="hidden" name="mikro_view" value="{{ $activeMikroView }}" data-mikro-view-input>
                             <button type="submit" class="btn btn-secondary"
                                     onclick="return confirm('Stok kartı senkronizasyonu kuyruğa alınacak. Devam edilsin mi?')">
                                 Stok Kartlarını Şimdi Senkronize Et
                             </button>
                         </form>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="{{ $activeTab === 'mail' ? '' : 'hidden' }}">
@@ -793,12 +815,22 @@
                                 $mailEventStates = old('mail_notifications.events', $mailNotifications['events'] ?? []);
                                 $supplierRegistrationMailStates = old('supplier_registration_mail.events', $supplierRegistrationMail['events'] ?? []);
                             @endphp
+                            <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                                <div class="flex flex-wrap gap-2" data-mail-view-nav>
+                                    <button type="button" data-mail-view-button="mail_server" class="settings-mini-link {{ $activeMailView === 'mail_server' ? 'active' : '' }}">Mail entegrasyonu</button>
+                                    <button type="button" data-mail-view-button="mail_notifications" class="settings-mini-link {{ $activeMailView === 'mail_notifications' ? 'active' : '' }}">Bildirim mailleri</button>
+                                    <button type="button" data-mail-view-button="supplier_registration_mail" class="settings-mini-link {{ $activeMailView === 'supplier_registration_mail' ? 'active' : '' }}">Kayıt mailleri</button>
+                                    <button type="button" data-mail-view-button="mail_tools" class="settings-mini-link {{ $activeMailView === 'mail_tools' ? 'active' : '' }}">Test ve tanılama</button>
+                                </div>
+                            </section>
                             <form method="POST" action="{{ route('admin.settings.update', ['tab' => 'mail']) }}" class="space-y-6">
                                 @csrf
                                 @method('PUT')
-                                <input type="hidden" name="settings_section" value="mail">
+                                <input type="hidden" name="settings_section" value="{{ $activeMailView }}" data-mail-settings-section-input>
                                 <input type="hidden" name="tab" value="mail">
-                                <div class="rounded-3xl border border-slate-200 p-6 space-y-6">
+                                <input type="hidden" name="mail_view" value="{{ $activeMailView }}" data-mail-view-input>
+                                <div class="space-y-6">
+                                    <div id="mail-server-section" data-mail-view-panel="mail_server" class="rounded-[30px] border border-slate-200 bg-white p-6 shadow-sm space-y-6 {{ $activeMailView === 'mail_server' ? '' : 'hidden' }}">
                                     <div>
                                         <h3 class="text-lg font-semibold text-slate-900">Mail Sunucusu</h3>
                                         <p class="mt-1 text-xs font-medium uppercase tracking-wide text-slate-400">Mail / Exchange</p>
@@ -864,18 +896,19 @@
                                         </div>
                                     </div>
 
-                                    <div class="rounded-2xl border border-slate-200 p-4">
+                                    <div class="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
                                         <div class="flex flex-wrap items-center justify-between gap-3">
                                             <div>
-                                                <p class="text-sm font-semibold text-slate-900">Mail Sunucusu Aksiyonları</p>
-                                                <p class="mt-1 text-xs text-slate-500">Kayıt ettikten sonra bağlantı testi ile SMTP/Exchange bağlantısını doğrulayabilirsiniz.</p>
+                                                <p class="text-sm font-semibold text-slate-900">Mail sunucusu aksiyonları</p>
+                                                <p class="mt-1 text-xs text-slate-500">Kaydettikten sonra aşağıdaki tanılama araçlarıyla bağlantıyı doğrulayabilirsiniz.</p>
                                             </div>
                                             <div class="flex flex-wrap gap-2">
                                                 <button type="submit" class="btn btn-primary">Mail Ayarlarını Kaydet</button>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="border-t border-slate-200 pt-6">
+                                    </div>
+                                    <div id="mail-notifications-section" data-mail-view-panel="mail_notifications" class="rounded-[28px] border border-slate-200 bg-slate-50/60 p-6 {{ $activeMailView === 'mail_notifications' ? '' : 'hidden' }}">
                                         <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                             <div>
                                                 <h3 class="text-lg font-semibold text-slate-900">Mail Bildirimleri</h3>
@@ -902,7 +935,7 @@
                                                 !empty($newOrderState['enabled']) || !empty($mailNotificationEvents['new_order']['default_enabled']) ? '1' : '0'
                                             ) === '1';
                                         @endphp
-                                        <div class="mt-5 rounded-2xl border border-slate-200 p-5">
+                                        <div class="mt-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                                             <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                                                 <div>
                                                     <h4 class="text-sm font-semibold text-slate-900">{{ $mailNotificationEvents['new_order']['label'] ?? 'Yeni sipariş geldiğinde' }}</h4>
@@ -968,7 +1001,7 @@
                                                 !empty($artworkUploadedState['enabled']) ? '1' : (!empty($mailNotificationEvents['artwork_uploaded']['default_enabled']) ? '1' : '0')
                                             ) === '1';
                                         @endphp
-                                        <div class="mt-4 rounded-2xl border border-slate-200 p-5">
+                                        <div class="mt-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                                             <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                                                 <div>
                                                     <h4 class="text-sm font-semibold text-slate-900">{{ $mailNotificationEvents['artwork_uploaded']['label'] ?? 'Artwork yüklendiğinde' }}</h4>
@@ -1032,6 +1065,19 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        <div class="mt-4 rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
+                                            <p class="text-sm font-semibold text-slate-900">Ortak gönderici ve test alanları</p>
+                                            <p class="mt-1 text-xs text-slate-500">Bildirim mailleri için override gönderici bilgilerini ve varsayılan test alıcısını burada saklayabilirsiniz.</p>
+                                            <div class="mt-4 grid gap-4 md:grid-cols-3">
+                                                <div><label class="label">Override From Name</label><input class="input" type="text" name="mail_notifications[override_from_name]" value="{{ old('mail_notifications.override_from_name', $mailNotifications['override_from_name'] ?? '') }}" placeholder="Boş bırakılırsa fallback kullanılır"></div>
+                                                <div><label class="label">Override From Address</label><input class="input" type="email" name="mail_notifications[override_from_address]" value="{{ old('mail_notifications.override_from_address', $mailNotifications['override_from_address'] ?? '') }}" placeholder="portal@sirketiniz.com"></div>
+                                                <div><label class="label">Kayıtlı Test Alıcısı</label><input class="input" type="email" name="mail_notifications[test_recipient]" value="{{ old('mail_notifications.test_recipient', $mailNotifications['test_recipient'] ?? '') }}" placeholder="grafik@sirketiniz.com"></div>
+                                            </div>
+                                        </div>
+                                        <div class="flex justify-end border-t border-slate-200 pt-5">
+                                            <button type="submit" class="btn btn-primary">Bildirim Ayarlarını Kaydet</button>
+                                        </div>
+                                    </div>
                                         @php
                                             $registrationSubmittedState = $supplierRegistrationMailStates['submitted'] ?? [];
                                             $registrationSubmittedEnabled = old(
@@ -1044,7 +1090,7 @@
                                                 !empty($registrationApprovedState['enabled']) ? '1' : (!empty($supplierRegistrationMailEvents['approved']['default_enabled']) ? '1' : '0')
                                             ) === '1';
                                         @endphp
-                                        <div class="mt-4 rounded-2xl border border-slate-200 p-5">
+                                        <div id="registration-mail-section" data-mail-view-panel="supplier_registration_mail" class="mt-4 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm {{ $activeMailView === 'supplier_registration_mail' ? '' : 'hidden' }}">
                                             <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                                                 <div>
                                                     <h4 class="text-sm font-semibold text-slate-900">Tedarikçi Kayıt Mailleri</h4>
@@ -1109,18 +1155,18 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="mt-4 grid gap-4 md:grid-cols-3">
-                                            <div><label class="label">Override From Name</label><input class="input" type="text" name="mail_notifications[override_from_name]" value="{{ old('mail_notifications.override_from_name', $mailNotifications['override_from_name'] ?? '') }}" placeholder="Boş bırakılırsa fallback kullanılır"></div>
-                                            <div><label class="label">Override From Address</label><input class="input" type="email" name="mail_notifications[override_from_address]" value="{{ old('mail_notifications.override_from_address', $mailNotifications['override_from_address'] ?? '') }}" placeholder="portal@sirketiniz.com"></div>
-                                            <div><label class="label">Kayıtlı Test Alıcısı</label><input class="input" type="email" name="mail_notifications[test_recipient]" value="{{ old('mail_notifications.test_recipient', $mailNotifications['test_recipient'] ?? '') }}" placeholder="grafik@sirketiniz.com"></div>
+                                        <div class="flex justify-end border-t border-slate-200 pt-5">
+                                            <button type="submit" class="btn btn-primary">Kayıt Mail Ayarlarını Kaydet</button>
                                         </div>
                                     </div>
                                 </div>
                             </form>
 
-                            <form method="POST" action="{{ route('admin.settings.mail-connection-test', ['tab' => 'mail']) }}" class="rounded-3xl border border-slate-200 p-6">
+                            <div id="mail-tools-section" data-mail-view-panel="mail_tools" class="grid gap-4 lg:grid-cols-2 {{ $activeMailView === 'mail_tools' ? '' : 'hidden' }}">
+                            <form method="POST" action="{{ route('admin.settings.mail-connection-test', ['tab' => 'mail']) }}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                                 @csrf
                                 <input type="hidden" name="tab" value="mail">
+                                <input type="hidden" name="mail_view" value="{{ $activeMailView }}" data-mail-view-input>
                                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                     <div>
                                         <p class="text-sm font-semibold text-slate-900">Bağlantıyı Test Et</p>
@@ -1130,9 +1176,10 @@
                                 </div>
                             </form>
 
-                            <form method="POST" action="{{ route('admin.settings.mail-test', ['tab' => 'mail']) }}" class="rounded-3xl border border-slate-200 p-6 space-y-4">
+                            <form method="POST" action="{{ route('admin.settings.mail-test', ['tab' => 'mail']) }}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
                                 @csrf
                                 <input type="hidden" name="tab" value="mail">
+                                <input type="hidden" name="mail_view" value="{{ $activeMailView }}" data-mail-view-input>
                                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                     <div>
                                         <p class="text-sm font-semibold text-slate-900">Test Mail Gönder</p>
@@ -1145,6 +1192,7 @@
                                     <input class="input" type="email" name="test_mail_recipient" value="{{ old('test_mail_recipient', $mailNotifications['test_recipient'] ?? '') }}" placeholder="test@sirketiniz.com">
                                 </div>
                             </form>
+                            </div>
                         </div>
                     </div>
 
@@ -2352,6 +2400,123 @@ docker compose exec app php artisan portal:update</textarea>
     </div>
 </dialog>
 
+<script>
+(function () {
+    const nav = document.querySelector('[data-mikro-view-nav]');
+    if (!nav) return;
+
+    const buttons = Array.from(nav.querySelectorAll('[data-mikro-view-button]'));
+    const panels = Array.from(document.querySelectorAll('[data-mikro-view-panel]'));
+    const hiddenInputs = Array.from(document.querySelectorAll('[data-mikro-view-input]'));
+
+    function updateUrl(view) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('mikro_view', view);
+        window.history.replaceState({}, '', url);
+    }
+
+    function applyView(view, syncUrl = true) {
+        buttons.forEach(function (button) {
+            const active = button.getAttribute('data-mikro-view-button') === view;
+            button.classList.toggle('active', active);
+        });
+
+        panels.forEach(function (panel) {
+            const active = panel.getAttribute('data-mikro-view-panel') === view;
+            panel.classList.toggle('hidden', !active);
+
+            panel.querySelectorAll('input, select, textarea, button').forEach(function (field) {
+                if (field.hasAttribute('data-mikro-view-input')) {
+                    return;
+                }
+
+                field.disabled = !active;
+            });
+        });
+
+        hiddenInputs.forEach(function (input) {
+            input.value = view;
+        });
+
+        if (syncUrl) {
+            updateUrl(view);
+        }
+    }
+
+    buttons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            applyView(button.getAttribute('data-mikro-view-button'));
+        });
+    });
+
+    const activeButton = buttons.find(function (button) {
+        return button.classList.contains('active');
+    });
+
+    applyView(activeButton?.getAttribute('data-mikro-view-button') || 'mikro', false);
+})();
+</script>
+<script>
+(function () {
+    const nav = document.querySelector('[data-mail-view-nav]');
+    if (!nav) return;
+
+    const buttons = Array.from(nav.querySelectorAll('[data-mail-view-button]'));
+    const panels = Array.from(document.querySelectorAll('[data-mail-view-panel]'));
+    const hiddenInputs = Array.from(document.querySelectorAll('[data-mail-view-input]'));
+    const settingsSectionInput = document.querySelector('[data-mail-settings-section-input]');
+
+    function updateUrl(view) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('mail_view', view);
+        window.history.replaceState({}, '', url);
+    }
+
+    function applyView(view, syncUrl = true) {
+        buttons.forEach(function (button) {
+            const active = button.getAttribute('data-mail-view-button') === view;
+            button.classList.toggle('active', active);
+        });
+
+        panels.forEach(function (panel) {
+            const active = panel.getAttribute('data-mail-view-panel') === view;
+            panel.classList.toggle('hidden', !active);
+
+            panel.querySelectorAll('input, select, textarea, button').forEach(function (field) {
+                if (field.hasAttribute('data-mail-view-input')) {
+                    return;
+                }
+
+                field.disabled = !active;
+            });
+        });
+
+        hiddenInputs.forEach(function (input) {
+            input.value = view;
+        });
+
+        if (settingsSectionInput) {
+            settingsSectionInput.value = view;
+        }
+
+        if (syncUrl) {
+            updateUrl(view);
+        }
+    }
+
+    buttons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            applyView(button.getAttribute('data-mail-view-button'));
+        });
+    });
+
+    const activeButton = buttons.find(function (button) {
+        return button.classList.contains('active');
+    });
+
+    applyView(activeButton?.getAttribute('data-mail-view-button') || 'mail_server', false);
+})();
+</script>
 <script>
 (function () {
     const providerSelect = document.querySelector('[data-mail-provider-select]');
